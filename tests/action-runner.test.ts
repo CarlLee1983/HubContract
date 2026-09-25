@@ -27,15 +27,15 @@ describe("internal action scenarios", () => {
   it("captures state around an injected action and omits the inbound response", async () => {
     const calls: string[] = [];
     const adapter: TargetAdapter = {
-      executeAction: async (action, baseUrl) => {
-        calls.push(`${action.name}:${action.parameters.platformId}:${baseUrl}`);
+      executeAction: async (action, baseUrl, _dbBefore, dbConfig) => {
+        calls.push(`${action.name}:${action.parameters.platformId}:${baseUrl}:${dbConfig?.database}`);
       },
     };
-    const runner = new ContractRunner({ baseUrl: "http://target/", targetAdapter: adapter });
+    const runner = new ContractRunner({ baseUrl: "http://target/", dbConfig: { database: "other_recording" }, targetAdapter: adapter });
     mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
     try {
       const fixture = await runner.record(actionScenario);
-      expect(calls).toEqual(["platformGameType.setActive:7:http://target"]);
+      expect(calls).toEqual(["platformGameType.setActive:7:http://target:other_recording"]);
       expect(fixture.layer1_inboundResponse).toBeUndefined();
       expect(fixture.layer2_dbState).toEqual({
         before: { platform: [{ active: 0 }] },

@@ -1,0 +1,7 @@
+{
+  "resources/js/Backend/app.js": {
+    "src": "resources/js/Backend/app.js",
+    "file": "assets/admin-contract.js",
+    "isEntry": true
+  }
+}

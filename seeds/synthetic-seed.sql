@@ -23,11 +23,13 @@ INSERT INTO `platforms` (`id`, `name`, `is_original`, `api_settings`, `active`, 
 
 TRUNCATE TABLE `game_types`;
 INSERT INTO `game_types` (`id`, `name`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'slot', 1, NOW(), NOW(), NULL);
+(1, 'slots', 1, NOW(), NOW(), NULL),
+(2, 'live', 1, NOW(), NOW(), NULL);
 
 TRUNCATE TABLE `platform_game_type_map`;
 INSERT INTO `platform_game_type_map` (`platform_id`, `game_type_id`, `active`, `cost_percent`) VALUES
-(2, 1, 1, 1.0);
+(2, 1, 1, 1.0),
+(2, 2, 1, 2.0);
 
 -- 4. Platform Currencies
 TRUNCATE TABLE `platform_currencies`;

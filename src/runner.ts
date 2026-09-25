@@ -5,6 +5,7 @@ import type {
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
+import type { DbConfig } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
 import type { RedisKeyRecord } from "./schema/scenario";
 import {
@@ -17,13 +18,7 @@ import {
 export interface RunnerOptions {
   baseUrl: string;
   targetAdapter?: TargetAdapter;
-  dbConfig?: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  };
+  dbConfig?: DbConfig;
   redisConfig?: {
     host?: string;
     port?: number;
@@ -34,7 +29,7 @@ export interface RunnerOptions {
 }
 
 export interface TargetAdapter {
-  executeAction(action: ScenarioAction, baseUrl: string): Promise<void>;
+  executeAction(action: ScenarioAction, baseUrl: string, dbBefore: Readonly<Record<string, unknown>>, dbConfig?: DbConfig): Promise<void>;
 }
 
 export interface VerifyResult {
@@ -156,6 +151,7 @@ export class ContractRunner {
   private redisProbe: RedisProbeService;
   private fixedTimestamp?: number;
   private targetAdapter?: TargetAdapter;
+  private dbConfig?: DbConfig;
 
   constructor(options: RunnerOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
@@ -163,6 +159,7 @@ export class ContractRunner {
     this.redisProbe = new RedisProbeService(options.redisConfig);
     this.fixedTimestamp = options.fixedTimestamp;
     this.targetAdapter = options.targetAdapter;
+    this.dbConfig = options.dbConfig;
   }
 
   async close(): Promise<void> {
@@ -252,7 +249,7 @@ export class ContractRunner {
     let response: CapturedRun["response"];
     if (scenario.action) {
       try {
-        await this.targetAdapter!.executeAction(scenario.action, this.baseUrl);
+        await this.targetAdapter!.executeAction(scenario.action, this.baseUrl, dbBefore, this.dbConfig);
       } catch (error) {
         throw new Error(`Action "${scenario.action.name}" failed in scenario "${scenario.id}"`, { cause: error });
       }

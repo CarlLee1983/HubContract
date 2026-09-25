@@ -12,7 +12,14 @@
         {
           "platform_id": 2,
           "game_type_id": 1,
-          "active": 1
+          "active": 1,
+          "cost_percent": 1
+        },
+        {
+          "platform_id": 2,
+          "game_type_id": 2,
+          "active": 1,
+          "cost_percent": 2
         }
       ],
       "activity_log": []
@@ -28,7 +35,14 @@
         {
           "platform_id": 2,
           "game_type_id": 1,
-          "active": 0
+          "active": 0,
+          "cost_percent": 1
+        },
+        {
+          "platform_id": 2,
+          "game_type_id": 2,
+          "active": 1,
+          "cost_percent": 2
         }
       ],
       "activity_log": []

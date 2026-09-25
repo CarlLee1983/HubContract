@@ -58,7 +58,7 @@ bun run record scenarios/internal/platform-game-type-deactivate.json --adapter l
 bun run verify scenarios/internal/platform-game-type-deactivate.json --adapter legacy
 ```
 
-內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員。
+內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 
 ### 服務與連接埠配置
 
@@ -80,7 +80,7 @@ bun run verify scenarios/internal/platform-game-type-deactivate.json --adapter l
 
 `legacy-app` 掛載的 `vendor/`（唯讀）來自 `STATIONHUB_REPO`（預設 `../StationHub`）工作區當下 `composer install` 產生的內容，**不是**從 `docker/legacy.commit` 記錄的 `LEGACY_COMMIT` 重新裝出來的。`scripts/env-up.sh` 只驗證「工作區已提交狀態（`HEAD`）的 `composer.lock`」與「pinned commit 的 `composer.lock`」是否一致（且要求工作區沒有未提交的 `composer.lock` 修改）；如果兩者不一致，`env-up.sh` 會大聲失敗並中止。
 
-後台登入頁也需要 Vite manifest；錄製環境唯讀掛載 `STATIONHUB_REPO/public/build`。`env-up.sh` 會檢查 manifest 存在，但不驗證前端 build 與 pinned commit 一致；此掛載只供登入頁渲染，內部動作的前端畫面與 HTTP 回應不在契約內。
+後台登入頁需要 Vite manifest；錄製環境唯讀掛載 `docker/admin-build/manifest.json` 供 Laravel 渲染登入頁。adapter 不載入前端資產，內部動作的前端畫面與 HTTP 回應不在契約內。
 
 但即使這個檢查通過，也只保證「composer.lock 內容一致」，不保證 `vendor/` 目錄本身確實是依照那份 `composer.lock` 重新 `composer install` 出來的（例如工作區手動改過 `vendor/` 裡的檔案、或裝的時候用了不同的 composer 版本／平台）。這是已知限制：目前沒有自動化機制驗證 `vendor/` 本身的內容雜湊，只驗證了它「應該」對應的 lock 檔一致。若懷疑 `vendor/` 與 pinned commit 不符，最保險的做法是在 `STATIONHUB_REPO` 對著 pinned commit 的 `composer.lock` 重新執行一次 `composer install`。
 

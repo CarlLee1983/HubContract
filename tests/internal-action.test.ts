@@ -20,6 +20,8 @@ describe("Legacy internal action contract (#11)", () => {
     expect(first.layer1_inboundResponse).toBeUndefined();
     expect(first.layer2_dbState?.before.platform_game_type_map[0].active).toBe(1);
     expect(first.layer2_dbState?.after.platform_game_type_map[0].active).toBe(0);
+    expect(first.layer2_dbState?.after.platform_game_type_map[1].active).toBe(1);
+    expect(first.layer2_dbState?.after.platform_game_type_map[1].cost_percent).toBe(2);
     expect(first.layer2_dbState?.after.platforms[0].active).toBe(1);
     expect(first.layer2_dbState?.after.activity_log).toEqual([]);
 

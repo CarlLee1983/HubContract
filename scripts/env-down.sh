@@ -11,8 +11,6 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # intentionally left in place (Issue #3) — env-up.sh reuses it next time.
 STATIONHUB_VENDOR_DIR="$(cd "${ROOT_DIR}/${STATIONHUB_REPO:-../StationHub}" 2>/dev/null && pwd || echo "${ROOT_DIR}")"
 export STATIONHUB_VENDOR_DIR
-STATIONHUB_BUILD_DIR="${STATIONHUB_VENDOR_DIR}/public/build"
-export STATIONHUB_BUILD_DIR
 
 echo "==> [HubContract] Stopping and removing containers..."
 cd "${ROOT_DIR}"

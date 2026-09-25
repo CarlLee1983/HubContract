@@ -20,8 +20,8 @@
       },
       {
         "name": "platform_game_type_map",
-        "sql": "SELECT platform_id, game_type_id, active FROM platform_game_type_map WHERE platform_id = ? AND game_type_id = ? ORDER BY platform_id, game_type_id",
-        "params": [2, 1]
+        "sql": "SELECT platform_id, game_type_id, active, cost_percent FROM platform_game_type_map WHERE platform_id = ? ORDER BY platform_id, game_type_id",
+        "params": [2]
       },
       {
         "name": "activity_log",
