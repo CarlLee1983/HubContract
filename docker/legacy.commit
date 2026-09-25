@@ -1,0 +1,4 @@
+# Pins the Legacy StationHub PHP source used by the recording environment to a
+# single, fixed commit (Issue #3). scripts/env-up.sh reads this and checks out
+# that commit into ./.legacy-src via `git worktree add --detach`.
+LEGACY_COMMIT=7bb0661af03383dc7322628e7bc4b5be98acf449

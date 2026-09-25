@@ -1,0 +1,37 @@
+{
+  "id": "mcp-platform-maintenance-unauthorized",
+  "name": "MCP Platform Maintenance: Missing Credential Rejected",
+  "description": "Issue #7: VerifyMcpSecret must actually reject requests that omit the X-Station-Mcp-Secret header, proving HUB_MCP_SECRET is enforced in the recording environment rather than silently bypassed by the APP_ENV=local empty-credential allowance. This targets DELETE (the side-effecting clear operation) with the maintenance flag pre-set, and asserts before == after in Redis (key still present, value unchanged) to prove the rejected request had no effect. Known limitation: set_at/until are normalized to a fixed placeholder (<ISO8601+08:00>) before comparison, so this scenario cannot detect a bug where the 403 path still silently rewrites set_at/until while leaving the rest of the value/shape unchanged — before/after would both normalize to the same placeholder and look identical either way.",
+  "route": {
+    "method": "DELETE",
+    "path": "/mcp/platform-maintenance/cq9"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    }
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    }
+  ]
+}

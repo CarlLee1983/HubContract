@@ -1,8 +1,10 @@
+import type { RedisKeyRecord } from "../schema/scenario";
+
 export interface Difference {
-  layer: "inbound_response" | "db_state" | "shared_resources" | "outbound_calls";
+  layer: "inbound_response" | "db_state" | "shared_resources";
   path: string;
-  expected: any;
-  actual: any;
+  expected: unknown;
+  actual: unknown;
   message?: string;
 }
 
@@ -87,8 +89,8 @@ export function compareDiff(
 }
 
 export function compareInboundResponse(
-  actual: { statusCode: number; headers?: Record<string, string>; body: any },
-  expected: { statusCode: number; headers?: Record<string, string>; body: any }
+  actual: { statusCode: number; headers?: Record<string, string>; body: unknown },
+  expected: { statusCode: number; headers?: Record<string, string>; body: unknown }
 ): Difference[] {
   const diffs: Difference[] = [];
 
@@ -106,19 +108,26 @@ export function compareInboundResponse(
   return diffs;
 }
 
+// Unified before/after path convention (code review LOW #9): every diff path
+// starts with the stage ("before."/"after."), followed by the domain-specific
+// path — "db_state" paths have no further domain prefix, "shared_resources"
+// (Redis) paths continue with "redis.<key>...".
 export function compareDbState(
-  actual: Record<string, any>,
-  expected: Record<string, any>
+  actual: Record<string, unknown>,
+  expected: Record<string, unknown>,
+  stage: "before" | "after" = "after"
 ): Difference[] {
-  return compareDiff(actual, expected, "", "db_state");
+  return compareDiff(actual, expected, stage, "db_state");
 }
 
 export function compareRedisState(
-  actual: Record<string, any>,
-  expected: Record<string, any>
+  actual: Record<string, RedisKeyRecord | null>,
+  expected: Record<string, RedisKeyRecord | null>,
+  stage: "before" | "after" = "after"
 ): Difference[] {
   const diffs: Difference[] = [];
   const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);
+  const pathPrefix = `${stage}.redis`;
 
   for (const key of keys) {
     const act = actual[key];
@@ -131,7 +140,7 @@ export function compareRedisState(
     if (!act && exp) {
       diffs.push({
         layer: "shared_resources",
-        path: `redis.${key}`,
+        path: `${pathPrefix}.${key}`,
         expected: exp,
         actual: null,
         message: `Expected key "${key}" to exist in Redis, but was missing`,
@@ -142,7 +151,7 @@ export function compareRedisState(
     if (act && !exp) {
       diffs.push({
         layer: "shared_resources",
-        path: `redis.${key}`,
+        path: `${pathPrefix}.${key}`,
         expected: null,
         actual: act,
         message: `Unexpected key "${key}" found in Redis`,
@@ -150,11 +159,16 @@ export function compareRedisState(
       continue;
     }
 
+    if (!act || !exp) {
+      // Unreachable: the null/undefined cases were already handled above.
+      continue;
+    }
+
     // Both exist, compare value, db, type
     if (act.type !== exp.type) {
       diffs.push({
         layer: "shared_resources",
-        path: `redis.${key}.type`,
+        path: `${pathPrefix}.${key}.type`,
         expected: exp.type,
         actual: act.type,
       });
@@ -163,24 +177,25 @@ export function compareRedisState(
     if (act.db !== exp.db) {
       diffs.push({
         layer: "shared_resources",
-        path: `redis.${key}.db`,
+        path: `${pathPrefix}.${key}.db`,
         expected: exp.db,
         actual: act.db,
       });
     }
 
-    // Value diff (ignore dynamic set_at and until timestamps if inside maintenance payload)
-    const valDiffs = compareDiff(act.value, exp.value, `redis.${key}.value`, "shared_resources");
+    // Value diff (dynamic fields such as set_at/until must already be normalized
+    // by the caller before this comparison runs; see runner.ts)
+    const valDiffs = compareDiff(act.value, exp.value, `${pathPrefix}.${key}.value`, "shared_resources");
     diffs.push(...valDiffs);
 
     // TTL tolerance check
-    const tolerance = exp.ttlTolerance ?? 30;
+    const tolerance = exp.ttlTolerance;
     if (exp.ttl > 0) {
       const ttlDiff = Math.abs(act.ttl - exp.ttl);
       if (ttlDiff > tolerance) {
         diffs.push({
           layer: "shared_resources",
-          path: `redis.${key}.ttl`,
+          path: `${pathPrefix}.${key}.ttl`,
           expected: exp.ttl,
           actual: act.ttl,
           message: `TTL difference ${ttlDiff} exceeds tolerance of ${tolerance}s`,
@@ -190,7 +205,7 @@ export function compareRedisState(
       if (act.ttl !== exp.ttl) {
         diffs.push({
           layer: "shared_resources",
-          path: `redis.${key}.ttl`,
+          path: `${pathPrefix}.${key}.ttl`,
           expected: exp.ttl,
           actual: act.ttl,
         });

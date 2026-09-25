@@ -1,14 +1,31 @@
 import Redis from "ioredis";
 import type { RedisProbeSchema, RedisKeyRecord } from "../schema/scenario";
 import type { z } from "zod";
+import { config } from "../config";
 
 export interface RedisProbeConfig {
   host?: string;
   port?: number;
   password?: string;
   prefix?: string;
-  defaultDb?: number;
 }
+
+type RedisValueReader = (client: Redis, key: string) => Promise<unknown>;
+
+const valueReaders: Record<string, RedisValueReader> = {
+  string: async (client, key) => {
+    const rawVal = await client.get(key);
+    try {
+      return rawVal ? JSON.parse(rawVal) : rawVal;
+    } catch {
+      return rawVal;
+    }
+  },
+  hash: (client, key) => client.hgetall(key),
+  list: (client, key) => client.lrange(key, 0, -1),
+  set: (client, key) => client.smembers(key),
+  zset: (client, key) => client.zrange(key, 0, "-1", "WITHSCORES"),
+};
 
 export type RedisProbe = z.infer<typeof RedisProbeSchema>;
 
@@ -19,11 +36,11 @@ export class RedisProbeService {
   private prefix: string;
   private clients: Map<number, Redis> = new Map();
 
-  constructor(config: RedisProbeConfig = {}) {
-    this.host = config.host || process.env.REDIS_HOST || "127.0.0.1";
-    this.port = config.port || Number(process.env.REDIS_PORT || 63799);
-    this.password = config.password || process.env.REDIS_PASSWORD || undefined;
-    this.prefix = config.prefix || process.env.REDIS_PREFIX || "hub_recording:";
+  constructor(redisConfig: RedisProbeConfig = {}) {
+    this.host = redisConfig.host || config.redis.host;
+    this.port = redisConfig.port || config.redis.port;
+    this.password = redisConfig.password || config.redis.password;
+    this.prefix = redisConfig.prefix || config.redis.prefix;
   }
 
   private getClient(db: number): Redis {
@@ -51,7 +68,7 @@ export class RedisProbeService {
     const state: Record<string, RedisKeyRecord | null> = {};
 
     for (const rule of probe.keys) {
-      const db = rule.db ?? 1;
+      const db = rule.db;
       const client = this.getClient(db);
       if (client.status === "wait") {
         await client.connect();
@@ -77,24 +94,8 @@ export class RedisProbeService {
 
         const type = await client.type(fullKey);
         const ttl = await client.ttl(fullKey);
-
-        let value: any = null;
-        if (type === "string") {
-          const rawVal = await client.get(fullKey);
-          try {
-            value = rawVal ? JSON.parse(rawVal) : rawVal;
-          } catch {
-            value = rawVal;
-          }
-        } else if (type === "hash") {
-          value = await client.hgetall(fullKey);
-        } else if (type === "list") {
-          value = await client.lrange(fullKey, 0, -1);
-        } else if (type === "set") {
-          value = await client.smembers(fullKey);
-        } else if (type === "zset") {
-          value = await (client as any).zrange(fullKey, 0, -1, "WITHSCORES");
-        }
+        const readValue = valueReaders[type];
+        const value = readValue ? await readValue(client, fullKey) : null;
 
         state[unprefixedKey] = {
           key: unprefixedKey,
@@ -102,7 +103,7 @@ export class RedisProbeService {
           type,
           value,
           ttl,
-          ttlTolerance: rule.ttlToleranceSeconds ?? 30,
+          ttlTolerance: rule.ttlToleranceSeconds,
         };
       }
     }

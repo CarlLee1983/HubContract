@@ -69,6 +69,6 @@ describe("Comparator", () => {
     const diffs = compareDbState(actual, expected);
     expect(diffs.length).toBe(1);
     expect(diffs[0].layer).toBe("db_state");
-    expect(diffs[0].path).toBe("deposit_record.0.amount");
+    expect(diffs[0].path).toBe("after.deposit_record.0.amount");
   });
 });

@@ -1,7 +1,7 @@
 {
   "id": "mcp-platform-maintenance-clear",
   "name": "MCP Platform Maintenance: Clear",
-  "description": "Verify DELETE /mcp/platform-maintenance/{platform} clears platform maintenance flag from Redis",
+  "description": "Verify DELETE /mcp/platform-maintenance/{platform} clears platform maintenance flag from Redis. set_at/until (both in the response body and in the pre-clear Redis value) are only checked for +08:00 ISO8601 shape (via normalizer regex_replace), not checked against each other or against `duration` (e.g. until - set_at == duration is NOT verified here).",
   "route": {
     "method": "DELETE",
     "path": "/mcp/platform-maintenance/cq9"
@@ -9,7 +9,8 @@
   "request": {
     "headers": {
       "Host": "localhost:8080",
-      "Accept": "application/json"
+      "Accept": "application/json",
+      "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c"
     }
   },
   "redisProbe": {
@@ -24,20 +25,32 @@
     {
       "target": "response.body.data.previous.set_at",
       "type": "regex_replace",
-      "pattern": "^.*$",
-      "replacement": "<NORMALIZED_DATETIME>"
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
     },
     {
       "target": "response.body.data.previous.until",
       "type": "regex_replace",
-      "pattern": "^.*$",
-      "replacement": "<NORMALIZED_DATETIME>"
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
     },
     {
       "target": "response.body.data.remaining_seconds",
       "type": "regex_replace",
       "pattern": "^.*$",
       "replacement": "<NORMALIZED_SECONDS>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
     }
   ]
 }

@@ -1,12 +1,19 @@
-import { describe, expect, it, afterAll } from "bun:test";
+import { describe, expect, it, afterAll, beforeEach } from "bun:test";
 import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema, type Fixture } from "../src/schema/scenario";
 import scenarioJson from "../scenarios/wallet/check-transaction-deposit-hit.json";
+import { config } from "../src/config";
+import { resetEnvironment } from "../src/env/reset";
 
 describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
   const runner = new ContractRunner({
-    baseUrl: "http://localhost:8080",
+    baseUrl: config.baseUrl,
   });
+
+  beforeEach(async () => {
+    // Issue #1/#3: reset to fixed synthetic seed data before every scenario.
+    await resetEnvironment();
+  }, 30000);
 
   afterAll(async () => {
     await runner.close();
@@ -75,7 +82,7 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
 
     const result2 = await runner.verify(scenario, tamperedDbFixture);
     expect(result2.passed).toBe(false);
-    const dbDiff = result2.differences.find((d) => d.path === "deposit_record.0.status");
+    const dbDiff = result2.differences.find((d) => d.path === "after.deposit_record.0.status");
     expect(dbDiff).toBeDefined();
     expect(dbDiff?.layer).toBe("db_state");
     expect(dbDiff?.expected).toBe("failed");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ScenarioDefinitionSchema } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema } from "../src/schema/scenario";
 
 describe("Scenario Schema (Zod)", () => {
   it("should validate a valid check-transaction scenario definition", () => {
@@ -63,5 +63,19 @@ describe("Scenario Schema (Zod)", () => {
       expect(pathList).toContain("route.path");
       expect(pathList).toContain("route.method");
     }
+  });
+
+  it("should reject a Redis key pattern containing '.' (code review LOW #7)", () => {
+    const result = RedisProbeKeyRuleSchema.safeParse({
+      pattern: "platform.maintenance:v1:cq9",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should accept a Redis key pattern without '.'", () => {
+    const result = RedisProbeKeyRuleSchema.safeParse({
+      pattern: "platform-maintenance:v1:cq9",
+    });
+    expect(result.success).toBe(true);
   });
 });

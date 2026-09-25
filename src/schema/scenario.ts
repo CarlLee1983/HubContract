@@ -28,7 +28,17 @@ export const DbProbeSchema = z.object({
  * Redis probe schema
  */
 export const RedisProbeKeyRuleSchema = z.object({
-  pattern: z.string().describe("Key pattern to probe, e.g. platform-maintenance:v1:* or exact key"),
+  pattern: z
+    .string()
+    .describe("Key pattern to probe, e.g. platform-maintenance:v1:* or exact key")
+    .refine(
+      (val) => !val.includes("."),
+      // normalizer target paths (e.g. redis.<key>.value.set_at) split on ".", so a
+      // key containing a literal "." would be mis-parsed as a path boundary
+      // (code review LOW #7). No Redis key in this project uses "." — reject it
+      // explicitly rather than silently mis-targeting a normalizer.
+      { message: 'Redis key pattern must not contain "." (dot-path normalizer targets split on it)' }
+    ),
   db: z.number().default(1).describe("Redis db index (default 1 per ADR-0013)"),
   ttlToleranceSeconds: z.number().default(30).describe("Acceptable difference in TTL seconds"),
 });
@@ -81,7 +91,6 @@ export type RedisKeyRecord = z.infer<typeof RedisKeyRecordSchema>;
  */
 export const FixtureSchema = z.object({
   scenarioId: z.string(),
-  recordedAt: z.string(),
   layer1_inboundResponse: z.object({
     statusCode: z.number(),
     statusText: z.string(),
@@ -92,7 +101,6 @@ export const FixtureSchema = z.object({
     .object({
       before: z.record(z.string(), z.any()),
       after: z.record(z.string(), z.any()),
-      diff: z.record(z.string(), z.any()).optional(),
     })
     .optional(),
   layer4_sharedResources: z
@@ -103,7 +111,6 @@ export const FixtureSchema = z.object({
           after: z.record(z.string(), RedisKeyRecordSchema.nullable()),
         })
         .optional(),
-      mongo: z.record(z.string(), z.any()).optional(),
     })
     .optional(),
 });

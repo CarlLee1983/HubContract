@@ -3,6 +3,8 @@ import fs from "fs/promises";
 import path from "path";
 import { ContractRunner } from "./runner";
 import { ScenarioDefinitionSchema, FixtureSchema } from "./schema/scenario";
+import { config } from "./config";
+import { resetEnvironment } from "./env/reset";
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -16,7 +18,7 @@ async function main() {
       target: {
         type: "string",
         short: "t",
-        default: "http://localhost:8080",
+        default: config.baseUrl,
       },
       scenario: {
         type: "string",
@@ -26,6 +28,10 @@ async function main() {
         type: "string",
         short: "o",
         default: "fixtures",
+      },
+      "skip-reset": {
+        type: "boolean",
+        default: false,
       },
     },
     strict: true,
@@ -39,6 +45,14 @@ async function main() {
   if (!scenarioPath) {
     console.error("Error: Please specify a scenario file path (e.g. scenarios/wallet/check-transaction-deposit-hit.json)");
     process.exit(1);
+  }
+
+  if (!values["skip-reset"]) {
+    // Issue #1/#3: reset to fixed synthetic seed data before record/verify by default.
+    // Pass --skip-reset when validating against a target that resets itself
+    // differently (e.g. StationHubNext).
+    console.log("[HubContract] Resetting recording environment to synthetic seed state...");
+    await resetEnvironment();
   }
 
   const scenarioRaw = JSON.parse(await fs.readFile(scenarioPath, "utf-8"));

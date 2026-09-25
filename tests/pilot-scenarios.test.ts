@@ -1,13 +1,20 @@
-import { describe, expect, it, afterAll } from "bun:test";
+import { describe, expect, it, afterAll, beforeEach } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
 import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema, FixtureSchema } from "../src/schema/scenario";
+import { config } from "../src/config";
+import { resetEnvironment } from "../src/env/reset";
 
 describe("Issue #5: Pilot Scenarios Contract Suite", () => {
   const runner = new ContractRunner({
-    baseUrl: "http://localhost:8080",
+    baseUrl: config.baseUrl,
   });
+
+  beforeEach(async () => {
+    // Issue #1/#3: reset to fixed synthetic seed data before every scenario.
+    await resetEnvironment();
+  }, 30000);
 
   afterAll(async () => {
     await runner.close();

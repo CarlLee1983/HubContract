@@ -1,22 +1,14 @@
 {
-  "scenarioId": "mcp-platform-maintenance-set",
+  "scenarioId": "mcp-platform-maintenance-unauthorized",
   "layer1_inboundResponse": {
-    "statusCode": 200,
-    "statusText": "OK",
+    "statusCode": 403,
+    "statusText": "Forbidden",
     "headers": {
       "content-type": "application/json"
     },
     "body": {
-      "ok": true,
-      "data": {
-        "platform": "cq9",
-        "action": "set",
-        "source": "manual",
-        "set_by": "mcp",
-        "reason": "Contract testing maintenance flag",
-        "estimated": true,
-        "duration_seconds": 3600
-      }
+      "ok": false,
+      "message": "Invalid MCP secret"
     }
   },
   "layer2_dbState": {
@@ -26,7 +18,21 @@
   "layer4_sharedResources": {
     "redis": {
       "before": {
-        "platform-maintenance:v1:cq9": null
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "mcp",
+            "set_at": "<ISO8601+08:00>",
+            "until": "<ISO8601+08:00>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
       },
       "after": {
         "platform-maintenance:v1:cq9": {

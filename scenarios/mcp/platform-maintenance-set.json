@@ -1,7 +1,7 @@
 {
   "id": "mcp-platform-maintenance-set",
   "name": "MCP Platform Maintenance: Set",
-  "description": "Verify POST /mcp/platform-maintenance/{platform} sets platform maintenance flag in Redis with TTL and correct payload",
+  "description": "Verify POST /mcp/platform-maintenance/{platform} sets platform maintenance flag in Redis with TTL and correct payload. set_at/until are only checked for +08:00 ISO8601 shape (via normalizer regex_replace), not checked against each other or against `duration` (e.g. until - set_at == duration is NOT verified here).",
   "route": {
     "method": "POST",
     "path": "/mcp/platform-maintenance/cq9"
@@ -10,7 +10,8 @@
     "headers": {
       "Host": "localhost:8080",
       "Accept": "application/json",
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c"
     },
     "body": {
       "duration": "1h",
@@ -25,5 +26,19 @@
         "ttlToleranceSeconds": 30
       }
     ]
-  }
+  },
+  "normalizers": [
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    }
+  ]
 }

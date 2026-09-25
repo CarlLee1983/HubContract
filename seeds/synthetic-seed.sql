@@ -43,7 +43,7 @@ INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_
 TRUNCATE TABLE `deposit_records`;
 INSERT INTO `deposit_records` (`id`, `no`, `trade_no`, `user_id`, `wallet_id`, `currency`, `amount`, `status`, `stage`, `note`, `expired_at`, `error_code`, `error_message`, `completed_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'DE_SYNTHETIC_001', 'TRADE_DEP_001', 1, 1, 'TWD', 100.0000, 'completed', 'finished', 'Synthetic deposit note', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), NULL),
-(2, 'DE_SYNTHETIC_002', 'TRADE_DEP_SOFT_DELETED', 1, 1, 'TWD', 200.0000, 'completed', 'finished', 'Soft deleted deposit', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), NOW()),
+(2, 'DE_SYNTHETIC_002', 'TRADE_DEP_SOFT_DELETED', 1, 1, 'TWD', 200.0000, 'completed', 'finished', 'Soft deleted deposit', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), '2025-01-01 00:00:00'),
 (3, 'DE_SYNTHETIC_003', 'TRADE_BOTH_001', 1, 1, 'TWD', 300.0000, 'completed', 'finished', 'Synthetic deposit for both hit', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), NULL),
 (4, 'DE_SYNTHETIC_004', 'TRADE_DUP_DEP_001', 1, 1, 'TWD', 400.0000, 'completed', 'finished', 'Synthetic deposit duplicate first', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), NULL),
 (5, 'DE_SYNTHETIC_005', 'TRADE_DUP_DEP_001', 1, 1, 'TWD', 450.0000, 'processing', 'ongoing', 'Synthetic deposit duplicate second', DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL, NULL, NOW(), NOW(), NOW(), NULL);

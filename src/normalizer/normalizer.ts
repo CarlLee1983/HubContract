@@ -28,7 +28,7 @@ export function setDotPath(obj: any, path: string, value: any): void {
   curr[parts[parts.length - 1]] = value;
 }
 
-export function deleteDotPath(obj: any, path: string): void {
+function deleteDotPath(obj: any, path: string): void {
   if (!obj || !path) return;
   const parts = path.split(".");
   let curr = obj;
@@ -47,41 +47,45 @@ export interface NormalizerOptions {
 }
 
 /**
- * Apply normalizer rules against an object in-place
+ * Apply normalizer rules and return a new object; the input is left untouched.
  */
 export function applyNormalizers(
   root: any,
   rules: NormalizerRule[],
   options: NormalizerOptions = {}
-): void {
+): any {
+  const result = structuredClone(root);
+
   for (const rule of rules) {
     const { target, type, pattern, replacement } = rule;
-    const currentVal = getDotPath(root, target);
+    const currentVal = getDotPath(result, target);
 
     switch (type) {
       case "current_timestamp": {
         const ts = options.fixedTimestamp ?? Math.floor(Date.now() / 1000);
-        setDotPath(root, target, ts);
+        setDotPath(result, target, ts);
         break;
       }
       case "mask": {
         if (currentVal !== undefined) {
-          setDotPath(root, target, replacement ?? "<MASKED>");
+          setDotPath(result, target, replacement ?? "<MASKED>");
         }
         break;
       }
       case "ignore": {
-        deleteDotPath(root, target);
+        deleteDotPath(result, target);
         break;
       }
       case "regex_replace": {
         if (currentVal !== undefined && currentVal !== null && pattern) {
           const strVal = String(currentVal);
           const reg = new RegExp(pattern);
-          setDotPath(root, target, strVal.replace(reg, replacement ?? ""));
+          setDotPath(result, target, strVal.replace(reg, replacement ?? ""));
         }
         break;
       }
     }
   }
+
+  return result;
 }

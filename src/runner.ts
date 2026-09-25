@@ -1,8 +1,9 @@
 import type { ScenarioDefinition, Fixture } from "./schema/scenario";
-import { signRequest } from "./signer/signature";
+import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
+import type { RedisKeyRecord } from "./schema/scenario";
 import {
   compareInboundResponse,
   compareDbState,
@@ -34,6 +35,113 @@ export interface VerifyResult {
   differences: Difference[];
 }
 
+type RedisCapture = Record<string, RedisKeyRecord | null>;
+
+export interface BuiltHttpRequest {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+  requestData: unknown;
+}
+
+/**
+ * Pure request-assembly step: applies normalizers, signs the (normalized-input)
+ * payload, and encodes the body per Content-Type. No I/O, so it's unit-testable
+ * without a live HTTP target.
+ */
+export function buildHttpRequest(
+  scenario: ScenarioDefinition,
+  baseUrl: string,
+  normalizerOptions: { fixedTimestamp?: number } = {}
+): BuiltHttpRequest {
+  // 1. Apply normalizers to request (e.g. current_timestamp)
+  let rawReq = applyNormalizers(
+    { request: scenario.request },
+    scenario.normalizers,
+    normalizerOptions
+  ).request;
+
+  // 2. Sign request if signWith is specified. Legacy runs TrimStrings /
+  // ConvertEmptyStringsToNull middleware before signature verification, so the
+  // signature must be computed over the normalized inputs even though the
+  // raw (un-normalized) body is what actually gets sent over the wire.
+  // Merge priority matches Laravel's Request::all() (getInputSource()->all() +
+  // query->all(), and PHP's `+` keeps the LEFT array's value on key conflicts):
+  // body wins over query.
+  if (rawReq.signWith?.secretKey) {
+    const payloadToSign = normalizeRequestInputs({
+      ...(rawReq.query || {}),
+      ...(rawReq.body || {}),
+    });
+    const sign = signRequest(payloadToSign, rawReq.signWith.secretKey);
+    if (rawReq.body) {
+      rawReq = { ...rawReq, body: { ...rawReq.body, sign } };
+    } else if (rawReq.query) {
+      rawReq = { ...rawReq, query: { ...rawReq.query, sign } };
+    }
+  }
+
+  // 3. Assemble URL
+  const url = new URL(baseUrl.replace(/\/$/, "") + scenario.route.path);
+  if (rawReq.query) {
+    for (const [k, v] of Object.entries(rawReq.query)) {
+      url.searchParams.append(k, String(v));
+    }
+  }
+
+  // 4. Assemble headers & body
+  const headers: Record<string, string> = {
+    ...(rawReq.headers || {}),
+  };
+  if (rawReq.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const isFormEncoded = (headers["Content-Type"] || "").includes(
+    "application/x-www-form-urlencoded"
+  );
+
+  let body: string | undefined;
+  if (rawReq.body && scenario.route.method !== "GET") {
+    if (isFormEncoded) {
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(rawReq.body)) {
+        // Same PHP string-cast semantics as signing (toPhpString): true->"1",
+        // false/null->"", nested objects/arrays throw rather than serializing
+        // to "[object Object]". If a scenario genuinely needs nested form
+        // fields, this should be revisited to follow PHP's http_build_query
+        // bracket-notation encoding instead of throwing.
+        params.append(k, toPhpString(v));
+      }
+      body = params.toString();
+    } else {
+      body = JSON.stringify(rawReq.body);
+    }
+  }
+
+  return {
+    url: url.toString(),
+    method: scenario.route.method,
+    headers,
+    body,
+    requestData: rawReq,
+  };
+}
+
+interface CapturedRun {
+  dbBefore: Record<string, unknown>;
+  redisBefore: RedisCapture;
+  response: {
+    statusCode: number;
+    statusText: string;
+    headers: Record<string, string>;
+    body: unknown;
+  };
+  dbAfter: Record<string, unknown>;
+  redisAfter: RedisCapture;
+}
+
 export class ContractRunner {
   private baseUrl: string;
   private dbProbe: MariaDbProbe;
@@ -53,62 +161,43 @@ export class ContractRunner {
   }
 
   /**
+   * Applies normalizer rules scoped to Redis captures (e.g. redis.<key>.value.set_at)
+   * so dynamic fields don't break golden comparisons. Never mutates the input capture.
+   */
+  private normalizeRedisCapture(
+    capture: RedisCapture,
+    scenario: ScenarioDefinition
+  ): RedisCapture {
+    return applyNormalizers({ redis: capture }, scenario.normalizers, {
+      fixedTimestamp: this.fixedTimestamp,
+    }).redis;
+  }
+
+  /**
    * Prepares and executes HTTP request according to scenario definition
    */
   private async executeRequest(scenario: ScenarioDefinition): Promise<{
-    requestData: any;
+    requestData: unknown;
     response: {
       statusCode: number;
       statusText: string;
       headers: Record<string, string>;
-      body: any;
+      body: unknown;
     };
   }> {
-    const rawReq = JSON.parse(JSON.stringify(scenario.request));
-
-    // 1. Apply normalizers to request (e.g. current_timestamp)
-    applyNormalizers({ request: rawReq }, scenario.normalizers, {
+    const built = buildHttpRequest(scenario, this.baseUrl, {
       fixedTimestamp: this.fixedTimestamp,
     });
 
-    // 2. Sign request if signWith is specified
-    if (rawReq.signWith?.secretKey) {
-      const payloadToSign = { ...(rawReq.body || {}), ...(rawReq.query || {}) };
-      const sign = signRequest(payloadToSign, rawReq.signWith.secretKey);
-      if (rawReq.body) {
-        rawReq.body.sign = sign;
-      } else if (rawReq.query) {
-        rawReq.query.sign = sign;
-      }
-    }
-
-    // 3. Assemble URL
-    const url = new URL(this.baseUrl + scenario.route.path);
-    if (rawReq.query) {
-      for (const [k, v] of Object.entries(rawReq.query)) {
-        url.searchParams.append(k, String(v));
-      }
-    }
-
-    // 4. Send HTTP request
-    const headers: Record<string, string> = {
-      ...(rawReq.headers || {}),
-    };
-    if (rawReq.body && !headers["Content-Type"]) {
-      headers["Content-Type"] = "application/json";
-    }
-
     const fetchOptions: RequestInit = {
-      method: scenario.route.method,
-      headers,
+      method: built.method,
+      headers: built.headers,
+      body: built.body,
     };
-    if (rawReq.body && scenario.route.method !== "GET") {
-      fetchOptions.body = JSON.stringify(rawReq.body);
-    }
 
-    const res = await fetch(url.toString(), fetchOptions);
+    const res = await fetch(built.url, fetchOptions);
     const contentType = res.headers.get("content-type") || "";
-    let body: any;
+    let body: unknown;
     if (contentType.includes("application/json")) {
       body = await res.json();
     } else {
@@ -120,7 +209,7 @@ export class ContractRunner {
       resHeaders[k] = v;
     });
 
-    const response = {
+    let response = {
       statusCode: res.status,
       statusText: res.statusText,
       headers: resHeaders,
@@ -128,21 +217,23 @@ export class ContractRunner {
     };
 
     // 5. Apply normalizers to response
-    applyNormalizers({ response }, scenario.normalizers, {
+    response = applyNormalizers({ response }, scenario.normalizers, {
       fixedTimestamp: this.fixedTimestamp,
-    });
+    }).response;
 
-    return { requestData: rawReq, response };
+    return { requestData: built.requestData, response };
   }
 
   /**
-   * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
+   * Captures the full before -> request -> after cycle for a scenario. Shared by
+   * record() and verify() so both run the exact same layer-capture sequence.
    */
-  async record(scenario: ScenarioDefinition): Promise<Fixture> {
+  private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before
-    const redisBefore = await this.redisProbe.capture(scenario.redisProbe);
+    const redisBeforeRaw = await this.redisProbe.capture(scenario.redisProbe);
+    const redisBefore = this.normalizeRedisCapture(redisBeforeRaw, scenario);
 
     // Layer 1: Execute inbound request
     const { response } = await this.executeRequest(scenario);
@@ -150,15 +241,24 @@ export class ContractRunner {
     // Layer 2: DB Probe after
     const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe after
-    const redisAfter = await this.redisProbe.capture(scenario.redisProbe);
+    const redisAfterRaw = await this.redisProbe.capture(scenario.redisProbe);
+    const redisAfter = this.normalizeRedisCapture(redisAfterRaw, scenario);
+
+    return { dbBefore, redisBefore, response, dbAfter, redisAfter };
+  }
+
+  /**
+   * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
+   */
+  async record(scenario: ScenarioDefinition): Promise<Fixture> {
+    const { dbBefore, redisBefore, response, dbAfter, redisAfter } = await this.captureRun(
+      scenario
+    );
 
     const hasRedis = scenario.redisProbe && scenario.redisProbe.keys.length > 0;
 
     const fixture: Fixture = {
       scenarioId: scenario.id,
-      recordedAt: this.fixedTimestamp
-        ? new Date(this.fixedTimestamp * 1000).toISOString()
-        : "1970-01-01T00:00:00.000Z",
       layer1_inboundResponse: {
         statusCode: response.statusCode,
         statusText: response.statusText,
@@ -185,23 +285,16 @@ export class ContractRunner {
   }
 
   /**
-   * VERIFY mode: Runs scenario against target, compares all layers with golden Fixture
+   * VERIFY mode: Runs scenario against target, compares all layers with golden Fixture.
+   * Both before and after snapshots are compared: a pre-condition mismatch (e.g. seed
+   * data drift) is a contract failure just as much as a post-condition mismatch.
    */
   async verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult> {
     const differences: Difference[] = [];
 
-    // Layer 2: DB Probe before
-    const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
-    // Layer 4: Redis Probe before
-    const redisBefore = await this.redisProbe.capture(scenario.redisProbe);
-
-    // Layer 1: Inbound request
-    const { response } = await this.executeRequest(scenario);
-
-    // Layer 2: DB Probe after
-    const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
-    // Layer 4: Redis Probe after
-    const redisAfter = await this.redisProbe.capture(scenario.redisProbe);
+    const { dbBefore, redisBefore, response, dbAfter, redisAfter } = await this.captureRun(
+      scenario
+    );
 
     // Compare Layer 1: Inbound Response
     const responseDiffs = compareInboundResponse(
@@ -213,19 +306,20 @@ export class ContractRunner {
     );
     differences.push(...responseDiffs);
 
-    // Compare Layer 2: DB State (after)
+    // Compare Layer 2: DB State (before & after)
     if (golden.layer2_dbState) {
-      const dbDiffs = compareDbState(dbAfter, golden.layer2_dbState.after);
-      differences.push(...dbDiffs);
+      differences.push(...compareDbState(dbBefore, golden.layer2_dbState.before, "before"));
+      differences.push(...compareDbState(dbAfter, golden.layer2_dbState.after, "after"));
     }
 
-    // Compare Layer 4: Shared Resources (Redis) (after)
+    // Compare Layer 4: Shared Resources (Redis) (before & after)
     if (golden.layer4_sharedResources?.redis) {
-      const redisDiffs = compareRedisState(
-        redisAfter,
-        golden.layer4_sharedResources.redis.after
+      differences.push(
+        ...compareRedisState(redisBefore, golden.layer4_sharedResources.redis.before, "before")
       );
-      differences.push(...redisDiffs);
+      differences.push(
+        ...compareRedisState(redisAfter, golden.layer4_sharedResources.redis.after, "after")
+      );
     }
 
     return {

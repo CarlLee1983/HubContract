@@ -1,18 +1,19 @@
 import { describe, expect, it, afterAll } from "bun:test";
 import { RedisProbeService } from "../src/probe/redisProbe";
 import { compareRedisState } from "../src/comparator/comparator";
+import { config } from "../src/config";
 import Redis from "ioredis";
 
 describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
   const redisProbe = new RedisProbeService({
-    host: "127.0.0.1",
-    port: 63799,
-    prefix: "hub_recording:",
+    host: config.redis.host,
+    port: config.redis.port,
+    prefix: config.redis.prefix,
   });
 
   const rawRedis = new Redis({
-    host: "127.0.0.1",
-    port: 63799,
+    host: config.redis.host,
+    port: config.redis.port,
     db: 1,
   });
 
@@ -100,7 +101,7 @@ describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
     const diffs = compareRedisState(actual, expectedMismatch);
     expect(diffs.length).toBe(1);
     expect(diffs[0].layer).toBe("shared_resources");
-    expect(diffs[0].path).toBe("redis.platform-maintenance:v1:cq9.value.reason");
+    expect(diffs[0].path).toBe("after.redis.platform-maintenance:v1:cq9.value.reason");
     expect(diffs[0].expected).toBe("Different reason");
     expect(diffs[0].actual).toBe("Scheduled maintenance");
   });
@@ -136,7 +137,7 @@ describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
     const diffs = compareRedisState(actualExceedingTolerance, base);
     expect(diffs.length).toBe(1);
     expect(diffs[0].layer).toBe("shared_resources");
-    expect(diffs[0].path).toBe("redis.platform-maintenance:v1:cq9.ttl");
+    expect(diffs[0].path).toBe("after.redis.platform-maintenance:v1:cq9.ttl");
     expect(diffs[0].message).toContain("exceeds tolerance");
   });
 

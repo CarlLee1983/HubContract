@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import type { DbProbeSchema } from "../schema/scenario";
 import type { z } from "zod";
+import { config } from "../config";
 
 export interface DbConfig {
   host?: string;
@@ -15,13 +16,13 @@ export type DbProbe = z.infer<typeof DbProbeSchema>;
 export class MariaDbProbe {
   private pool: mysql.Pool;
 
-  constructor(config: DbConfig = {}) {
+  constructor(dbConfig: DbConfig = {}) {
     this.pool = mysql.createPool({
-      host: config.host || process.env.DB_HOST || "127.0.0.1",
-      port: config.port || Number(process.env.DB_PORT || 33066),
-      user: config.user || process.env.DB_USER || "recording_user",
-      password: config.password || process.env.DB_PASSWORD || "recording_pass",
-      database: config.database || process.env.DB_DATABASE || "stationhub_recording",
+      host: dbConfig.host || config.db.host,
+      port: dbConfig.port || config.db.port,
+      user: dbConfig.user || config.db.user,
+      password: dbConfig.password || config.db.password,
+      database: dbConfig.database || config.db.database,
       dateStrings: true,
       waitForConnections: true,
       connectionLimit: 5,

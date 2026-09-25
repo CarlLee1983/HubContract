@@ -1,6 +1,5 @@
 {
   "scenarioId": "check-transaction-soft-deleted",
-  "recordedAt": "1970-01-01T00:00:00.000Z",
   "layer1_inboundResponse": {
     "statusCode": 200,
     "statusText": "OK",
@@ -17,7 +16,7 @@
         {
           "no": "DE_SYNTHETIC_002",
           "trade_no": "TRADE_DEP_SOFT_DELETED",
-          "deleted_at": "2026-09-25 15:03:12"
+          "deleted_at": "2025-01-01 00:00:00"
         }
       ]
     },
@@ -26,7 +25,7 @@
         {
           "no": "DE_SYNTHETIC_002",
           "trade_no": "TRADE_DEP_SOFT_DELETED",
-          "deleted_at": "2026-09-25 15:03:12"
+          "deleted_at": "2025-01-01 00:00:00"
         }
       ]
     }

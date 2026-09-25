@@ -1,3 +1,15 @@
+networks:
+  default:
+    ipam:
+      config:
+        # Fixed subnet/gateway (avoids common host subnets like 192.168.0.0/24,
+        # 192.168.1.0/24) so the host->container source IP that
+        # HUB_MCP_ALLOWED_IPS relies on (Issue #7) doesn't drift on every
+        # `docker compose down && up` — Docker Desktop otherwise assigns a new
+        # subnet each time and the gateway IP moves with it.
+        - subnet: 172.29.0.0/24
+          gateway: 172.29.0.1
+
 services:
   mariadb:
     image: mariadb:10.11.6
@@ -43,7 +55,12 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /Users/carl/Dev/CMG/StationHub:/var/www/html
+      # ./.legacy-src is a git worktree pinned to docker/legacy.commit's LEGACY_COMMIT,
+      # created by scripts/env-up.sh (Issue #3). STATIONHUB_VENDOR_DIR is exported by
+      # env-up.sh (and, as an inert placeholder for `docker compose down`, by
+      # env-down.sh too) since StationHub's vendor/ isn't committed to git.
+      - ./.legacy-src:/var/www/html
+      - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/vendor:ro
       - ./docker/.env.recording:/var/www/html/.env:ro
     environment:
       APP_TIMEZONE: Asia/Taipei

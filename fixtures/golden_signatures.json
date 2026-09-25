@@ -128,6 +128,25 @@
         "timestamp": 1700000000
       },
       "golden_signature": "f267b64780e70b30a45c0e71f6ebcce4"
+    },
+    "rtrim_strips_all_trailing_ampersands": {
+      "description": "code review: PHP rtrim($s, '&') strips ALL trailing '&', not just one — here the last (by ksort order) field's own value ends in '&&&', which combines with the '&' separator. Verified against `php -r` output using SignatureHelper.php from the pinned Legacy commit.",
+      "normalized_input": {
+        "station_code": "X",
+        "timestamp": 1700000000,
+        "zz_note": "abc&&&"
+      },
+      "golden_signature": "fb02e29422834dc0ab000a18bd38b58f"
+    },
+    "ksort_numeric_string_keys": {
+      "description": "code review: PHP ksort() default SORT_REGULAR treats canonical-integer-looking string keys (e.g. '2', '10') as PHP array int keys and sorts them numerically (2 before 10), not lexicographically ('10' before '2'). Verified against `php -r` output using SignatureHelper.php from the pinned Legacy commit.",
+      "normalized_input": {
+        "2": "b",
+        "10": "a",
+        "station_code": "X",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "ed81a41aaf9e4d1e5c1fda51bbb472fd"
     }
   }
 }
