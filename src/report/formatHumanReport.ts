@@ -13,6 +13,11 @@ export function formatHumanReport(report: Report): string {
       continue;
     }
 
+    if (scenario.status === "recorded") {
+      lines.push(`RECORDED ${scenario.id} (${scenario.route.method} ${scenario.route.path})`);
+      continue;
+    }
+
     if (scenario.status === "errored") {
       lines.push(`ERROR ${scenario.id} (${scenario.route.method} ${scenario.route.path})`);
       lines.push(`  ${scenario.error ?? "unknown error"}`);
@@ -30,9 +35,11 @@ export function formatHumanReport(report: Report): string {
     }
   }
 
-  const { total, passed, failed, errored } = report.summary;
+  const { total, passed, failed, errored, recorded } = report.summary;
   lines.push("");
-  lines.push(`${total} total, ${passed} passed, ${failed} failed, ${errored} errored`);
+  lines.push(
+    `${total} total, ${passed} passed, ${failed} failed, ${errored} errored, ${recorded} recorded`
+  );
 
   return lines.join("\n");
 }
