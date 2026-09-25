@@ -92,14 +92,34 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 
 手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子：
 
-1. **取得快照**：由人（不是 agent）用 `mysqldump` 對測試站資料庫產生快照，存成 `.sql` 或 `.sql.gz`。**這份原始檔含真實的站台 `secret_key`、帳號、手機號碼、姓名，絕對不能放進這個公開 repo**——建議存在 repo 目錄外（例如自己的 `~/Downloads` 或任何 scratch 目錄），只把路徑傳給下一步的腳本。
-2. **跑遮罩腳本**：
+1. **取得快照**：由人（不是 agent）用 `mysqldump` 對測試站資料庫產生快照，存成 `.sql` 或 `.sql.gz`。**這份原始檔含真實的站台 `secret_key`、帳號、手機號碼、姓名、email 等個資，絕對不能放進這個公開 repo**——建議存在 repo 目錄外（例如自己的 `~/Downloads` 或任何 scratch 目錄），只把路徑傳給下一步的腳本。
+2. **設定 `MASK_HMAC_KEY`**：遮罩用 HMAC-SHA256 把原值決定性地轉成合成值，key 從環境變數 `MASK_HMAC_KEY` 讀，沒設就直接 throw（不提供預設值）。這把 key 本身不是遮罩後資料的機密（遮罩後的種子已經公開），但如果外流，別人可以拿一個「已知的原始值」自己算出遮罩後長怎樣，等於能反查特定帳號/手機是否在快照裡出現過——所以不要寫死在程式碼或提交進 repo，本機留著（例如 shell profile 或不會進版控的 `.env`）就好。**同一份快照要重跑出「同樣」的種子，前提是每次都用同一把 key**，換 key 等於重新生成一套完全不同的合成值。
+   ```bash
+   export MASK_HMAC_KEY="<自己挑一個固定字串，不要提交進 repo>"
+   ```
+3. **跑遮罩腳本**：
    ```bash
    bun run seed:mask <你的快照路徑.sql|.sql.gz> seeds/snapshot-seed.sql
    ```
-   腳本會依 `src/seed/maskConfig.ts` 列出的欄位清單（目前涵蓋 `stations.secret_key`、各表的帳號欄位、`sms_logs.phone`、需實名登記的姓名欄位），把敏感值換成合成值。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。未列在設定裡的欄位（例如 `administers.email`）原樣保留，因為遮罩範圍目前只涵蓋 Issue #13 驗收條件明列的四類欄位。
-3. **輸出位置**：遮罩後的種子固定寫到 `seeds/snapshot-seed.sql`（已遮罩，可以提交）。
-4. **切換 `env-reset.sh` 使用的種子**：不需要手動改腳本。`scripts/env-reset.sh` 會自動偵測——`seeds/snapshot-seed.sql` 存在就用它，不存在就照舊 fallback 回 `seeds/synthetic-seed.sql`。想切回合成種子，把 `seeds/snapshot-seed.sql` 刪掉即可。
+   腳本依 `src/seed/maskConfig.ts` 的設定做三件事：
+   - **換成合成值**：站台 `secret_key`、各表的帳號欄位（含 `players.account`——這欄位是 `使用者帳號 + 站台代碼 + p + 平台 id` 組出來的，遮罩時只換使用者帳號那一段，站台代碼與平台 id 保留明文，才不會破壞這個推導關係，見 `LobbyAbstract::getFormattedPlayerAccount()`）、`sms_logs.phone`、需實名登記的姓名欄位、`administers.email`、加密貨幣錢包地址。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。
+   - **換成固定值 / 清成 NULL**：`administers.password` 統一換成 `seeds/synthetic-seed.sql` 用的那組合成 bcrypt 雜湊；`administers.remember_token`／`last_login_token`／`last_login_ip`、`betting_logs.raw_data` 清成 `NULL`。
+   - **JSON 欄位**（`platforms.api_settings`、`payments.api_tokens`、`sms.settings`、`commission_withdraws.receipt_data`）：鍵名符合 `key`/`secret`/`token`/`password`/`sign` 的字串值換成合成值；值本身是 `http(s)` URL 就換成錄製環境的線路 stub 位址 `http://mock-provider:8081`（parent spec [#1](https://github.com/CarlLee1983/HubRefactoring/issues/1) 第 18 點）。
+   - **整表清空**（`sessions`、`personal_access_tokens`、`password_reset_tokens`、`failed_jobs`、`activity_log`、`sms_logs`、`chat_room_messages`、`login_logs`、`user_login_logs`）：情境不會用到，內容又可能夾帶使用者敏感資料或內部堆疊資訊，乾脆不把這些表的資料列寫進遮罩後的種子。
+   - **安全原則**：上面任何一步只要遇到無法安全解析的狀況（INSERT 沒帶欄位列表又找不到對應的 `CREATE TABLE`、欄位數與值數不符、該處理的欄位值不是字串字面值也不是 `NULL`、`players.account` 不符合預期的推導格式、JSON 欄位內容不是合法 JSON），一律直接 throw、腳本失敗退出——不會猜測欄位順序、不會把看起來奇怪的值原樣放行。
+   - 沒列在設定裡的欄位／資料表原樣保留。
+4. **輸出位置**：遮罩後的種子固定寫到 `seeds/snapshot-seed.sql`（已遮罩，可以提交）。
+5. **切換 `env-reset.sh` 使用的種子**：用 `HUB_SEED` 環境變數明確指定，不是自動偵測（兩個 checkout 用同一個 commit，卻因為「誰本機有沒有跑過 seed:mask」重置出不同資料，會讓錄製結果不可靠）：
+   ```bash
+   # 預設，跟原本行為一樣：
+   npm run env:reset
+   # 或明確指定：
+   HUB_SEED=synthetic npm run env:reset
+
+   # 改用遮罩後的快照（seeds/snapshot-seed.sql 不存在就直接失敗，不會默默 fallback）：
+   HUB_SEED=snapshot npm run env:reset
+   ```
+   `HUB_SEED=snapshot` 時，`env-reset.sh` 會在載入 `seeds/snapshot-seed.sql` 之後，再疊上 `seeds/scenario-baseline.sql`——這份 overlay 用 `INSERT ... ON DUPLICATE KEY UPDATE`（不 TRUNCATE）補回 `scenarios/*.json`、`fixtures/*.json` 依賴的固定業務資料（`DEMO_STATION`、`TRADE_DEP_001` 之類），id 統一落在 `900000000` 以上以避開真實快照的資料列，細節見該檔案開頭的註解。
 
 ## 狀態
 

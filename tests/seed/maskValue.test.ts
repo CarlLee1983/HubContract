@@ -1,3 +1,4 @@
+import "./testEnv";
 import { describe, expect, it } from "bun:test";
 import { maskValue } from "../../src/seed/maskValue";
 
@@ -9,7 +10,7 @@ describe("Issue #13：maskValue 決定性合成值", () => {
   });
 
   it("同一原值即使類別不同，也不會等於原值本身", () => {
-    for (const category of ["secret_key", "account", "phone", "name"] as const) {
+    for (const category of ["secret_key", "account", "phone", "name", "email", "wallet_address"] as const) {
       const masked = maskValue(category, "0912345678");
       expect(masked).not.toBe("0912345678");
     }
@@ -39,5 +40,17 @@ describe("Issue #13：maskValue 決定性合成值", () => {
     expect(masked.length).toBeGreaterThan(0);
     expect(masked).not.toBe("王大明");
     expect(masked).not.toContain("王大明");
+  });
+
+  it("email 遮罩後是 @example.test 網域的合成信箱，且不含原始網域", () => {
+    const masked = maskValue("email", "real.person@realdomain.example");
+    expect(masked).toMatch(/^[a-f0-9]+@example\.test$/);
+    expect(masked).not.toContain("realdomain.example");
+  });
+
+  it("wallet_address 遮罩後不等於原始地址", () => {
+    const masked = maskValue("wallet_address", "0xDEADBEEF00000000000000000000000000BEEF");
+    expect(masked).not.toBe("0xDEADBEEF00000000000000000000000000BEEF");
+    expect(masked.startsWith("synthetic_wallet_")).toBe(true);
   });
 });

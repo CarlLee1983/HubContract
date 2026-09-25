@@ -1,3 +1,4 @@
+import "./testEnv";
 import { describe, expect, it } from "bun:test";
 import fs from "fs/promises";
 import os from "os";

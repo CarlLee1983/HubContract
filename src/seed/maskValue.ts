@@ -4,17 +4,30 @@ import type { MaskCategory } from "./maskConfig";
 /**
  * Issue #13：決定性合成值產生。
  *
- * 每個原始值先做 HMAC-SHA256（固定 salt，非亂數、非時間戳），再依欄位類別轉成
+ * 每個原始值先做 HMAC-SHA256（固定 key，非亂數、非時間戳），再依欄位類別轉成
  * 對應形狀的合成值。只要原始值相同，不論它出現在哪張表、哪個欄位，都會算出
  * 同一組合成值——這是「保持關聯」的必要條件：同一支手機、同一個帳號在不同
  * 表之間如果代表同一個人，遮罩後也必須還是同一個字串。
  *
- * salt 只是為了讓輸出不是原值的裸雜湊、不是拿來當機密使用，寫死在程式碼裡即可。
+ * code review：key 不能寫死在這個公開 repo 裡（就算它本身不是「機密」，寫死等於
+ * 任何人都能自己算出「某個已知原始值」遮罩後長什麼樣子，削弱遮罩的意義）。
+ * 一律從 `MASK_HMAC_KEY` 環境變數讀，缺值時大聲失敗；不提供預設值。
+ * 同一份快照要重跑出「同樣」的種子，前提是每次都用同一把 key——這把 key 本身
+ * 不需要進版控，本機留著、CI 用 secret 注入即可（見 README「資料安全」）。
  */
-const MASK_SALT = "hubcontract/issue-13/mask-seed/v1";
+function getMaskHmacKey(): string {
+  const key = process.env.MASK_HMAC_KEY;
+  if (!key) {
+    throw new Error(
+      "MASK_HMAC_KEY 未設定：遮罩需要一把固定的 HMAC key 才能保證決定性輸出。" +
+        "請先 export MASK_HMAC_KEY=<你自訂的固定字串> 再重跑（不要把它提交進 repo）。"
+    );
+  }
+  return key;
+}
 
 function digestHex(value: string): string {
-  return createHmac("sha256", MASK_SALT).update(value, "utf8").digest("hex");
+  return createHmac("sha256", getMaskHmacKey()).update(value, "utf8").digest("hex");
 }
 
 const SYNTHETIC_SURNAMES = ["林", "陳", "張", "黃", "李", "王", "吳", "劉", "蔡", "楊"];
@@ -45,6 +58,14 @@ function maskName(value: string): string {
   return `${SYNTHETIC_SURNAMES[surnameIndex]}${SYNTHETIC_GIVEN_NAMES[givenIndex]}${digest.slice(8, 12)}`;
 }
 
+function maskEmail(value: string): string {
+  return `${digestHex(value).slice(0, 20)}@example.test`;
+}
+
+function maskWalletAddress(value: string): string {
+  return `synthetic_wallet_${digestHex(value).slice(0, 34)}`;
+}
+
 /** 依欄位類別把單一原始值換成決定性的合成值。 */
 export function maskValue(category: MaskCategory, value: string): string {
   switch (category) {
@@ -56,5 +77,9 @@ export function maskValue(category: MaskCategory, value: string): string {
       return maskPhone(value);
     case "name":
       return maskName(value);
+    case "email":
+      return maskEmail(value);
+    case "wallet_address":
+      return maskWalletAddress(value);
   }
 }
