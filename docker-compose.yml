@@ -1,0 +1,62 @@
+services:
+  mariadb:
+    image: mariadb:10.11.6
+    container_name: hub_contract_mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root_recording_pass
+      MYSQL_DATABASE: stationhub_recording
+      MYSQL_USER: recording_user
+      MYSQL_PASSWORD: recording_pass
+    ports:
+      - "33066:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: hub_contract_redis
+    ports:
+      - "63799:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  mongo:
+    image: mongo:6.0
+    container_name: hub_contract_mongo
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  legacy-app:
+    image: stationhub-legacy:recording
+    container_name: hub_contract_legacy_app
+    ports:
+      - "8080:8080"
+    volumes:
+      - /Users/carl/Dev/CMG/StationHub:/var/www/html
+      - ./docker/.env.recording:/var/www/html/.env:ro
+    environment:
+      APP_TIMEZONE: Asia/Taipei
+      APP_DOMAINS_API: "localhost:8080,127.0.0.1:8080,stationhub.test,cmg-api.test"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/server/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 20

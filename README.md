@@ -18,11 +18,54 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
 - **Runner**：用 Bun 加 TypeScript 寫，只依賴受測系統的 base URL。
   - `record`：對 Legacy 錄製預期結果。
   - `verify`：對任一受測目標比對預期結果。
-- **錄製環境**：docker compose，內含 Legacy PHP、MariaDB 10.11.6、Redis、Mongo、線路 stub。每個情境執行前都重置為固定的種子資料。
+- **錄製環境**：docker compose，內含 Legacy PHP (8.3 CLI)、MariaDB 10.11.6、Redis 7.2、Mongo 6.0。每個情境執行前都重置為固定的種子資料。
+
+## 錄製環境操作指南
+
+### 快速開始
+
+```bash
+# 一鍵啟動所有容器並重置至純淨合成種子狀態，自動驗證 GET /v1/server/status
+npm run env:up
+# 或直接執行
+./scripts/env-up.sh
+
+# 重置資料庫、Redis、MongoDB 回到純淨種子資料（等冪執行）
+npm run env:reset
+# 或直接執行
+./scripts/env-reset.sh
+
+# 停止並移除容器與網路
+npm run env:down
+# 或直接執行
+./scripts/env-down.sh
+```
+
+### 服務與連接埠配置
+
+| 服務 | 內部連接埠 | 主機連接埠 | 說明 |
+| --- | --- | --- | --- |
+| `legacy-app` | `8080` | `8080` | StationHub Legacy PHP 8.3 內建 Web Server |
+| `mariadb` | `3306` | `33066` | MariaDB 10.11.6 (`stationhub_recording`) |
+| `redis` | `6379` | `63799` | Redis 7.2-alpine |
+| `mongo` | `27017` | `27018` | MongoDB 6.0 (`stationhub_recording`) |
+
+### 時區設定（Timezone）注意事項
+
+> [!WARNING]
+> 本錄製環境目前依據 local `.env` 預設設定時區為 `APP_TIMEZONE="Asia/Taipei"`。
+> **正式生產環境的確切時區（UTC 或 Asia/Taipei）尚未完成實機查證**。
+> 錄製資料時請留意時間戳記欄位（如 `created_at`、`updated_at`），待生產環境確認後若有差異需同步更新。
+
+### 排程器（Scheduler）安全邊界
+
+> [!IMPORTANT]
+> 依據 ADR-0010 與 Issue #3 規格，**Legacy 排程器（`schedule:run`）絕對不常駐執行**。
+> 如有特定測試情境需要觸發排程作業，必須在 runner 執行該情境時顯式手動觸發單次 Artisan command，不可掛載背景 daemon 避免造成非預期狀態副作用。
 
 ## 資料安全
 
-這個 repo 是公開的。fixture 與種子資料一律遮罩後才能提交；站台 `secret_key`、帳號、手機號碼全部使用合成值。
+這個 repo 是公開的。fixture 與種子資料一律遮罩後才能提交；站台 `secret_key`、帳號、手機號碼全部使用 100% 合成假資料（例如 `DEMO_STATION`、`synthetic_secret_key_...`、`synthetic_user_01`）。
 
 ## 狀態
 

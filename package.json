@@ -1,0 +1,15 @@
+{
+  "name": "hub-contract",
+  "version": "0.1.0",
+  "description": "Executable contract and characterization testing environment for StationHub",
+  "type": "module",
+  "scripts": {
+    "env:up": "./scripts/env-up.sh",
+    "env:down": "./scripts/env-down.sh",
+    "env:reset": "./scripts/env-reset.sh",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
