@@ -2,7 +2,13 @@ import type { ScenarioDefinition, Fixture } from "./schema/scenario";
 import { signRequest } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
-import { compareInboundResponse, compareDbState, type Difference } from "./comparator/comparator";
+import { RedisProbeService } from "./probe/redisProbe";
+import {
+  compareInboundResponse,
+  compareDbState,
+  compareRedisState,
+  type Difference,
+} from "./comparator/comparator";
 
 export interface RunnerOptions {
   baseUrl: string;
@@ -12,6 +18,12 @@ export interface RunnerOptions {
     user?: string;
     password?: string;
     database?: string;
+  };
+  redisConfig?: {
+    host?: string;
+    port?: number;
+    password?: string;
+    prefix?: string;
   };
   fixedTimestamp?: number;
 }
@@ -25,16 +37,19 @@ export interface VerifyResult {
 export class ContractRunner {
   private baseUrl: string;
   private dbProbe: MariaDbProbe;
+  private redisProbe: RedisProbeService;
   private fixedTimestamp?: number;
 
   constructor(options: RunnerOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.dbProbe = new MariaDbProbe(options.dbConfig);
+    this.redisProbe = new RedisProbeService(options.redisConfig);
     this.fixedTimestamp = options.fixedTimestamp;
   }
 
   async close(): Promise<void> {
     await this.dbProbe.close();
+    await this.redisProbe.close();
   }
 
   /**
@@ -126,12 +141,18 @@ export class ContractRunner {
   async record(scenario: ScenarioDefinition): Promise<Fixture> {
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
+    // Layer 4: Redis Probe before
+    const redisBefore = await this.redisProbe.capture(scenario.redisProbe);
 
     // Layer 1: Execute inbound request
     const { response } = await this.executeRequest(scenario);
 
     // Layer 2: DB Probe after
     const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
+    // Layer 4: Redis Probe after
+    const redisAfter = await this.redisProbe.capture(scenario.redisProbe);
+
+    const hasRedis = scenario.redisProbe && scenario.redisProbe.keys.length > 0;
 
     const fixture: Fixture = {
       scenarioId: scenario.id,
@@ -150,6 +171,14 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
+      layer4_sharedResources: hasRedis
+        ? {
+            redis: {
+              before: redisBefore,
+              after: redisAfter,
+            },
+          }
+        : undefined,
     };
 
     return fixture;
@@ -163,12 +192,16 @@ export class ContractRunner {
 
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
+    // Layer 4: Redis Probe before
+    const redisBefore = await this.redisProbe.capture(scenario.redisProbe);
 
     // Layer 1: Inbound request
     const { response } = await this.executeRequest(scenario);
 
     // Layer 2: DB Probe after
     const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
+    // Layer 4: Redis Probe after
+    const redisAfter = await this.redisProbe.capture(scenario.redisProbe);
 
     // Compare Layer 1: Inbound Response
     const responseDiffs = compareInboundResponse(
@@ -184,6 +217,15 @@ export class ContractRunner {
     if (golden.layer2_dbState) {
       const dbDiffs = compareDbState(dbAfter, golden.layer2_dbState.after);
       differences.push(...dbDiffs);
+    }
+
+    // Compare Layer 4: Shared Resources (Redis) (after)
+    if (golden.layer4_sharedResources?.redis) {
+      const redisDiffs = compareRedisState(
+        redisAfter,
+        golden.layer4_sharedResources.redis.after
+      );
+      differences.push(...redisDiffs);
     }
 
     return {

@@ -1,0 +1,29 @@
+{
+  "id": "mcp-platform-maintenance-set",
+  "name": "MCP Platform Maintenance: Set",
+  "description": "Verify POST /mcp/platform-maintenance/{platform} sets platform maintenance flag in Redis with TTL and correct payload",
+  "route": {
+    "method": "POST",
+    "path": "/mcp/platform-maintenance/cq9"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "duration": "1h",
+      "reason": "Contract testing maintenance flag"
+    }
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  }
+}

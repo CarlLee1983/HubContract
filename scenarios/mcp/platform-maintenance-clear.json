@@ -1,0 +1,43 @@
+{
+  "id": "mcp-platform-maintenance-clear",
+  "name": "MCP Platform Maintenance: Clear",
+  "description": "Verify DELETE /mcp/platform-maintenance/{platform} clears platform maintenance flag from Redis",
+  "route": {
+    "method": "DELETE",
+    "path": "/mcp/platform-maintenance/cq9"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    }
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "response.body.data.previous.set_at",
+      "type": "regex_replace",
+      "pattern": "^.*$",
+      "replacement": "<NORMALIZED_DATETIME>"
+    },
+    {
+      "target": "response.body.data.previous.until",
+      "type": "regex_replace",
+      "pattern": "^.*$",
+      "replacement": "<NORMALIZED_DATETIME>"
+    },
+    {
+      "target": "response.body.data.remaining_seconds",
+      "type": "regex_replace",
+      "pattern": "^.*$",
+      "replacement": "<NORMALIZED_SECONDS>"
+    }
+  ]
+}

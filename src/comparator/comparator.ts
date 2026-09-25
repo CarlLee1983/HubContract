@@ -112,3 +112,91 @@ export function compareDbState(
 ): Difference[] {
   return compareDiff(actual, expected, "", "db_state");
 }
+
+export function compareRedisState(
+  actual: Record<string, any>,
+  expected: Record<string, any>
+): Difference[] {
+  const diffs: Difference[] = [];
+  const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);
+
+  for (const key of keys) {
+    const act = actual[key];
+    const exp = expected[key];
+
+    if (act === null && exp === null) {
+      continue;
+    }
+
+    if (!act && exp) {
+      diffs.push({
+        layer: "shared_resources",
+        path: `redis.${key}`,
+        expected: exp,
+        actual: null,
+        message: `Expected key "${key}" to exist in Redis, but was missing`,
+      });
+      continue;
+    }
+
+    if (act && !exp) {
+      diffs.push({
+        layer: "shared_resources",
+        path: `redis.${key}`,
+        expected: null,
+        actual: act,
+        message: `Unexpected key "${key}" found in Redis`,
+      });
+      continue;
+    }
+
+    // Both exist, compare value, db, type
+    if (act.type !== exp.type) {
+      diffs.push({
+        layer: "shared_resources",
+        path: `redis.${key}.type`,
+        expected: exp.type,
+        actual: act.type,
+      });
+    }
+
+    if (act.db !== exp.db) {
+      diffs.push({
+        layer: "shared_resources",
+        path: `redis.${key}.db`,
+        expected: exp.db,
+        actual: act.db,
+      });
+    }
+
+    // Value diff (ignore dynamic set_at and until timestamps if inside maintenance payload)
+    const valDiffs = compareDiff(act.value, exp.value, `redis.${key}.value`, "shared_resources");
+    diffs.push(...valDiffs);
+
+    // TTL tolerance check
+    const tolerance = exp.ttlTolerance ?? 30;
+    if (exp.ttl > 0) {
+      const ttlDiff = Math.abs(act.ttl - exp.ttl);
+      if (ttlDiff > tolerance) {
+        diffs.push({
+          layer: "shared_resources",
+          path: `redis.${key}.ttl`,
+          expected: exp.ttl,
+          actual: act.ttl,
+          message: `TTL difference ${ttlDiff} exceeds tolerance of ${tolerance}s`,
+        });
+      }
+    } else if (exp.ttl === -1 || exp.ttl === -2) {
+      if (act.ttl !== exp.ttl) {
+        diffs.push({
+          layer: "shared_resources",
+          path: `redis.${key}.ttl`,
+          expected: exp.ttl,
+          actual: act.ttl,
+        });
+      }
+    }
+  }
+
+  return diffs;
+}

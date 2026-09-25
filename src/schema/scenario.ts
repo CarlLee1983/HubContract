@@ -25,6 +25,19 @@ export const DbProbeSchema = z.object({
 });
 
 /**
+ * Redis probe schema
+ */
+export const RedisProbeKeyRuleSchema = z.object({
+  pattern: z.string().describe("Key pattern to probe, e.g. platform-maintenance:v1:* or exact key"),
+  db: z.number().default(1).describe("Redis db index (default 1 per ADR-0013)"),
+  ttlToleranceSeconds: z.number().default(30).describe("Acceptable difference in TTL seconds"),
+});
+
+export const RedisProbeSchema = z.object({
+  keys: z.array(RedisProbeKeyRuleSchema).default([]),
+});
+
+/**
  * Scenario definition schema (input for record & verify)
  */
 export const ScenarioDefinitionSchema = z.object({
@@ -46,10 +59,22 @@ export const ScenarioDefinitionSchema = z.object({
       .optional(),
   }),
   dbProbe: DbProbeSchema.optional(),
+  redisProbe: RedisProbeSchema.optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
 });
 
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
+
+export const RedisKeyRecordSchema = z.object({
+  key: z.string(),
+  db: z.number(),
+  type: z.string(),
+  value: z.any(),
+  ttl: z.number(),
+  ttlTolerance: z.number().default(30),
+});
+
+export type RedisKeyRecord = z.infer<typeof RedisKeyRecordSchema>;
 
 /**
  * Recorded Fixture schema (golden output of record)
@@ -72,7 +97,12 @@ export const FixtureSchema = z.object({
     .optional(),
   layer4_sharedResources: z
     .object({
-      redis: z.record(z.string(), z.any()).optional(),
+      redis: z
+        .object({
+          before: z.record(z.string(), RedisKeyRecordSchema.nullable()),
+          after: z.record(z.string(), RedisKeyRecordSchema.nullable()),
+        })
+        .optional(),
       mongo: z.record(z.string(), z.any()).optional(),
     })
     .optional(),

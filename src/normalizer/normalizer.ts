@@ -75,9 +75,10 @@ export function applyNormalizers(
         break;
       }
       case "regex_replace": {
-        if (typeof currentVal === "string" && pattern) {
+        if (currentVal !== undefined && currentVal !== null && pattern) {
+          const strVal = String(currentVal);
           const reg = new RegExp(pattern);
-          setDotPath(root, target, currentVal.replace(reg, replacement ?? ""));
+          setDotPath(root, target, strVal.replace(reg, replacement ?? ""));
         }
         break;
       }
