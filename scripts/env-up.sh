@@ -49,12 +49,14 @@ if [ "${WORKTREE_LOCK_BLOB}" != "${PINNED_LOCK_BLOB}" ]; then
   exit 1
 fi
 
+if [ ! -f "${STATIONHUB_REPO}/public/build/manifest.json" ]; then
+  echo "==> [HubContract] ERROR: ${STATIONHUB_REPO}/public/build/manifest.json is required for Legacy admin login."
+  exit 1
+fi
+
 echo "==> [HubContract] Starting recording environment containers..."
 cd "${ROOT_DIR}"
-STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" docker compose up -d
-
-echo "==> [HubContract] Waiting for services to be healthy..."
-docker compose wait mariadb redis mongo legacy-app >/dev/null 2>&1 || true
+STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" STATIONHUB_BUILD_DIR="${STATIONHUB_REPO}/public/build" docker compose up -d --wait
 
 echo "==> [HubContract] Resetting database to synthetic seed state..."
 "${SCRIPT_DIR}/env-reset.sh"

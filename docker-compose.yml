@@ -61,6 +61,7 @@ services:
       # env-down.sh too) since StationHub's vendor/ isn't committed to git.
       - ./.legacy-src:/var/www/html
       - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/vendor:ro
+      - ${STATIONHUB_BUILD_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/public/build:ro
       - ./docker/.env.recording:/var/www/html/.env:ro
     environment:
       APP_TIMEZONE: Asia/Taipei

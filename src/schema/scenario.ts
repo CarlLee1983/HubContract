@@ -75,9 +75,11 @@ export const InboundScenarioSchema = z.object({
 });
 
 export const ScenarioActionSchema = z.object({
-  name: z.literal("platform.setActive"),
+  name: z.literal("platformGameType.setActive"),
   parameters: z.object({
     platformId: z.number(),
+    platformActive: z.boolean(),
+    gameTypeId: z.number(),
     active: z.boolean(),
   }),
 });

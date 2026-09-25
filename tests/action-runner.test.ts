@@ -7,7 +7,7 @@ import {
 const actionScenario = ActionScenarioSchema.parse({
   id: "platform-activate",
   name: "Activate platform",
-  action: { name: "platform.setActive", parameters: { platformId: 7, active: true } },
+  action: { name: "platformGameType.setActive", parameters: { platformId: 7, platformActive: true, gameTypeId: 1, active: true } },
   dbProbe: { queries: [{ name: "platform", sql: "SELECT active FROM platforms WHERE id = ?", params: [7] }] },
 });
 
@@ -35,7 +35,7 @@ describe("internal action scenarios", () => {
     mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
     try {
       const fixture = await runner.record(actionScenario);
-      expect(calls).toEqual(["platform.setActive:7:http://target"]);
+      expect(calls).toEqual(["platformGameType.setActive:7:http://target"]);
       expect(fixture.layer1_inboundResponse).toBeUndefined();
       expect(fixture.layer2_dbState).toEqual({
         before: { platform: [{ active: 0 }] },
@@ -109,7 +109,7 @@ describe("internal action scenarios", () => {
     });
     mockDb(failing, [{}]);
     try {
-      await expect(failing.record(actionScenario)).rejects.toThrow('Action "platform.setActive" failed');
+      await expect(failing.record(actionScenario)).rejects.toThrow('Action "platformGameType.setActive" failed');
     } finally {
       await failing.close();
     }

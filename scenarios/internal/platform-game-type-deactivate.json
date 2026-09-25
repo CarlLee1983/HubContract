@@ -1,0 +1,43 @@
+{
+  "id": "platform-game-type-deactivate",
+  "name": "Deactivate a Platform Game Type",
+  "description": "Toggle a Platform's Game Type availability through an internal action.",
+  "action": {
+    "name": "platformGameType.setActive",
+    "parameters": {
+      "platformId": 2,
+      "platformActive": true,
+      "gameTypeId": 1,
+      "active": false
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "platforms",
+        "sql": "SELECT id, active FROM platforms WHERE id = ? ORDER BY id",
+        "params": [2]
+      },
+      {
+        "name": "platform_game_type_map",
+        "sql": "SELECT platform_id, game_type_id, active FROM platform_game_type_map WHERE platform_id = ? AND game_type_id = ? ORDER BY platform_id, game_type_id",
+        "params": [2, 1]
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT id, log_name, subject_type, subject_id, description FROM activity_log WHERE log_name = 'platform' AND subject_id = ? ORDER BY id",
+        "params": [2]
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  },
+  "normalizers": []
+}

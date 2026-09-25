@@ -5,6 +5,7 @@ import { ContractRunner } from "./runner";
 import { ScenarioDefinitionSchema, FixtureSchema } from "./schema/scenario";
 import { config } from "./config";
 import { resetEnvironment } from "./env/reset";
+import { LegacyTargetAdapter } from "./target/legacyAdapter";
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -19,6 +20,9 @@ async function main() {
         type: "string",
         short: "t",
         default: config.baseUrl,
+      },
+      adapter: {
+        type: "string",
       },
       scenario: {
         type: "string",
@@ -47,6 +51,16 @@ async function main() {
     process.exit(1);
   }
 
+  const scenarioRaw = JSON.parse(await fs.readFile(scenarioPath, "utf-8"));
+  const scenario = ScenarioDefinitionSchema.parse(scenarioRaw);
+
+  if (scenario.action && values.adapter !== "legacy") {
+    throw new Error('Internal action scenarios require --adapter legacy for the Legacy target');
+  }
+  if (values.adapter && values.adapter !== "legacy") {
+    throw new Error(`Unknown target adapter: ${values.adapter}`);
+  }
+
   if (!values["skip-reset"]) {
     // Issue #1/#3: reset to fixed synthetic seed data before record/verify by default.
     // Pass --skip-reset when validating against a target that resets itself
@@ -55,11 +69,9 @@ async function main() {
     await resetEnvironment();
   }
 
-  const scenarioRaw = JSON.parse(await fs.readFile(scenarioPath, "utf-8"));
-  const scenario = ScenarioDefinitionSchema.parse(scenarioRaw);
-
   const runner = new ContractRunner({
     baseUrl: targetUrl,
+    targetAdapter: scenario.action ? new LegacyTargetAdapter() : undefined,
   });
 
   try {
