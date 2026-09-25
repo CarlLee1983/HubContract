@@ -1,6 +1,6 @@
 import { describe, expect, it, afterAll, beforeEach } from "bun:test";
 import { ContractRunner } from "../src/runner";
-import { ScenarioDefinitionSchema, type Fixture } from "../src/schema/scenario";
+import { InboundScenarioSchema, type InboundFixture } from "../src/schema/scenario";
 import scenarioJson from "../scenarios/wallet/check-transaction-deposit-hit.json";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
@@ -25,7 +25,7 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
   });
 
   it("Criterion 2: Record against Legacy produces valid fixture; Verify against Legacy passes with 0 diffs", async () => {
-    const scenario = ScenarioDefinitionSchema.parse(scenarioJson);
+    const scenario = InboundScenarioSchema.parse(scenarioJson);
     const fixture = await runner.record(scenario);
 
     expect(fixture.scenarioId).toBe(scenario.id);
@@ -50,7 +50,7 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
   });
 
   it("Criterion 3: Determinism check - Continuous record twice produces exactly identical fixtures", async () => {
-    const scenario = ScenarioDefinitionSchema.parse(scenarioJson);
+    const scenario = InboundScenarioSchema.parse(scenarioJson);
     const fixture1 = await runner.record(scenario);
     const fixture2 = await runner.record(scenario);
 
@@ -58,11 +58,11 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
   });
 
   it("Criterion 4: Tampering a fixture field causes verify to report correct layer and path", async () => {
-    const scenario = ScenarioDefinitionSchema.parse(scenarioJson);
+    const scenario = InboundScenarioSchema.parse(scenarioJson);
     const fixture = await runner.record(scenario);
 
     // Tamper layer 1 response body field
-    const tamperedFixture: Fixture = JSON.parse(JSON.stringify(fixture));
+    const tamperedFixture: InboundFixture = JSON.parse(JSON.stringify(fixture));
     tamperedFixture.layer1_inboundResponse.body.data.amount = 999;
 
     const result1 = await runner.verify(scenario, tamperedFixture);
@@ -75,7 +75,7 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
     expect(amountDiff?.actual).toBe(100);
 
     // Tamper layer 2 db field
-    const tamperedDbFixture: Fixture = JSON.parse(JSON.stringify(fixture));
+    const tamperedDbFixture: InboundFixture = JSON.parse(JSON.stringify(fixture));
     if (tamperedDbFixture.layer2_dbState) {
       tamperedDbFixture.layer2_dbState.after.deposit_record[0].status = "failed";
     }
@@ -99,7 +99,7 @@ describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
       request: {},
     };
 
-    const parseResult = ScenarioDefinitionSchema.safeParse(invalidScenario);
+    const parseResult = InboundScenarioSchema.safeParse(invalidScenario);
     expect(parseResult.success).toBe(false);
     if (!parseResult.success) {
       const errorPaths = parseResult.error.issues.map((i) => i.path.join("."));

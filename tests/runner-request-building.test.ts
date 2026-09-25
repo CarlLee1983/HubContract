@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { buildHttpRequest } from "../src/runner";
-import { ScenarioDefinitionSchema } from "../src/schema/scenario";
+import { InboundScenarioSchema } from "../src/schema/scenario";
 import { normalizeRequestInputs, signRequest } from "../src/signer/signature";
 import { config } from "../src/config";
 
@@ -8,7 +8,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
   const secretKey = "synthetic_secret_key_for_contract_testing_only_1234567890";
 
   it("signs the trimmed/empty-to-null normalized payload, not the raw body", () => {
-    const scenario = ScenarioDefinitionSchema.parse({
+    const scenario = InboundScenarioSchema.parse({
       id: "sign-normalized-inputs",
       name: "Sign normalized inputs",
       route: { method: "POST", path: "/v1/wallet/check-transaction" },
@@ -43,7 +43,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
   });
 
   it("encodes the body as application/x-www-form-urlencoded when the scenario declares that Content-Type", () => {
-    const scenario = ScenarioDefinitionSchema.parse({
+    const scenario = InboundScenarioSchema.parse({
       id: "form-encoded-request",
       name: "Form encoded request",
       route: { method: "POST", path: "/mcp/platform-maintenance/cq9" },
@@ -61,7 +61,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
 
   describe("code review MEDIUM #4(a): form-encoded values follow PHP string-cast semantics", () => {
     it("encodes booleans and null the same way signRequest's toPhpString does (true->1, false/null->'')", () => {
-      const scenario = ScenarioDefinitionSchema.parse({
+      const scenario = InboundScenarioSchema.parse({
         id: "form-encoded-php-cast",
         name: "Form encoded PHP cast semantics",
         route: { method: "POST", path: "/mcp/platform-maintenance/cq9" },
@@ -77,7 +77,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
     });
 
     it("throws rather than serializing a nested object/array to '[object Object]'", () => {
-      const scenario = ScenarioDefinitionSchema.parse({
+      const scenario = InboundScenarioSchema.parse({
         id: "form-encoded-nested-throws",
         name: "Form encoded nested value throws",
         route: { method: "POST", path: "/mcp/platform-maintenance/cq9" },
@@ -94,7 +94,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
   });
 
   it("signs body over query on key conflicts, matching Laravel's Request::all() precedence (code review MEDIUM #4(b))", () => {
-    const scenario = ScenarioDefinitionSchema.parse({
+    const scenario = InboundScenarioSchema.parse({
       id: "sign-body-over-query",
       name: "Sign body over query on conflict",
       route: { method: "POST", path: "/v1/wallet/check-transaction" },
@@ -117,7 +117,7 @@ describe("Issue #6: runner signs normalized inputs and supports form encoding", 
   });
 
   it("defaults to application/json body encoding when Content-Type is not declared", () => {
-    const scenario = ScenarioDefinitionSchema.parse({
+    const scenario = InboundScenarioSchema.parse({
       id: "json-default-request",
       name: "JSON default request",
       route: { method: "POST", path: "/mcp/platform-maintenance/cq9" },

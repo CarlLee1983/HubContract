@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema } from "../src/schema/scenario";
+import { InboundScenarioSchema, RedisProbeKeyRuleSchema } from "../src/schema/scenario";
 
 describe("Scenario Schema (Zod)", () => {
   it("should validate a valid check-transaction scenario definition", () => {
@@ -41,7 +41,7 @@ describe("Scenario Schema (Zod)", () => {
       ],
     };
 
-    const parsed = ScenarioDefinitionSchema.parse(validScenario);
+    const parsed = InboundScenarioSchema.parse(validScenario);
     expect(parsed.id).toBe("check-transaction-deposit-hit");
     expect(parsed.route.method).toBe("POST");
   });
@@ -55,7 +55,7 @@ describe("Scenario Schema (Zod)", () => {
       request: {},
     };
 
-    const result = ScenarioDefinitionSchema.safeParse(invalidScenario);
+    const result = InboundScenarioSchema.safeParse(invalidScenario);
     expect(result.success).toBe(false);
     if (!result.success) {
       const issues = result.error.issues;

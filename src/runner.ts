@@ -1,4 +1,7 @@
-import type { ScenarioDefinition, Fixture } from "./schema/scenario";
+import type {
+  ScenarioDefinition, InboundScenario, ActionScenario, ScenarioAction, Fixture,
+  InboundFixture, ActionFixture,
+} from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
@@ -13,6 +16,7 @@ import {
 
 export interface RunnerOptions {
   baseUrl: string;
+  targetAdapter?: TargetAdapter;
   dbConfig?: {
     host?: string;
     port?: number;
@@ -27,6 +31,10 @@ export interface RunnerOptions {
     prefix?: string;
   };
   fixedTimestamp?: number;
+}
+
+export interface TargetAdapter {
+  executeAction(action: ScenarioAction, baseUrl: string): Promise<void>;
 }
 
 export interface VerifyResult {
@@ -51,7 +59,7 @@ export interface BuiltHttpRequest {
  * without a live HTTP target.
  */
 export function buildHttpRequest(
-  scenario: ScenarioDefinition,
+  scenario: InboundScenario,
   baseUrl: string,
   normalizerOptions: { fixedTimestamp?: number } = {}
 ): BuiltHttpRequest {
@@ -132,7 +140,7 @@ export function buildHttpRequest(
 interface CapturedRun {
   dbBefore: Record<string, unknown>;
   redisBefore: RedisCapture;
-  response: {
+  response?: {
     statusCode: number;
     statusText: string;
     headers: Record<string, string>;
@@ -147,12 +155,14 @@ export class ContractRunner {
   private dbProbe: MariaDbProbe;
   private redisProbe: RedisProbeService;
   private fixedTimestamp?: number;
+  private targetAdapter?: TargetAdapter;
 
   constructor(options: RunnerOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.dbProbe = new MariaDbProbe(options.dbConfig);
     this.redisProbe = new RedisProbeService(options.redisConfig);
     this.fixedTimestamp = options.fixedTimestamp;
+    this.targetAdapter = options.targetAdapter;
   }
 
   async close(): Promise<void> {
@@ -176,7 +186,7 @@ export class ContractRunner {
   /**
    * Prepares and executes HTTP request according to scenario definition
    */
-  private async executeRequest(scenario: ScenarioDefinition): Promise<{
+  private async executeRequest(scenario: InboundScenario): Promise<{
     requestData: unknown;
     response: {
       statusCode: number;
@@ -229,14 +239,26 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
+    if (scenario.action && !this.targetAdapter) {
+      throw new Error(`Scenario "${scenario.id}" requires a target adapter for action "${scenario.action.name}"`);
+    }
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before
     const redisBeforeRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisBefore = this.normalizeRedisCapture(redisBeforeRaw, scenario);
 
-    // Layer 1: Execute inbound request
-    const { response } = await this.executeRequest(scenario);
+    // Execute the declared operation between the same before/after probes.
+    let response: CapturedRun["response"];
+    if (scenario.action) {
+      try {
+        await this.targetAdapter!.executeAction(scenario.action, this.baseUrl);
+      } catch (error) {
+        throw new Error(`Action "${scenario.action.name}" failed in scenario "${scenario.id}"`, { cause: error });
+      }
+    } else {
+      ({ response } = await this.executeRequest(scenario));
+    }
 
     // Layer 2: DB Probe after
     const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
@@ -250,6 +272,9 @@ export class ContractRunner {
   /**
    * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
    */
+  async record(scenario: InboundScenario): Promise<InboundFixture>;
+  async record(scenario: ActionScenario): Promise<ActionFixture>;
+  async record(scenario: ScenarioDefinition): Promise<Fixture>;
   async record(scenario: ScenarioDefinition): Promise<Fixture> {
     const { dbBefore, redisBefore, response, dbAfter, redisAfter } = await this.captureRun(
       scenario
@@ -257,16 +282,8 @@ export class ContractRunner {
 
     const hasRedis = scenario.redisProbe && scenario.redisProbe.keys.length > 0;
 
-    const fixture: Fixture = {
+    const fixtureLayers = {
       scenarioId: scenario.id,
-      layer1_inboundResponse: {
-        statusCode: response.statusCode,
-        statusText: response.statusText,
-        headers: {
-          "content-type": response.headers["content-type"] || "application/json",
-        },
-        body: response.body,
-      },
       layer2_dbState: {
         before: dbBefore,
         after: dbAfter,
@@ -281,7 +298,19 @@ export class ContractRunner {
         : undefined,
     };
 
-    return fixture;
+    if (scenario.action) return fixtureLayers satisfies ActionFixture;
+    if (!response) throw new Error(`Inbound scenario "${scenario.id}" produced no response`);
+    return {
+      ...fixtureLayers,
+      layer1_inboundResponse: {
+        statusCode: response.statusCode,
+        statusText: response.statusText,
+        headers: {
+          "content-type": response.headers["content-type"] || "application/json",
+        },
+        body: response.body,
+      },
+    } satisfies InboundFixture;
   }
 
   /**
@@ -296,15 +325,22 @@ export class ContractRunner {
       scenario
     );
 
-    // Compare Layer 1: Inbound Response
-    const responseDiffs = compareInboundResponse(
-      { statusCode: response.statusCode, body: response.body },
-      {
-        statusCode: golden.layer1_inboundResponse.statusCode,
-        body: golden.layer1_inboundResponse.body,
+    if (scenario.action) {
+      if (golden.layer1_inboundResponse) {
+        throw new Error(`Action scenario "${scenario.id}" cannot use an inbound response fixture`);
       }
-    );
-    differences.push(...responseDiffs);
+    } else {
+      if (!response || !golden.layer1_inboundResponse) {
+        throw new Error(`Inbound scenario "${scenario.id}" requires an inbound response fixture`);
+      }
+      differences.push(...compareInboundResponse(
+        { statusCode: response.statusCode, body: response.body },
+        {
+          statusCode: golden.layer1_inboundResponse.statusCode,
+          body: golden.layer1_inboundResponse.body,
+        }
+      ));
+    }
 
     // Compare Layer 2: DB State (before & after)
     if (golden.layer2_dbState) {

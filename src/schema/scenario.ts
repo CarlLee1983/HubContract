@@ -50,7 +50,7 @@ export const RedisProbeSchema = z.object({
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const ScenarioDefinitionSchema = z.object({
+export const InboundScenarioSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
@@ -71,8 +71,34 @@ export const ScenarioDefinitionSchema = z.object({
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
+  action: z.never().optional(),
 });
 
+export const ScenarioActionSchema = z.object({
+  name: z.literal("platform.setActive"),
+  parameters: z.object({
+    platformId: z.number(),
+    active: z.boolean(),
+  }),
+});
+
+export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
+
+export const ActionScenarioSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  action: ScenarioActionSchema,
+  dbProbe: DbProbeSchema.extend({ queries: z.array(DbProbeQuerySchema).min(1) }),
+  redisProbe: RedisProbeSchema.optional(),
+  normalizers: z.array(NormalizerRuleSchema).default([]),
+  route: z.never().optional(),
+  request: z.never().optional(),
+});
+
+export const ScenarioDefinitionSchema = z.union([InboundScenarioSchema, ActionScenarioSchema]);
+export type InboundScenario = z.infer<typeof InboundScenarioSchema>;
+export type ActionScenario = z.infer<typeof ActionScenarioSchema>;
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
 
 export const RedisKeyRecordSchema = z.object({
@@ -89,14 +115,8 @@ export type RedisKeyRecord = z.infer<typeof RedisKeyRecordSchema>;
 /**
  * Recorded Fixture schema (golden output of record)
  */
-export const FixtureSchema = z.object({
+const FixtureLayersSchema = z.object({
   scenarioId: z.string(),
-  layer1_inboundResponse: z.object({
-    statusCode: z.number(),
-    statusText: z.string(),
-    headers: z.record(z.string(), z.string()),
-    body: z.any(),
-  }),
   layer2_dbState: z
     .object({
       before: z.record(z.string(), z.any()),
@@ -115,4 +135,24 @@ export const FixtureSchema = z.object({
     .optional(),
 });
 
+export const InboundFixtureSchema = FixtureLayersSchema.extend({
+  layer1_inboundResponse: z.object({
+    statusCode: z.number(),
+    statusText: z.string(),
+    headers: z.record(z.string(), z.string()),
+    body: z.any(),
+  }),
+});
+
+export const ActionFixtureSchema = FixtureLayersSchema.extend({
+  layer1_inboundResponse: z.never().optional(),
+  layer2_dbState: z.object({
+    before: z.record(z.string(), z.any()),
+    after: z.record(z.string(), z.any()),
+  }),
+});
+
+export const FixtureSchema = z.union([InboundFixtureSchema, ActionFixtureSchema]);
+export type InboundFixture = z.infer<typeof InboundFixtureSchema>;
+export type ActionFixture = z.infer<typeof ActionFixtureSchema>;
 export type Fixture = z.infer<typeof FixtureSchema>;
