@@ -68,11 +68,11 @@ bun run verify --route /v1/wallet/check-transaction --tag deposit --tag withdraw
 bun run verify --report-json report.json
 ```
 
-篩選後若沒有任何情境符合條件，CLI 會印出錯誤並以非 0 結束（視為設定錯誤，而不是「沒有情境要跑」）。單一情境的任何錯誤（例如連線失敗、golden fixture 不存在）都會被獨立捕捉為該情境的 `errored` 結果，不會中斷其餘情境的執行；只要有任何情境 `failed` 或 `errored`，整個 process 就以非 0 結束。
+每個情境執行前都會重置一次錄製環境（`--skip-reset` 可關閉），符合「情境彼此獨立、結果可重現」的規格；重置或情境本身丟出的任何錯誤，都只會讓那一個情境變成 `errored`，不會中斷其餘情境。情境檔本身若無法通過 schema 驗證，也不會讓整個 process 中止——會以該檔案的路徑當作 `id`，變成一筆 `errored` 報告紀錄。篩選後若沒有任何情境符合條件，CLI 會印出錯誤訊息，仍然照常輸出（空的）報告，並以非 0 結束；只要有任何情境 `failed` 或 `errored`，或整批一個情境都沒跑到，process 就以非 0 結束。
 
 ### JSON 報告格式
 
-`--report-json <path>` 輸出的檔案符合 `src/schema/report.ts` 匯出的 `ReportSchema`（zod）：
+`--report-json <path>` 輸出的檔案符合 `src/schema/report.ts` 匯出的 `ReportSchema`（zod），即使沒有任何情境符合篩選條件、或每個情境檔都載入失敗，也一定會寫出這份報告（CI 的上線閘門不該找不到報告檔）：
 
 ```jsonc
 {
@@ -81,13 +81,13 @@ bun run verify --report-json report.json
   "target": "http://localhost:8080",
   "startedAt": "2026-09-26T00:00:00.000Z",
   "finishedAt": "2026-09-26T00:00:05.000Z",
-  "summary": { "total": 3, "passed": 1, "failed": 1, "errored": 1 },
+  "summary": { "total": 3, "passed": 1, "failed": 1, "errored": 1, "recorded": 0 },
   "scenarios": [
     {
       "id": "check-transaction-deposit-hit",
       "route": { "method": "POST", "path": "/v1/wallet/check-transaction" },
       "tags": ["wallet", "pilot", "deposit"],
-      "status": "passed", // "passed" | "failed" | "errored"
+      "status": "passed", // "passed" | "failed" | "errored" | "recorded"
       "differences": [
         { "layer": "inbound_response", "path": "body.data.amount", "expected": 100, "actual": 999 }
       ],
@@ -97,7 +97,9 @@ bun run verify --report-json report.json
 }
 ```
 
-`schemaVersion` 在這個形狀有不相容變更時才會遞增；StationHubNext 的 CI 上線閘門應該檢查 `schemaVersion` 與 `summary.failed === 0 && summary.errored === 0`。
+`status` 在 `verify` 模式下是 `"passed"` / `"failed"` / `"errored"`；在 `record` 模式下（沒有比對，只是錄製成功與否）是 `"recorded"` / `"errored"`——record 模式的成功不算 `"passed"`，避免和「跟 golden fixture 比對過」混淆。
+
+`schemaVersion` 在這個形狀有不相容變更時才會遞增；StationHubNext 的 CI 上線閘門應該檢查 `schemaVersion`、`summary.failed === 0 && summary.errored === 0`，並且 `scenarios.length > 0`（一個情境都沒跑到——例如篩選條件打錯字——不該被當成「全部通過」）。
 
 ### 服務與連接埠配置
 

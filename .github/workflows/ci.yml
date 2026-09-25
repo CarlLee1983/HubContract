@@ -16,7 +16,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Pinned to match the local dev toolchain (`bun --version`); bump
+          # deliberately, not via "latest" drifting out from under us.
+          bun-version: 1.3.10
 
       - run: bun install --frozen-lockfile
 
