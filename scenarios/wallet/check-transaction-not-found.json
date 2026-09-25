@@ -1,0 +1,29 @@
+{
+  "id": "check-transaction-not-found",
+  "name": "Check Transaction: Order Not Found",
+  "description": "CAP-06 LookupOrder: Verify check-transaction returns HTTP 200 with ORDER_NOT_FOUND when trade_no does not exist",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "txn_no": "NON_EXISTENT_TRADE_NO_999",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

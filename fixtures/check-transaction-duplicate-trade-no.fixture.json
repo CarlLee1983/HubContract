@@ -1,0 +1,59 @@
+{
+  "scenarioId": "check-transaction-duplicate-trade-no",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "DE_SYNTHETIC_004",
+        "trade_no": "TRADE_DUP_DEP_001",
+        "type": "deposit",
+        "status": "completed",
+        "amount": 400
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "matching_deposit_records": [
+        {
+          "id": 4,
+          "no": "DE_SYNTHETIC_004",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "amount": "400.0000",
+          "status": "completed"
+        },
+        {
+          "id": 5,
+          "no": "DE_SYNTHETIC_005",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "amount": "450.0000",
+          "status": "processing"
+        }
+      ]
+    },
+    "after": {
+      "matching_deposit_records": [
+        {
+          "id": 4,
+          "no": "DE_SYNTHETIC_004",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "amount": "400.0000",
+          "status": "completed"
+        },
+        {
+          "id": 5,
+          "no": "DE_SYNTHETIC_005",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "amount": "450.0000",
+          "status": "processing"
+        }
+      ]
+    }
+  }
+}

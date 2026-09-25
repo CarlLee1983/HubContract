@@ -1,7 +1,7 @@
 {
-  "id": "check-transaction-deposit-hit",
-  "name": "Check Transaction: Deposit Order Hit",
-  "description": "CAP-06 LookupOrder: Verify check-transaction returns completed deposit record for DEMO_STATION",
+  "id": "check-transaction-both-hit",
+  "name": "Check Transaction: Both Deposit and Withdrawal Hit",
+  "description": "CAP-06 LookupOrder: Verify check-transaction prioritizes deposit record when both tables have matching trade_no (BR-26)",
   "route": {
     "method": "POST",
     "path": "/v1/wallet/check-transaction"
@@ -13,7 +13,7 @@
     },
     "body": {
       "station_code": "DEMO_STATION",
-      "txn_no": "TRADE_DEP_001",
+      "txn_no": "TRADE_BOTH_001",
       "timestamp": 0
     },
     "signWith": {
@@ -25,7 +25,12 @@
       {
         "name": "deposit_record",
         "sql": "SELECT no, trade_no, user_id, amount, status FROM deposit_records WHERE trade_no = ? AND deleted_at IS NULL",
-        "params": ["TRADE_DEP_001"]
+        "params": ["TRADE_BOTH_001"]
+      },
+      {
+        "name": "withdrawal_record",
+        "sql": "SELECT no, trade_no, user_id, amount, status FROM withdrawal_records WHERE trade_no = ? AND deleted_at IS NULL",
+        "params": ["TRADE_BOTH_001"]
       }
     ]
   },

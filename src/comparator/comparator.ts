@@ -21,6 +21,15 @@ export function compareDiff(
     return diffs;
   }
 
+  // Handle Date vs string / Date vs Date
+  const actualDate = actual instanceof Date ? actual.toISOString() : (typeof actual === "string" && !isNaN(Date.parse(actual)) ? actual : null);
+  const expectedDate = expected instanceof Date ? expected.toISOString() : (typeof expected === "string" && !isNaN(Date.parse(expected)) ? expected : null);
+  if (actual instanceof Date || expected instanceof Date) {
+    if (actualDate === expectedDate) {
+      return diffs;
+    }
+  }
+
   // Handle null / undefined / type mismatch
   if (
     actual === null ||

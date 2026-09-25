@@ -1,0 +1,28 @@
+{
+  "id": "check-transaction-validation-failed",
+  "name": "Check Transaction: Form Validation Failed (D-02)",
+  "description": "CAP-06 LookupOrder / D-02: Verify missing required field txn_no returns HTTP 422 with Laravel validation envelope",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

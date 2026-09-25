@@ -1,0 +1,45 @@
+{
+  "scenarioId": "check-transaction-withdrawal-hit",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "WI_SYNTHETIC_001",
+        "trade_no": "TRADE_WITHDRAW_001",
+        "type": "withdrawal",
+        "status": "completed",
+        "amount": 50
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "withdrawal_record": [
+        {
+          "no": "WI_SYNTHETIC_001",
+          "trade_no": "TRADE_WITHDRAW_001",
+          "user_id": 1,
+          "amount": "50.0000",
+          "status": "completed"
+        }
+      ]
+    },
+    "after": {
+      "withdrawal_record": [
+        {
+          "no": "WI_SYNTHETIC_001",
+          "trade_no": "TRADE_WITHDRAW_001",
+          "user_id": 1,
+          "amount": "50.0000",
+          "status": "completed"
+        }
+      ]
+    }
+  }
+}

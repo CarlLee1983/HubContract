@@ -1,0 +1,23 @@
+{
+  "scenarioId": "check-transaction-signature-failed",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "sign 驗證失敗",
+      "errors": {
+        "sign": [
+          "sign 驗證失敗"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

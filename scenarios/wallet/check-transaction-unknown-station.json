@@ -1,0 +1,37 @@
+{
+  "id": "check-transaction-unknown-station",
+  "name": "Check Transaction: Unknown Station Code (D-03)",
+  "description": "CAP-06 LookupOrder / D-03: Verify non-existent station_code throws RuntimeException during provider boot and returns HTTP 500",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "NON_EXISTENT_STATION",
+      "txn_no": "TRADE_DEP_001",
+      "sign": "dummy_sign_for_unknown_station",
+      "timestamp": 0
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

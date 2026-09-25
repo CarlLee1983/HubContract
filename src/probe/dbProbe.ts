@@ -22,6 +22,7 @@ export class MariaDbProbe {
       user: config.user || process.env.DB_USER || "recording_user",
       password: config.password || process.env.DB_PASSWORD || "recording_pass",
       database: config.database || process.env.DB_DATABASE || "stationhub_recording",
+      dateStrings: true,
       waitForConnections: true,
       connectionLimit: 5,
     });

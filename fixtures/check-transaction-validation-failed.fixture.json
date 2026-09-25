@@ -1,0 +1,23 @@
+{
+  "scenarioId": "check-transaction-validation-failed",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "交易單號為必填項",
+      "errors": {
+        "txn_no": [
+          "交易單號為必填項"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

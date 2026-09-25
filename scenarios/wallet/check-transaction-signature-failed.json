@@ -1,0 +1,27 @@
+{
+  "id": "check-transaction-signature-failed",
+  "name": "Check Transaction: Signature Validation Failed",
+  "description": "CAP-06 LookupOrder: Verify invalid signature string returns HTTP 422 with sign validation error",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "txn_no": "TRADE_DEP_001",
+      "sign": "invalid_signature_hex_value_12345",
+      "timestamp": 0
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

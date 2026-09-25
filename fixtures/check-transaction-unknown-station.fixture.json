@@ -1,0 +1,22 @@
+{
+  "scenarioId": "check-transaction-unknown-station",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Station not found",
+      "exception": "App\\Support\\Generator\\Exceptions\\RuntimeException",
+      "file": "<MASKED_FILE_PATH>",
+      "line": 27,
+      "trace": "<MASKED_TRACE>"
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}
