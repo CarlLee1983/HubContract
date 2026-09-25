@@ -1,22 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
-import { ScenarioDefinitionSchema } from "../src/schema/scenario";
-import { FixtureSchema } from "../src/schema/scenario";
-
-async function listJsonFilesRecursive(dir: string): Promise<string[]> {
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  const files: string[] = [];
-  for (const entry of entries) {
-    const entryPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await listJsonFilesRecursive(entryPath)));
-    } else if (entry.isFile() && entry.name.endsWith(".json")) {
-      files.push(entryPath);
-    }
-  }
-  return files;
-}
+import { ScenarioDefinitionSchema, FixtureSchema } from "../src/schema/scenario";
+import { listJsonFilesRecursive } from "../src/report/loadScenarios";
 
 const repoRoot = path.join(__dirname, "..");
 

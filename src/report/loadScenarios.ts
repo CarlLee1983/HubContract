@@ -2,16 +2,23 @@ import fs from "fs/promises";
 import path from "path";
 import { ScenarioDefinitionSchema, type ScenarioDefinition } from "../schema/scenario";
 
-export interface LoadedScenario {
-  filePath: string;
-  scenario: ScenarioDefinition;
-}
+/**
+ * Issue #12 code review #2: a scenario file that fails to parse/validate is
+ * never thrown from here — it comes back as an entry with `error` set (and no
+ * `scenario`), so one broken file can't abort loading the rest of the batch.
+ * The CLI turns these into "errored" report entries, keyed by `filePath`.
+ */
+export type ScenarioLoadResult =
+  | { filePath: string; scenario: ScenarioDefinition; error?: undefined }
+  | { filePath: string; scenario?: undefined; error: string };
 
 /**
  * Recursively lists every *.json file under `dir`, sorted for deterministic
- * run order (report diffs stay stable across runs).
+ * run order (report diffs stay stable across runs). Exported so the offline
+ * scenarios/fixtures schema-validation test can reuse it (code review #5)
+ * instead of keeping its own copy.
  */
-async function listJsonFilesRecursive(dir: string): Promise<string[]> {
+export async function listJsonFilesRecursive(dir: string): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files: string[] = [];
 
@@ -27,17 +34,27 @@ async function listJsonFilesRecursive(dir: string): Promise<string[]> {
   return files.sort();
 }
 
-async function loadOne(filePath: string): Promise<LoadedScenario> {
-  const raw = JSON.parse(await fs.readFile(filePath, "utf-8"));
-  const result = ScenarioDefinitionSchema.safeParse(raw);
-  if (!result.success) {
-    throw new Error(
-      `Invalid scenario file "${filePath}": ${result.error.issues
-        .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
-        .join("; ")}`
-    );
+async function loadOne(filePath: string): Promise<ScenarioLoadResult> {
+  try {
+    const raw = JSON.parse(await fs.readFile(filePath, "utf-8"));
+    const result = ScenarioDefinitionSchema.safeParse(raw);
+    if (!result.success) {
+      return {
+        filePath,
+        error: `Invalid scenario file "${filePath}": ${result.error.issues
+          .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+          .join("; ")}`,
+      };
+    }
+    return { filePath, scenario: result.data };
+  } catch (err) {
+    return {
+      filePath,
+      error: `Failed to read/parse scenario file "${filePath}": ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
   }
-  return { filePath, scenario: result.data };
 }
 
 /**
@@ -46,7 +63,7 @@ async function loadOne(filePath: string): Promise<LoadedScenario> {
  * (loads every *.json file under it, recursively). --route/--tag filtering
  * happens afterwards via filterScenarios(), not here.
  */
-export async function loadScenarioFiles(targetPath: string): Promise<LoadedScenario[]> {
+export async function loadScenarioFiles(targetPath: string): Promise<ScenarioLoadResult[]> {
   const stat = await fs.stat(targetPath);
 
   if (stat.isDirectory()) {
