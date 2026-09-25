@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DifferenceLayerSchema } from "./differenceLayer";
 
 /**
  * Issue #12: machine-readable report contract, meant to double as a
@@ -6,14 +7,16 @@ import { z } from "zod";
  * shape changes in a way a consumer needs to branch on.
  */
 export const ReportDifferenceSchema = z.object({
-  layer: z.enum(["inbound_response", "db_state", "shared_resources"]),
+  layer: DifferenceLayerSchema,
   path: z.string(),
   expected: z.unknown(),
   actual: z.unknown(),
   message: z.string().optional(),
 });
 
-export const ScenarioReportStatusSchema = z.enum(["passed", "failed", "errored"]);
+// "recorded" is the record-mode success status (distinct from verify-mode's
+// "passed"/"failed" pass/fail verdict — record mode never compares anything).
+export const ScenarioReportStatusSchema = z.enum(["passed", "failed", "errored", "recorded"]);
 
 export const ScenarioReportSchema = z.object({
   id: z.string(),
@@ -34,6 +37,7 @@ export const ReportSummarySchema = z.object({
   passed: z.number().int().nonnegative(),
   failed: z.number().int().nonnegative(),
   errored: z.number().int().nonnegative(),
+  recorded: z.number().int().nonnegative(),
 });
 
 export const ReportSchema = z.object({

@@ -52,7 +52,7 @@ describe("Issue #12: buildReport", () => {
     expect(parsed.target).toBe("http://localhost:8080");
     expect(parsed.startedAt).toBe(startedAt.toISOString());
     expect(parsed.finishedAt).toBe(finishedAt.toISOString());
-    expect(parsed.summary).toEqual({ total: 3, passed: 1, failed: 1, errored: 1 });
+    expect(parsed.summary).toEqual({ total: 3, passed: 1, failed: 1, errored: 1, recorded: 0 });
     expect(parsed.scenarios.map((s) => s.id)).toEqual([
       "deposit-hit",
       "withdrawal-hit",
@@ -61,7 +61,7 @@ describe("Issue #12: buildReport", () => {
     expect(parsed.scenarios[2].error).toBe("ECONNREFUSED");
   });
 
-  it("produces a zero-diff, all-passed report for an empty outcome list only if never called with zero scenarios (guarded by CLI, not here)", () => {
+  it("produces an all-zero summary for an empty outcome list (the CLI, not buildReport, decides what that means for the exit code)", () => {
     const report = buildReport({
       mode: "verify",
       target: "http://localhost:8080",
@@ -69,7 +69,33 @@ describe("Issue #12: buildReport", () => {
       finishedAt,
       outcomes: [],
     });
-    expect(report.summary).toEqual({ total: 0, passed: 0, failed: 0, errored: 0 });
+    expect(report.summary).toEqual({ total: 0, passed: 0, failed: 0, errored: 0, recorded: 0 });
+  });
+
+  it("counts record-mode successes under 'recorded', not 'passed'", () => {
+    const report = buildReport({
+      mode: "record",
+      target: "http://localhost:8080",
+      startedAt,
+      finishedAt,
+      outcomes: [
+        {
+          id: "deposit-hit",
+          route: { method: "POST", path: "/v1/wallet/check-transaction" },
+          tags: ["wallet"],
+          status: "recorded",
+          differences: [],
+        },
+      ],
+    });
+
+    expect(ReportSchema.parse(report).summary).toEqual({
+      total: 1,
+      passed: 0,
+      failed: 0,
+      errored: 0,
+      recorded: 1,
+    });
   });
 });
 
@@ -126,5 +152,28 @@ describe("Issue #12: formatHumanReport", () => {
     expect(text).toContain("1 passed");
     expect(text).toContain("1 failed");
     expect(text).toContain("1 errored");
+    expect(text).toContain("0 recorded");
+  });
+
+  it("prints RECORDED for record-mode successes", () => {
+    const report = buildReport({
+      mode: "record",
+      target: "http://localhost:8080",
+      startedAt: new Date("2026-09-26T00:00:00.000Z"),
+      finishedAt: new Date("2026-09-26T00:00:05.000Z"),
+      outcomes: [
+        {
+          id: "deposit-hit",
+          route: { method: "POST", path: "/v1/wallet/check-transaction" },
+          tags: ["wallet"],
+          status: "recorded",
+          differences: [],
+        },
+      ],
+    });
+
+    const text = formatHumanReport(report);
+    expect(text).toContain("RECORDED deposit-hit");
+    expect(text).toContain("1 recorded");
   });
 });
