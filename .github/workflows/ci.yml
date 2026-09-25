@@ -1,0 +1,23 @@
+name: CI
+
+# Issue #12: offline checks only (runner unit tests + schema validation of
+# every scenario/fixture). No Docker, no secrets, no recording environment —
+# per the 2026-09-26 scope change on HubRefactoring#12, nightly `verify`
+# against the Legacy recording environment is not run here; see README.md.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun test
