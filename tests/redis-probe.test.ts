@@ -3,8 +3,9 @@ import { RedisProbeService } from "../src/probe/redisProbe";
 import { compareRedisState } from "../src/comparator/comparator";
 import { config } from "../src/config";
 import Redis from "ioredis";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Comparator (Issue #7)", () => {
   const redisProbe = new RedisProbeService({
     host: config.redis.host,
     port: config.redis.port,

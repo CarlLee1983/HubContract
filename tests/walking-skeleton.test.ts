@@ -4,8 +4,9 @@ import { ScenarioDefinitionSchema, type Fixture } from "../src/schema/scenario";
 import scenarioJson from "../scenarios/wallet/check-transaction-deposit-hit.json";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Walking Skeleton: Contract Runner (Issue #4)", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
   });
