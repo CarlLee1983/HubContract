@@ -16,10 +16,20 @@ INSERT INTO `station_currencies` (`id`, `station_id`, `currency`, `status`, `cre
 (3, 1, 'PHP', 1, NOW(), NOW(), NULL);
 
 -- 3. Platforms
+-- Note (Issue #8): the `cq9` row's api_settings uses the wrong key names —
+-- Cq9::getApiRequiredSettings() reads `api_url`/`api_token`, not `url`. Any
+-- scenario that actually drives cq9's findAccount would hit
+-- `Undefined array key "api_url"`. Left as-is here: no existing scenario
+-- exercises cq9's outbound call, and fixing it is outside this issue's scope.
 TRUNCATE TABLE `platforms`;
 INSERT INTO `platforms` (`id`, `name`, `is_original`, `api_settings`, `active`, `maintain`, `authorized`, `is_main`, `raw_log_sync`, `sort`, `currencies`, `regions`, `game_types`, `raw_index`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'main', 1, NULL, 1, 0, 1, 1, 1, 0, '[]', '[]', '[]', NULL, NOW(), NOW(), NULL),
-(2, 'cq9', 1, '{"url":"http://mock-provider:8081"}', 1, 0, 1, 0, 1, 1, '["TWD","USD"]', '[]', '[]', NULL, NOW(), NOW(), NULL);
+(2, 'cq9', 1, '{"url":"http://mock-provider:8081"}', 1, 0, 1, 0, 1, 1, '["TWD","USD"]', '[]', '[]', NULL, NOW(), NOW(), NULL),
+-- sbo: the walking-skeleton outbound platform for GET /v1/player/balance (Issue #8).
+-- api_settings keys per Sbo::getApiRequiredSettings(); api_url points at the
+-- `mock-provider` compose service (stub) so findAccount() calls the stub, not
+-- a real vendor.
+(3, 'sbo', 1, '{"api_url":"http://mock-provider:8081","company_key":"synthetic_company_key","server_id":"synthetic-server-01","agent_id":"synthetic_agent","portfolio":"SportsBook","lang":"en"}', 1, 0, 1, 0, 1, 2, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL);
 
 -- 4. Platform Currencies
 TRUNCATE TABLE `platform_currencies`;
@@ -33,11 +43,27 @@ INSERT INTO `users` (`id`, `station_id`, `account`, `last_deposit_at`, `last_bet
 (1, 1, 'synthetic_user_01', NOW(), NULL, NOW(), NOW(), NULL),
 (2, 1, 'synthetic_user_02', NOW(), NULL, NOW(), NOW(), NULL);
 
--- 6. Wallets (Main Wallet for user 1 & 2)
+-- 6a. Players (Issue #8): pre-created so GET /v1/player/balance's findAccount()
+-- doesn't take the createAccount() branch (an extra outbound call + INSERT) —
+-- that path is exercised separately, not by the walking-skeleton scenarios.
+-- account format is LobbyAbstract::getFormattedPlayerAccount(): {user.account}{station.code}p{platform.id}.
+TRUNCATE TABLE `players`;
+INSERT INTO `players` (`id`, `station_id`, `platform_id`, `user_id`, `account`, `vendor_player_id`, `playing`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 3, 1, 'synthetic_user_01DEMO_STATIONp3', NULL, 0, NOW(), NOW(), NULL);
+
+-- 6b. Wallets (Main Wallet for user 1 & 2, plus a pre-created sbo wallet for
+-- the Issue #8 player above so checkWalletByPlayer() doesn't INSERT one).
 TRUNCATE TABLE `wallets`;
 INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_id`, `in_use`, `currency`, `balance`, `freeze`, `check_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 1, 'main', 0, 1, 'TWD', 1000.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
-(2, 2, 1, 'main', 0, 1, 'TWD', 500.0000, 0.0000, NOW(), NOW(), NOW(), NULL);
+(2, 2, 1, 'main', 0, 1, 'TWD', 500.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
+(3, 1, 3, 'sbo', 1, 0, 'TWD', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL);
+
+-- 6c. Play logs (Issue #8): PlayerService::getPlayBalance() picks the platform
+-- from the user's most recent play_log row, not from the request.
+TRUNCATE TABLE `play_logs`;
+INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 3, 1, 1, NULL, NOW(), NOW(), NULL);
 
 -- 7. Deposit Records
 TRUNCATE TABLE `deposit_records`;

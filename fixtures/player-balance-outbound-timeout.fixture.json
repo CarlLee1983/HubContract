@@ -1,0 +1,33 @@
+{
+  "scenarioId": "player-balance-outbound-timeout",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "cURL error 28: Operation timed out after <MS> milliseconds with 0 bytes received (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for <STUB_URL>"
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/get-player-balance.aspx",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "Username": "synthetic_user_01DEMO_STATIONp3",
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01"
+        }
+      }
+    ]
+  }
+}
