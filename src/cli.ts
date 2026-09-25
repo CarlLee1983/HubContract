@@ -60,6 +60,7 @@ async function main() {
 
   const runner = new ContractRunner({
     baseUrl: targetUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   try {

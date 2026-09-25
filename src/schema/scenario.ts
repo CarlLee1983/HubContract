@@ -48,6 +48,44 @@ export const RedisProbeSchema = z.object({
 });
 
 /**
+ * Provider stub schema (Issue #8): describes how the stub (compose service
+ * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
+ * by the target under test (e.g. Legacy calling out to a game platform).
+ * Matching order is method, then path, then the optional body condition
+ * (partial match: every key here must equal the corresponding key in the
+ * parsed request body) — see the Issue #8 exploration notes.
+ */
+export const StubResponseSchema = z.object({
+  status: z.number().default(200),
+  body: z.any().optional(),
+  headers: z.record(z.string(), z.string()).default({}),
+  delayMs: z
+    .number()
+    .default(0)
+    .describe(
+      "Simulated latency before responding. Set higher than the caller's own HTTP timeout to simulate a timeout instead of adding a separate 'hang forever' mode."
+    ),
+});
+
+export const StubMatcherSchema = z.object({
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+  path: z.string().startsWith("/"),
+  body: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe("Partial match against the parsed JSON/form request body"),
+  response: StubResponseSchema,
+});
+
+export const StubScriptSchema = z.object({
+  matchers: z.array(StubMatcherSchema).default([]),
+});
+
+export type StubScript = z.infer<typeof StubScriptSchema>;
+export type StubMatcher = z.infer<typeof StubMatcherSchema>;
+export type StubResponse = z.infer<typeof StubResponseSchema>;
+
+/**
  * Scenario definition schema (input for record & verify)
  */
 export const ScenarioDefinitionSchema = z.object({
@@ -70,6 +108,14 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  // Issue #8: when present, captureRun() resets the stub and loads this
+  // script before executing the request, then reads back the outbound
+  // call(s) it recorded into layer3_outboundCalls.
+  stub: z
+    .object({
+      script: StubScriptSchema,
+    })
+    .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
 });
 
@@ -101,6 +147,18 @@ export const FixtureSchema = z.object({
     .object({
       before: z.record(z.string(), z.any()),
       after: z.record(z.string(), z.any()),
+    })
+    .optional(),
+  layer3_outboundCalls: z
+    .object({
+      calls: z.array(
+        z.object({
+          method: z.string(),
+          path: z.string(),
+          headers: z.record(z.string(), z.string()),
+          body: z.any(),
+        })
+      ),
     })
     .optional(),
   layer4_sharedResources: z

@@ -1,7 +1,7 @@
 import type { RedisKeyRecord } from "../schema/scenario";
 
 export interface Difference {
-  layer: "inbound_response" | "db_state" | "shared_resources";
+  layer: "inbound_response" | "db_state" | "outbound_calls" | "shared_resources";
   path: string;
   expected: unknown;
   actual: unknown;
@@ -118,6 +118,18 @@ export function compareDbState(
   stage: "before" | "after" = "after"
 ): Difference[] {
   return compareDiff(actual, expected, stage, "db_state");
+}
+
+/**
+ * Layer 3: outbound calls the target under test made to the provider stub
+ * (Issue #8). Reuses the generic structural diff — order matters (calls are
+ * recorded in the order the stub received them), same as any other array.
+ */
+export function compareOutboundCalls(
+  actual: Array<{ method: string; path: string; headers: Record<string, string>; body: unknown }>,
+  expected: Array<{ method: string; path: string; headers: Record<string, string>; body: unknown }>
+): Difference[] {
+  return compareDiff(actual, expected, "calls", "outbound_calls");
 }
 
 export function compareRedisState(
