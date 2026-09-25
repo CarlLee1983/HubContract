@@ -58,6 +58,9 @@ export const ScenarioDefinitionSchema = z.object({
     method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
     path: z.string().startsWith("/"),
   }),
+  // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
+  // "deposit"). Optional so pre-existing scenario files without tags stay valid.
+  tags: z.array(z.string()).default([]),
   request: z.object({
     headers: z.record(z.string(), z.string()).default({}),
     query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
