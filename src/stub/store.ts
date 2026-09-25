@@ -1,11 +1,6 @@
-import type { StubMatcher, StubScript } from "../schema/scenario";
+import type { StubMatcher, StubRequestRecord, StubScript } from "../schema/scenario";
 
-export interface StubRequestRecord {
-  method: string;
-  path: string;
-  headers: Record<string, string>;
-  body: unknown;
-}
+export type { StubRequestRecord };
 
 export interface StubMatchResult {
   status: number;
@@ -35,8 +30,12 @@ export class StubStore {
     this.unmatchedCount = 0;
   }
 
+  /** Returns a copy — callers must never be able to mutate this store's internal state through it. */
   getRequests(): { requests: StubRequestRecord[]; unmatchedCount: number } {
-    return { requests: this.requests, unmatchedCount: this.unmatchedCount };
+    return {
+      requests: this.requests.map((r) => structuredClone(r)),
+      unmatchedCount: this.unmatchedCount,
+    };
   }
 
   /**
@@ -47,7 +46,7 @@ export class StubStore {
    * must fail the scenario, not silently pass through as a 200.
    */
   handle(req: StubRequestRecord): StubMatchResult {
-    this.requests.push(req);
+    this.requests.push(structuredClone(req));
 
     const matcher = this.script.matchers.find((m) => this.matches(m, req));
     if (!matcher) {
@@ -77,7 +76,10 @@ export class StubStore {
     if (matcher.body) {
       const body = (req.body ?? {}) as Record<string, unknown>;
       for (const [key, expected] of Object.entries(matcher.body)) {
-        if (body[key] !== expected) return false;
+        // Deep-equal, not `!==` (code review Standards #4) — a matcher
+        // condition on a nested object/array must actually compare
+        // structure, not object identity.
+        if (!Bun.deepEquals(body[key], expected, true)) return false;
       }
     }
 

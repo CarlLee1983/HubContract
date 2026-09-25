@@ -73,7 +73,9 @@ export const StubMatcherSchema = z.object({
   body: z
     .record(z.string(), z.any())
     .optional()
-    .describe("Partial match against the parsed JSON/form request body"),
+    .describe(
+      "Partial match against the parsed JSON/form request body — every key here must deep-equal the corresponding key in the request body, nested objects/arrays included."
+    ),
   response: StubResponseSchema,
 });
 
@@ -84,6 +86,22 @@ export const StubScriptSchema = z.object({
 export type StubScript = z.infer<typeof StubScriptSchema>;
 export type StubMatcher = z.infer<typeof StubMatcherSchema>;
 export type StubResponse = z.infer<typeof StubResponseSchema>;
+
+/**
+ * A single request the stub received — the one source of truth for this
+ * shape (code review Standards #11), used by src/stub/store.ts (in-memory
+ * record), src/stub/client.ts (control API response), and
+ * FixtureSchema.layer3_outboundCalls (golden/comparison shape) alike.
+ */
+export const StubRequestRecordSchema = z.object({
+  method: z.string(),
+  path: z.string(),
+  query: z.record(z.string(), z.string()).default({}),
+  headers: z.record(z.string(), z.string()).default({}),
+  body: z.any().optional(),
+});
+
+export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
 
 /**
  * Scenario definition schema (input for record & verify)
@@ -108,12 +126,19 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
-  // Issue #8: when present, captureRun() resets the stub and loads this
-  // script before executing the request, then reads back the outbound
-  // call(s) it recorded into layer3_outboundCalls.
+  // Issue #8: captureRun() *always* resets the stub and loads this script (or
+  // an empty one, if omitted) before executing the request — every scenario
+  // is checked for undefined outbound calls, not just ones that declare a
+  // stub. When present, the matched call(s) are read back into
+  // layer3_outboundCalls.
   stub: z
     .object({
       script: StubScriptSchema,
+      // Code review Standards #3 (Story 26): which recorded headers are
+      // meaningful to a contract is scenario-specific (a platform that signs
+      // via a header needs it kept; most don't) — declared explicitly per
+      // scenario instead of a hardcoded global, same as normalizers/dbProbe.
+      outboundHeaderAllowlist: z.array(z.string()).default(["content-type", "authorization"]),
     })
     .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
@@ -151,14 +176,7 @@ export const FixtureSchema = z.object({
     .optional(),
   layer3_outboundCalls: z
     .object({
-      calls: z.array(
-        z.object({
-          method: z.string(),
-          path: z.string(),
-          headers: z.record(z.string(), z.string()),
-          body: z.any(),
-        })
-      ),
+      calls: z.array(StubRequestRecordSchema),
     })
     .optional(),
   layer4_sharedResources: z

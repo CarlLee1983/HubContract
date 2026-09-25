@@ -21,8 +21,12 @@ export function createStubServer(store: StubStore = new StubStore()): http.Serve
       const contentType = String(req.headers["content-type"] ?? "");
 
       if (req.method === "PUT" && url.pathname === "/__stub/script") {
-        const script = StubScriptSchema.parse(JSON.parse(raw.toString("utf-8") || "{}"));
-        store.loadScript(script);
+        const parsed = StubScriptSchema.safeParse(JSON.parse(raw.toString("utf-8") || "{}"));
+        if (!parsed.success) {
+          sendJson(res, 400, { error: "invalid stub script", issues: parsed.error.issues });
+          return;
+        }
+        store.loadScript(parsed.data);
         sendJson(res, 200, { ok: true });
         return;
       }
@@ -48,9 +52,15 @@ export function createStubServer(store: StubStore = new StubStore()): http.Serve
         if (typeof value === "string") headers[key] = value;
       }
 
+      const query: Record<string, string> = {};
+      for (const [key, value] of url.searchParams.entries()) {
+        query[key] = value;
+      }
+
       const result = store.handle({
         method: req.method ?? "GET",
         path: url.pathname,
+        query,
         headers,
         body: parseBody(raw, contentType),
       });
@@ -61,7 +71,13 @@ export function createStubServer(store: StubStore = new StubStore()): http.Serve
 
       sendJson(res, result.status, result.body, result.headers);
     } catch (err) {
-      sendJson(res, 500, { error: `hub-contract stub: ${(err as Error).message}` });
+      // Code review Standards #8: a control-API validation error (handled
+      // above via safeParse) is a 400 with the caller's mistake spelled out;
+      // anything else reaching here is unexpected — log it with its cause
+      // instead of only surfacing a flattened message string to the client.
+      console.error("[hub-contract stub] unhandled error", err);
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: `hub-contract stub: ${message}` });
     }
   });
 }
@@ -107,7 +123,7 @@ function sendJson(
 
 // Compose entrypoint (docker-compose.yml's mock-provider service). Guarded so
 // this file can also be imported for in-process unit tests without binding a
-// port (see tests/stub.test.ts).
+// port (see tests/stub-store.test.ts, tests/stub-server.test.ts).
 if (import.meta.main) {
   const port = Number(process.env.STUB_PORT ?? 8081);
   createStubServer().listen(port, () => {

@@ -1,4 +1,4 @@
-import type { RedisKeyRecord } from "../schema/scenario";
+import type { RedisKeyRecord, StubRequestRecord } from "../schema/scenario";
 
 export interface Difference {
   layer: "inbound_response" | "db_state" | "outbound_calls" | "shared_resources";
@@ -126,8 +126,8 @@ export function compareDbState(
  * recorded in the order the stub received them), same as any other array.
  */
 export function compareOutboundCalls(
-  actual: Array<{ method: string; path: string; headers: Record<string, string>; body: unknown }>,
-  expected: Array<{ method: string; path: string; headers: Record<string, string>; body: unknown }>
+  actual: StubRequestRecord[],
+  expected: StubRequestRecord[]
 ): Difference[] {
   return compareDiff(actual, expected, "calls", "outbound_calls");
 }

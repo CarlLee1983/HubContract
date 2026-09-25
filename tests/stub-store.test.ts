@@ -17,6 +17,7 @@ describe("StubStore (Issue #8)", () => {
     const result = store.handle({
       method: "POST",
       path: "/web-root/restricted/player/get-player-balance.aspx",
+      query: {},
       headers: { "content-type": "application/json" },
       body: { Username: "u1" },
     });
@@ -42,6 +43,7 @@ describe("StubStore (Issue #8)", () => {
     const wrongUser = store.handle({
       method: "POST",
       path: "/x",
+      query: {},
       headers: {},
       body: { Username: "someone-else" },
     });
@@ -50,17 +52,69 @@ describe("StubStore (Issue #8)", () => {
     const rightUser = store.handle({
       method: "POST",
       path: "/x",
+      query: {},
       headers: {},
       body: { Username: "expected-user" },
     });
     expect(rightUser.matched).toBe(true);
   });
 
+  it("deep-equals nested object/array body condition values, not just top-level primitives", () => {
+    const store = new StubStore();
+    store.loadScript({
+      matchers: [
+        {
+          method: "POST",
+          path: "/x",
+          body: { profile: { tier: "gold", tags: ["a", "b"] } },
+          response: { status: 200, body: { matched: true }, headers: {}, delayMs: 0 },
+        },
+      ],
+    });
+
+    const differentOrderSameShape = store.handle({
+      method: "POST",
+      path: "/x",
+      query: {},
+      headers: {},
+      // Same structure, freshly-built objects (different references) — a
+      // shallow `!==` comparison would wrongly reject this.
+      body: { profile: { tier: "gold", tags: ["a", "b"] } },
+    });
+    expect(differentOrderSameShape.matched).toBe(true);
+
+    const differentNestedValue = store.handle({
+      method: "POST",
+      path: "/x",
+      query: {},
+      headers: {},
+      body: { profile: { tier: "silver", tags: ["a", "b"] } },
+    });
+    expect(differentNestedValue.matched).toBe(false);
+  });
+
+  it("records query string parameters alongside method/path/headers/body", () => {
+    const store = new StubStore();
+    store.loadScript({
+      matchers: [{ method: "GET", path: "/api/merchant/player/balance", response: { status: 200, body: {}, headers: {}, delayMs: 0 } }],
+    });
+
+    store.handle({
+      method: "GET",
+      path: "/api/merchant/player/balance",
+      query: { account: "u1", currency: "TWD" },
+      headers: {},
+      body: undefined,
+    });
+
+    expect(store.getRequests().requests[0]?.query).toEqual({ account: "u1", currency: "TWD" });
+  });
+
   it("records unmatched requests as a 500 and counts them (Story 17)", () => {
     const store = new StubStore();
     store.loadScript({ matchers: [] });
 
-    const result = store.handle({ method: "GET", path: "/undefined", headers: {}, body: undefined });
+    const result = store.handle({ method: "GET", path: "/undefined", query: {}, headers: {}, body: undefined });
 
     expect(result.matched).toBe(false);
     expect(result.status).toBe(500);
@@ -73,8 +127,8 @@ describe("StubStore (Issue #8)", () => {
       matchers: [{ method: "GET", path: "/ok", response: { status: 200, body: {}, headers: {}, delayMs: 0 } }],
     });
 
-    store.handle({ method: "GET", path: "/ok", headers: {}, body: undefined });
-    store.handle({ method: "GET", path: "/missing", headers: {}, body: undefined });
+    store.handle({ method: "GET", path: "/ok", query: {}, headers: {}, body: undefined });
+    store.handle({ method: "GET", path: "/missing", query: {}, headers: {}, body: undefined });
 
     const { requests, unmatchedCount } = store.getRequests();
     expect(requests.map((r) => r.path)).toEqual(["/ok", "/missing"]);
@@ -86,14 +140,14 @@ describe("StubStore (Issue #8)", () => {
     store.loadScript({
       matchers: [{ method: "GET", path: "/ok", response: { status: 200, body: {}, headers: {}, delayMs: 0 } }],
     });
-    store.handle({ method: "GET", path: "/ok", headers: {}, body: undefined });
-    store.handle({ method: "GET", path: "/missing", headers: {}, body: undefined });
+    store.handle({ method: "GET", path: "/ok", query: {}, headers: {}, body: undefined });
+    store.handle({ method: "GET", path: "/missing", query: {}, headers: {}, body: undefined });
 
     store.reset();
 
     expect(store.getRequests()).toEqual({ requests: [], unmatchedCount: 0 });
     // The script was cleared too — even a previously-matching path is now unmatched.
-    const afterReset = store.handle({ method: "GET", path: "/ok", headers: {}, body: undefined });
+    const afterReset = store.handle({ method: "GET", path: "/ok", query: {}, headers: {}, body: undefined });
     expect(afterReset.matched).toBe(false);
   });
 
@@ -103,7 +157,23 @@ describe("StubStore (Issue #8)", () => {
       matchers: [{ method: "GET", path: "/slow", response: { status: 200, body: {}, headers: {}, delayMs: 3000 } }],
     });
 
-    const result = store.handle({ method: "GET", path: "/slow", headers: {}, body: undefined });
+    const result = store.handle({ method: "GET", path: "/slow", query: {}, headers: {}, body: undefined });
     expect(result.delayMs).toBe(3000);
+  });
+
+  it("getRequests() returns a copy — mutating the result must not affect the store's own state", () => {
+    const store = new StubStore();
+    store.loadScript({
+      matchers: [{ method: "GET", path: "/ok", response: { status: 200, body: {}, headers: {}, delayMs: 0 } }],
+    });
+    store.handle({ method: "GET", path: "/ok", query: {}, headers: {}, body: undefined });
+
+    const first = store.getRequests();
+    first.requests.push({ method: "GET", path: "/tampered", query: {}, headers: {}, body: undefined });
+    first.requests[0]!.path = "/tampered-too";
+
+    const second = store.getRequests();
+    expect(second.requests).toHaveLength(1);
+    expect(second.requests[0]?.path).toBe("/ok");
   });
 });
