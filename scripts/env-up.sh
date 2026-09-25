@@ -60,10 +60,11 @@ fi
 
 echo "==> [HubContract] Starting recording environment containers..."
 cd "${ROOT_DIR}"
-STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" docker compose up -d
-
-echo "==> [HubContract] Waiting for services to be healthy..."
-docker compose wait mariadb redis mongo mock-provider legacy-app >/dev/null 2>&1 || true
+# `docker compose wait` (previously used here) blocks until containers STOP,
+# not until they're healthy — since none of these services ever stop on their
+# own, that call hung forever. `up -d --wait` is compose's actual "block until
+# healthy (or running, for services with no healthcheck)" primitive.
+STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" docker compose up -d --wait --wait-timeout 120
 
 echo "==> [HubContract] Resetting database to synthetic seed state..."
 "${SCRIPT_DIR}/env-reset.sh"
