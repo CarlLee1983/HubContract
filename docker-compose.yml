@@ -6,21 +6,22 @@ networks:
         # 192.168.1.0/24) so the host->container source IP that
         # HUB_MCP_ALLOWED_IPS relies on (Issue #7) doesn't drift on every
         # `docker compose down && up` — Docker Desktop otherwise assigns a new
-        # subnet each time and the gateway IP moves with it.
-        - subnet: 172.29.0.0/24
-          gateway: 172.29.0.1
+        # subnet each time and the gateway IP moves with it. Override via
+        # SUBNET/GATEWAY (see .env.example, Issue #8) so a second worktree's
+        # compose project doesn't try to reuse the same subnet.
+        - subnet: ${SUBNET:-172.29.0.0/24}
+          gateway: ${GATEWAY:-172.29.0.1}
 
 services:
   mariadb:
     image: mariadb:10.11.6
-    container_name: hub_contract_mariadb
     environment:
       MYSQL_ROOT_PASSWORD: root_recording_pass
       MYSQL_DATABASE: stationhub_recording
       MYSQL_USER: recording_user
       MYSQL_PASSWORD: recording_pass
     ports:
-      - "33066:3306"
+      - "${DB_PORT:-33066}:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 2s
@@ -29,9 +30,8 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    container_name: hub_contract_redis
     ports:
-      - "63799:6379"
+      - "${REDIS_PORT:-63799}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
@@ -40,20 +40,42 @@ services:
 
   mongo:
     image: mongo:6.0
-    container_name: hub_contract_mongo
     ports:
-      - "27018:27017"
+      - "${MONGO_PORT:-27018}:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 2s
       timeout: 2s
       retries: 20
 
+  # Provider stub (Issue #8): stands in for third-party game platform / SMS
+  # vendor endpoints so outbound calls from legacy-app can be recorded and
+  # replayed without a real vendor. Runs the same TypeScript source as the
+  # harness (src/stub) so its core matching logic can also be unit-tested
+  # in-process — this compose service is a thin node:http shell around it.
+  # Reachable from legacy-app as `http://mock-provider:8081` (see
+  # seeds/synthetic-seed.sql's sbo `api_url`), and from the host/runner via
+  # MOCK_PROVIDER_PORT for the /__stub/* control API.
+  mock-provider:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - .:/app:ro
+    command: ["bun", "run", "src/stub/server.ts"]
+    environment:
+      STUB_PORT: "8081"
+    ports:
+      - "${MOCK_PROVIDER_PORT:-18081}:8081"
+    healthcheck:
+      test: ["CMD", "bun", "run", "src/stub/healthcheck.ts"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
   legacy-app:
     image: stationhub-legacy:recording
-    container_name: hub_contract_legacy_app
     ports:
-      - "8080:8080"
+      - "${LEGACY_PORT:-8080}:8080"
     volumes:
       # ./.legacy-src is a git worktree pinned to docker/legacy.commit's LEGACY_COMMIT,
       # created by scripts/env-up.sh (Issue #3). STATIONHUB_VENDOR_DIR is exported by
@@ -64,13 +86,36 @@ services:
       - ./docker/.env.recording:/var/www/html/.env:ro
     environment:
       APP_TIMEZONE: Asia/Taipei
-      APP_DOMAINS_API: "localhost:8080,127.0.0.1:8080,stationhub.test,cmg-api.test"
+      # Host::is('api') matches this list exactly, including port. Scenario
+      # JSON files (scenarios/**/*.json) hardcode "Host": "localhost:8080" as
+      # a fixed contract-level constant (like stationhub.test/cmg-api.test,
+      # not a real network address), so localhost:8080/127.0.0.1:8080 stay
+      # listed unconditionally; the ${LEGACY_PORT} entries are added so a
+      # request that instead uses the real host:port (no explicit Host
+      # header override) also resolves to the api domain group when running
+      # on a non-default port, e.g. a second worktree (Issue #8).
+      APP_DOMAINS_API: "localhost:8080,127.0.0.1:8080,localhost:${LEGACY_PORT:-8080},127.0.0.1:${LEGACY_PORT:-8080},stationhub.test,cmg-api.test"
+      # Laravel's dotenv (vlucas/phpdotenv, via Illuminate\Foundation\Bootstrap)
+      # never overwrites a real process environment variable that's already
+      # set — only fills in variables .env.recording doesn't define. Setting
+      # HUB_MCP_ALLOWED_IPS here (rather than in .env.recording) lets it track
+      # GATEWAY per compose project instead of being hardcoded to the primary
+      # checkout's subnet. 127.0.0.1 is included because the container's own
+      # healthcheck calls itself over loopback.
+      HUB_MCP_ALLOWED_IPS: "${GATEWAY:-172.29.0.1},127.0.0.1"
+      # Issue #8: sbo (the walking-skeleton outbound platform) gets a short
+      # override so the timeout scenario doesn't have to wait out the default
+      # 8s GAMELOBBY_HTTP_TIMEOUT. Scoped to sbo only via Legacy's own
+      # per-platform override syntax — other platforms/scenarios are unaffected.
+      GAMELOBBY_HTTP_PLATFORM_OVERRIDES: "sbo:2"
     depends_on:
       mariadb:
         condition: service_healthy
       redis:
         condition: service_healthy
       mongo:
+        condition: service_healthy
+      mock-provider:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/v1/server/status"]

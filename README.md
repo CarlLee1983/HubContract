@@ -56,12 +56,45 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 
 ### 服務與連接埠配置
 
-| 服務 | 內部連接埠 | 主機連接埠 | 說明 |
+| 服務 | 內部連接埠 | 主機連接埠（預設） | 說明 |
 | --- | --- | --- | --- |
 | `legacy-app` | `8080` | `8080` | StationHub Legacy PHP 8.3 內建 Web Server |
 | `mariadb` | `3306` | `33066` | MariaDB 10.11.6 (`stationhub_recording`) |
 | `redis` | `6379` | `63799` | Redis 7.2-alpine |
 | `mongo` | `27017` | `27018` | MongoDB 6.0 (`stationhub_recording`) |
+| `mock-provider` | `8081` | `18081` | 線路／SMS 供應商 stub（Issue #8），控制 API 見下方 |
+
+主機連接埠、docker network 子網段與 compose project name 都可由本機 `.env` 覆寫，見下一節。
+
+### 同時跑多個隔離環境（例如多個 `git worktree`）
+
+`docker-compose.yml`、`scripts/env-*.sh`、`src/config.ts` 都讀同一份設定：專案根目錄下的 `.env`（gitignored；docker compose 會自動載入做變數代入，Bun 執行 `bun test`／`bun run` 時也會自動載入到 `process.env`，腳本則在開頭手動 `source` 一次）。預設值等同上表與 `docker-compose.yml` 裡寫死過的舊值，所以沒有 `.env` 時行為與改動前完全一致。
+
+要在同一台機器上同時跑第二份錄製環境（例如另一個 issue 的 `git worktree`），複製 `.env.example` 成 `.env` 並調整：
+
+```bash
+cp .env.example .env
+# 編輯 .env：COMPOSE_PROJECT_NAME、各服務的 *_PORT、SUBNET/GATEWAY、
+# HUBCONTRACT_BASE_URL、HUBCONTRACT_STUB_URL 都要跟其他份環境不同，
+# 避免 host port 衝突或 docker network 子網段重疊。
+./scripts/env-up.sh
+bun test
+./scripts/env-down.sh
+```
+
+`HUB_MCP_ALLOWED_IPS`（Issue #7）會依 `GATEWAY` 由 `docker-compose.yml` 的 `legacy-app.environment` 注入，覆寫 `docker/.env.recording` 裡的預設值——Laravel 的 dotenv 不會覆寫已經存在的真實環境變數，所以這個注入是安全的（已於本機驗證：`docker exec <project>-legacy-app-1 printenv HUB_MCP_ALLOWED_IPS` 會顯示對應該專案 `GATEWAY` 的值，而不是 `.env.recording` 裡寫死的 `172.29.0.1`）。
+
+### 線路 stub（Issue #8）
+
+`mock-provider` 服務（`src/stub/server.ts`，node:http——`Bun.serve` 會丟掉 GET request 的 body）站在遊戲線路／SMS 供應商的位置，讓 `ContractRunner` 錄製並比對出站呼叫（契約第 3 層）。情境定義加上 `stub.script.matchers`（依 method、path、選填的 body 條件比對，見 `src/schema/scenario.ts`）即可描述線路該怎麼回應；沒有任何 matcher 命中的請求會回 5xx，並讓 `record()`／`verify()` 直接判定情境失敗（Story 17）。
+
+控制 API（`http://localhost:${MOCK_PROVIDER_PORT}`）：
+
+| 端點 | 用途 |
+| --- | --- |
+| `PUT /__stub/script` | 載入這次情境的腳本（`ContractRunner` 在每次 record/verify 前呼叫） |
+| `GET /__stub/requests` | 取回目標系統實際送出的出站呼叫，以及沒命中任何 matcher 的次數 |
+| `POST /__stub/reset` | 清空腳本與已錄製的請求（`scripts/env-reset.sh` 每次重置都會呼叫） |
 
 ### 時區設定（Timezone）注意事項
 

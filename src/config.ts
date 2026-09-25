@@ -22,4 +22,8 @@ export const config = {
     password: process.env.REDIS_PASSWORD || undefined,
     prefix: process.env.REDIS_PREFIX || "hub_recording:",
   },
+  stub: {
+    /** Provider stub's control API (Issue #8), i.e. compose service `mock-provider`. */
+    baseUrl: process.env.HUBCONTRACT_STUB_URL || "http://localhost:18081",
+  },
 };
