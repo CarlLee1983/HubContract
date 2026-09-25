@@ -11,14 +11,49 @@
     }
   },
   "layer2_dbState": {
-    "before": {},
-    "after": {}
+    "before": {
+      "sbo_wallet": [
+        {
+          "id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ]
+    },
+    "after": {
+      "sbo_wallet": [
+        {
+          "id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ]
+    }
   },
   "layer3_outboundCalls": {
     "calls": [
       {
         "method": "POST",
         "path": "/web-root/restricted/player/get-player-balance.aspx",
+        "query": {},
         "headers": {
           "content-type": "application/json"
         },

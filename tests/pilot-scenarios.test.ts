@@ -9,6 +9,7 @@ import { resetEnvironment } from "../src/env/reset";
 describe("Issue #5: Pilot Scenarios Contract Suite", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

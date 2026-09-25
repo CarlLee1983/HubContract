@@ -62,6 +62,7 @@ describe("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", ()
       {
         method: "POST",
         path: "/web-root/restricted/player/get-player-balance.aspx",
+        query: {},
         headers: { "content-type": "application/json" },
         body: {
           Username: "synthetic_user_01DEMO_STATIONp3",
@@ -70,6 +71,27 @@ describe("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", ()
         },
       },
     ]);
+  });
+
+  it("Standards #1/#2: an outbound call fails the scenario even when it declares no `stub` at all", async () => {
+    const base: ScenarioDefinition = ScenarioDefinitionSchema.parse(
+      JSON.parse(
+        await fs.readFile(
+          path.join(__dirname, "../scenarios/player/player-balance-outbound-success.json"),
+          "utf-8"
+        )
+      )
+    );
+
+    // No `stub` field whatsoever — captureRun() must still load an empty
+    // script and still check unmatchedCount, not skip the check because
+    // `scenario.stub` is undefined.
+    const { stub: _stub, ...scenarioWithoutStub } = base;
+    void _stub;
+
+    await expect(runner.record(scenarioWithoutStub as ScenarioDefinition)).rejects.toThrow(
+      /no stub script matcher/
+    );
   });
 
   it("Story 17: an outbound call the stub script doesn't define fails verify(), regardless of the golden fixture", async () => {
@@ -87,7 +109,7 @@ describe("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", ()
     const scenarioWithEmptyScript: ScenarioDefinition = {
       ...base,
       id: "player-balance-outbound-undefined",
-      stub: { script: { matchers: [] } },
+      stub: { ...base.stub!, script: { matchers: [] } },
     };
 
     const golden = FixtureSchema.parse(
@@ -121,9 +143,28 @@ describe("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", ()
     const scenarioWithEmptyScript: ScenarioDefinition = {
       ...base,
       id: "player-balance-outbound-undefined",
-      stub: { script: { matchers: [] } },
+      stub: { ...base.stub!, script: { matchers: [] } },
     };
 
     await expect(runner.record(scenarioWithEmptyScript)).rejects.toThrow(/no stub script matcher/);
+  });
+
+  it("Standards #10: the timeout scenario's delayMs actually exceeds the sbo timeout override it depends on", async () => {
+    const scenario = ScenarioDefinitionSchema.parse(
+      JSON.parse(
+        await fs.readFile(
+          path.join(__dirname, "../scenarios/player/player-balance-outbound-timeout.json"),
+          "utf-8"
+        )
+      )
+    );
+
+    const delayMs = scenario.stub?.script.matchers[0]?.response.delayMs;
+    // Shared source: docker-compose.yml's legacy-app.environment sets
+    // GAMELOBBY_HTTP_PLATFORM_OVERRIDES from the same GAMELOBBY_SBO_TIMEOUT_SECONDS
+    // env var config.gamelobby.sboTimeoutSeconds reads — if either drifts out
+    // of sync with this scenario's delayMs, this assertion (not just a slow
+    // CI run) is what catches it.
+    expect(delayMs).toBeGreaterThan(config.gamelobby.sboTimeoutSeconds * 1000);
   });
 });

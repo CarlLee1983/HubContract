@@ -107,7 +107,11 @@ services:
       # override so the timeout scenario doesn't have to wait out the default
       # 8s GAMELOBBY_HTTP_TIMEOUT. Scoped to sbo only via Legacy's own
       # per-platform override syntax — other platforms/scenarios are unaffected.
-      GAMELOBBY_HTTP_PLATFORM_OVERRIDES: "sbo:2"
+      # GAMELOBBY_SBO_TIMEOUT_SECONDS is the single shared source for this
+      # number (code review Standards #10) — src/config.ts reads the same env
+      # var name/default, and tests/outbound-stub.test.ts asserts
+      # player-balance-outbound-timeout.json's delayMs actually exceeds it.
+      GAMELOBBY_HTTP_PLATFORM_OVERRIDES: "sbo:${GAMELOBBY_SBO_TIMEOUT_SECONDS:-2}"
     depends_on:
       mariadb:
         condition: service_healthy

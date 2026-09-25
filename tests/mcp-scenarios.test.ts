@@ -28,6 +28,7 @@ async function setMaintenanceFlag(): Promise<void> {
 describe("Issue #7: MCP Platform Maintenance Contract Integration Test", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

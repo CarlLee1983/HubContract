@@ -26,4 +26,16 @@ export const config = {
     /** Provider stub's control API (Issue #8), i.e. compose service `mock-provider`. */
     baseUrl: process.env.HUBCONTRACT_STUB_URL || "http://localhost:18081",
   },
+  gamelobby: {
+    /**
+     * Same env var name (and default) as docker-compose.yml's
+     * `legacy-app.environment.GAMELOBBY_HTTP_PLATFORM_OVERRIDES: "sbo:${GAMELOBBY_SBO_TIMEOUT_SECONDS:-2}"`
+     * — the single shared source for "how long Legacy waits before timing out
+     * an sbo outbound call" (code review Standards #10). Read here so
+     * scenarios/player/player-balance-outbound-timeout.json's `delayMs` can
+     * be asserted (tests/outbound-stub.test.ts) to actually exceed it,
+     * instead of the two just happening to agree by coincidence.
+     */
+    sboTimeoutSeconds: Number(process.env.GAMELOBBY_SBO_TIMEOUT_SECONDS || 2),
+  },
 };

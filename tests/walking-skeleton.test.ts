@@ -8,6 +8,7 @@ import { resetEnvironment } from "../src/env/reset";
 describe("Walking Skeleton: Contract Runner (Issue #4)", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

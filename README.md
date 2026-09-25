@@ -68,7 +68,7 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 
 ### 同時跑多個隔離環境（例如多個 `git worktree`）
 
-`docker-compose.yml`、`scripts/env-*.sh`、`src/config.ts` 都讀同一份設定：專案根目錄下的 `.env`（gitignored；docker compose 會自動載入做變數代入，Bun 執行 `bun test`／`bun run` 時也會自動載入到 `process.env`，腳本則在開頭手動 `source` 一次）。預設值等同上表與 `docker-compose.yml` 裡寫死過的舊值，所以沒有 `.env` 時行為與改動前完全一致。
+`docker-compose.yml`、`scripts/env-*.sh`、`src/config.ts` 都讀同一份設定：專案根目錄下的 `.env`（gitignored；docker compose 會自動載入做變數代入，Bun 執行 `bun test`／`bun run` 時也會自動載入到 `process.env`，腳本則在開頭手動 `source` 一次）。沒有 `.env` 時，各變數採用 `docker-compose.yml`／`src/config.ts` 裡寫的預設值（見上表）。
 
 要在同一台機器上同時跑第二份錄製環境（例如另一個 issue 的 `git worktree`），複製 `.env.example` 成 `.env` 並調整：
 
@@ -86,7 +86,11 @@ bun test
 
 ### 線路 stub（Issue #8）
 
-`mock-provider` 服務（`src/stub/server.ts`，node:http——`Bun.serve` 會丟掉 GET request 的 body）站在遊戲線路／SMS 供應商的位置，讓 `ContractRunner` 錄製並比對出站呼叫（契約第 3 層）。情境定義加上 `stub.script.matchers`（依 method、path、選填的 body 條件比對，見 `src/schema/scenario.ts`）即可描述線路該怎麼回應；沒有任何 matcher 命中的請求會回 5xx，並讓 `record()`／`verify()` 直接判定情境失敗（Story 17）。
+`mock-provider` 服務（`src/stub/server.ts`，node:http——`Bun.serve` 會丟掉 GET request 的 body）站在遊戲線路／SMS 供應商的位置，讓 `ContractRunner` 錄製並比對出站呼叫（契約第 3 層）。情境定義加上 `stub.script.matchers`（依 method、path、選填的 body 條件深層比對，見 `src/schema/scenario.ts`）即可描述線路該怎麼回應；method、path、query string、header、body 都會被記錄下來。
+
+stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄位：`ContractRunner` 建構時如果沒給 `stubUrl` 會直接丟例外；`captureRun` 每次都會 reset 並載入腳本（沒有 `stub.script` 就載入空腳本），執行後一律檢查有沒有 unmatched 的出站呼叫。沒有任何 matcher 命中的請求會回 5xx，並讓 `record()`／`verify()` 直接判定情境失敗（Story 17），不論該情境原本在不在乎出站呼叫。
+
+錄製進 golden fixture 時，出站呼叫只保留哪些 header 由情境自己宣告——`stub.outboundHeaderAllowlist`（預設 `["content-type","authorization"]`），而不是 runner 裡的全域寫死值；哪些 header 對契約有意義是隨情境而定的（例如某些平台靠 header 簽章）。
 
 控制 API（`http://localhost:${MOCK_PROVIDER_PORT}`）：
 
