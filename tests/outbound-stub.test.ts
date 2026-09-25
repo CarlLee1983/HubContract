@@ -5,8 +5,9 @@ import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema, FixtureSchema, type ScenarioDefinition } from "../src/schema/scenario";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #8: Provider stub & outbound calls (GET /v1/player/balance)", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
     stubUrl: config.stub.baseUrl,

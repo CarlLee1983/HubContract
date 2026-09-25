@@ -1,7 +1,8 @@
 import type { RedisKeyRecord, StubRequestRecord } from "../schema/scenario";
+import type { DifferenceLayer } from "../schema/differenceLayer";
 
 export interface Difference {
-  layer: "inbound_response" | "db_state" | "outbound_calls" | "shared_resources";
+  layer: DifferenceLayer;
   path: string;
   expected: unknown;
   actual: unknown;
