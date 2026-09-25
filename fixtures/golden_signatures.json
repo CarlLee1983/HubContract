@@ -1,0 +1,133 @@
+{
+  "secret_key": "synthetic_secret_key_for_contract_testing_only_1234567890",
+  "cases": {
+    "basic": {
+      "description": "Standard parameters (station_code, txn_no, timestamp)",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "TRADE_DEP_001",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "TRADE_DEP_001",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "b6fcd76fcab8894d1a2f1284ff82cc72"
+    },
+    "trim_and_empty": {
+      "description": "Whitespace trimming and empty strings converted to null",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "  TRADE_DEP_001  ",
+        "empty_str": "",
+        "spaced_str": "   ",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "TRADE_DEP_001",
+        "empty_str": null,
+        "spaced_str": null,
+        "timestamp": 1700000000
+      },
+      "golden_signature": "3f5c80088ba697bd32879c6db3a5fa6f"
+    },
+    "boolean_and_null": {
+      "description": "PHP string cast semantics: true=>\"1\", false=>\"\", null=>\"\"",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "TRADE_DEP_001",
+        "b_true": true,
+        "b_false": false,
+        "v_null": null,
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "txn_no": "TRADE_DEP_001",
+        "b_true": true,
+        "b_false": false,
+        "v_null": null,
+        "timestamp": 1700000000
+      },
+      "golden_signature": "dc6fa6430a920b92a8ae431523a3ee8b"
+    },
+    "numbers_and_decimals": {
+      "description": "Integers, floats, and numeric strings",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "amount_int": 100,
+        "amount_float": 100.5,
+        "amount_str": "100.00",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "amount_int": 100,
+        "amount_float": 100.5,
+        "amount_str": "100.00",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "b8ca14f9cc75a5b5fecbb2e463974b00"
+    },
+    "chinese_and_special_chars": {
+      "description": "UTF-8 Chinese characters and special URL symbols without URL encoding",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "note": "測試備註!@#$%^&*()_+~`|}{[]:;?><,./",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "note": "測試備註!@#$%^&*()_+~`|}{[]:;?><,./",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "237db2079e228413cd16f22bdd452f27"
+    },
+    "launch_json_defaults_included": {
+      "description": "D-27: launch JSON includes prepareForValidation default values (station_lang=en_us, station_screen=H)",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "station_home_url": "http://home.test",
+        "game_code": "GAME01",
+        "account": "user01",
+        "currency": "TWD",
+        "station_lang": "en_us",
+        "station_screen": "H",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "station_home_url": "http://home.test",
+        "game_code": "GAME01",
+        "account": "user01",
+        "currency": "TWD",
+        "station_lang": "en_us",
+        "station_screen": "H",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "f3b371e12fee3ce7d1757f2679d83e41"
+    },
+    "launch_form_defaults_excluded": {
+      "description": "D-27: launch Form urlencoded does not receive merged defaults into app(Request::class) prior to validation rule execution",
+      "raw_input": {
+        "station_code": "DEMO_STATION",
+        "station_home_url": "http://home.test",
+        "game_code": "GAME01",
+        "account": "user01",
+        "currency": "TWD",
+        "timestamp": 1700000000
+      },
+      "normalized_input": {
+        "station_code": "DEMO_STATION",
+        "station_home_url": "http://home.test",
+        "game_code": "GAME01",
+        "account": "user01",
+        "currency": "TWD",
+        "timestamp": 1700000000
+      },
+      "golden_signature": "f267b64780e70b30a45c0e71f6ebcce4"
+    }
+  }
+}

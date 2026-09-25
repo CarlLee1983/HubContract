@@ -5,6 +5,7 @@ import { timingSafeEqual } from "node:crypto";
  * - null or undefined -> ""
  * - false -> ""
  * - true -> "1"
+ * - object/array -> throws Error("Array to string conversion")
  * - other -> String(val)
  */
 function toPhpString(val: unknown): string {
@@ -14,7 +15,43 @@ function toPhpString(val: unknown): string {
   if (typeof val === "boolean") {
     return val ? "1" : "";
   }
+  if (typeof val === "object") {
+    throw new Error("Array to string conversion");
+  }
   return String(val);
+}
+
+export interface NormalizeInputOptions {
+  trimStrings?: boolean;
+  convertEmptyStringsToNull?: boolean;
+}
+
+/**
+ * Normalizes request data replicating Laravel's TrimStrings and ConvertEmptyStringsToNull middleware
+ */
+export function normalizeRequestInputs(
+  data: Record<string, unknown>,
+  options: NormalizeInputOptions = { trimStrings: true, convertEmptyStringsToNull: true }
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === "string") {
+      let v = value;
+      if (options.trimStrings) {
+        v = v.trim();
+      }
+      if (options.convertEmptyStringsToNull && v === "") {
+        result[key] = null;
+      } else {
+        result[key] = v;
+      }
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
 }
 
 /**
