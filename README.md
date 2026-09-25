@@ -41,6 +41,19 @@ npm run env:down
 ./scripts/env-down.sh
 ```
 
+### 契約測試與 Runner 操作
+
+```bash
+# 執行所有單元與整合測試（含 Walking Skeleton 端到端驗證）
+bun test
+
+# 錄製單一情境（對 Legacy 執行並產出 golden fixture）
+bun run record scenarios/wallet/check-transaction-deposit-hit.json
+
+# 驗證受測目標是否符合契約（可對 Legacy 或 StationHubNext 執行）
+bun run verify scenarios/wallet/check-transaction-deposit-hit.json
+```
+
 ### 服務與連接埠配置
 
 | 服務 | 內部連接埠 | 主機連接埠 | 說明 |

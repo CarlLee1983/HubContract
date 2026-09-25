@@ -1,0 +1,45 @@
+{
+  "scenarioId": "check-transaction-deposit-hit",
+  "recordedAt": "1970-01-01T00:00:00.000Z",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "DE_SYNTHETIC_001",
+        "trade_no": "TRADE_DEP_001",
+        "type": "deposit",
+        "status": "completed",
+        "amount": 100
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "deposit_record": [
+        {
+          "no": "DE_SYNTHETIC_001",
+          "trade_no": "TRADE_DEP_001",
+          "user_id": 1,
+          "amount": "100.0000",
+          "status": "completed"
+        }
+      ]
+    },
+    "after": {
+      "deposit_record": [
+        {
+          "no": "DE_SYNTHETIC_001",
+          "trade_no": "TRADE_DEP_001",
+          "user_id": 1,
+          "amount": "100.0000",
+          "status": "completed"
+        }
+      ]
+    }
+  }
+}

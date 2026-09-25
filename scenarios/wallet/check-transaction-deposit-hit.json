@@ -1,0 +1,37 @@
+{
+  "id": "check-transaction-deposit-hit",
+  "name": "Check Transaction: Deposit Order Hit",
+  "description": "CAP-06 LookupOrder: Verify check-transaction returns completed deposit record for DEMO_STATION",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "txn_no": "TRADE_DEP_001",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "deposit_record",
+        "sql": "SELECT no, trade_no, user_id, amount, status FROM deposit_records WHERE trade_no = ? AND deleted_at IS NULL",
+        "params": ["TRADE_DEP_001"]
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

@@ -7,9 +7,15 @@
     "env:up": "./scripts/env-up.sh",
     "env:down": "./scripts/env-down.sh",
     "env:reset": "./scripts/env-reset.sh",
+    "record": "bun run src/cli.ts -m record",
+    "verify": "bun run src/cli.ts -m verify",
     "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "latest"
+  },
+  "dependencies": {
+    "mysql2": "^3.24.4",
+    "zod": "^4.6.5"
   }
 }
