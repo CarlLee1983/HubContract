@@ -6,11 +6,7 @@
     "method": "POST",
     "path": "/v1/wallet/check-transaction"
   },
-  "tags": [
-    "wallet",
-    "pilot",
-    "check-transaction"
-  ],
+  "tags": ["wallet", "pilot", "check-transaction"],
   "request": {
     "headers": {
       "Host": "localhost:8080",
@@ -30,9 +26,7 @@
       {
         "name": "soft_deleted_record",
         "sql": "SELECT no, trade_no, deleted_at FROM deposit_records WHERE trade_no = ?",
-        "params": [
-          "TRADE_DEP_SOFT_DELETED"
-        ]
+        "params": ["TRADE_DEP_SOFT_DELETED"]
       }
     ]
   },

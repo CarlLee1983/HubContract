@@ -6,10 +6,7 @@
     "method": "POST",
     "path": "/mcp/platform-maintenance/cq9"
   },
-  "tags": [
-    "mcp",
-    "platform-maintenance"
-  ],
+  "tags": ["mcp", "platform-maintenance"],
   "request": {
     "headers": {
       "Host": "localhost:8080",

@@ -6,12 +6,7 @@
     "method": "POST",
     "path": "/v1/wallet/check-transaction"
   },
-  "tags": [
-    "wallet",
-    "pilot",
-    "check-transaction",
-    "deposit"
-  ],
+  "tags": ["wallet", "pilot", "check-transaction", "deposit"],
   "request": {
     "headers": {
       "Host": "localhost:8080",
@@ -31,9 +26,7 @@
       {
         "name": "deposit_record",
         "sql": "SELECT no, trade_no, user_id, amount, status FROM deposit_records WHERE trade_no = ? AND deleted_at IS NULL",
-        "params": [
-          "TRADE_DEP_001"
-        ]
+        "params": ["TRADE_DEP_001"]
       }
     ]
   },
