@@ -88,6 +88,19 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 
 `src/config.ts` 裡的 DB/Redis 連線預設值，以及 `docker/.env.recording` 的 `APP_KEY`，都是合成、非機密的本機錄製環境帳密（與 `docker-compose.yml` 定義一致），僅用於本機一次性、可拋棄的錄製環境，不對應任何真實環境的憑證。
 
+### 從測試站快照產生基準種子（Issue #13）
+
+手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子：
+
+1. **取得快照**：由人（不是 agent）用 `mysqldump` 對測試站資料庫產生快照，存成 `.sql` 或 `.sql.gz`。**這份原始檔含真實的站台 `secret_key`、帳號、手機號碼、姓名，絕對不能放進這個公開 repo**——建議存在 repo 目錄外（例如自己的 `~/Downloads` 或任何 scratch 目錄），只把路徑傳給下一步的腳本。
+2. **跑遮罩腳本**：
+   ```bash
+   bun run seed:mask <你的快照路徑.sql|.sql.gz> seeds/snapshot-seed.sql
+   ```
+   腳本會依 `src/seed/maskConfig.ts` 列出的欄位清單（目前涵蓋 `stations.secret_key`、各表的帳號欄位、`sms_logs.phone`、需實名登記的姓名欄位），把敏感值換成合成值。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。未列在設定裡的欄位（例如 `administers.email`）原樣保留，因為遮罩範圍目前只涵蓋 Issue #13 驗收條件明列的四類欄位。
+3. **輸出位置**：遮罩後的種子固定寫到 `seeds/snapshot-seed.sql`（已遮罩，可以提交）。
+4. **切換 `env-reset.sh` 使用的種子**：不需要手動改腳本。`scripts/env-reset.sh` 會自動偵測——`seeds/snapshot-seed.sql` 存在就用它，不存在就照舊 fallback 回 `seeds/synthetic-seed.sql`。想切回合成種子，把 `seeds/snapshot-seed.sql` 刪掉即可。
+
 ## 狀態
 
 建置中。進度追蹤在 [HubRefactoring 的 issues](https://github.com/CarlLee1983/HubRefactoring/issues)（#2–#21）。

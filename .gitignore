@@ -5,3 +5,11 @@ node_modules/
 .env.*
 !.env.recording
 .legacy-src/
+
+# Issue #13: 測試站快照的原始（未遮罩）檔案絕對不能進到這個公開 repo。
+# 慣例上請放在 repo 外面跑 `npm run seed:mask`；這條規則只是防呆，避免有人
+# 習慣性把原始檔丟進 seeds/ 之後忘記刪。masked 過的 seeds/snapshot-seed.sql
+# 本身不受此規則影響，可以正常提交。
+seeds/*-raw.sql
+seeds/*-raw.sql.gz
+seeds/*.snapshot-raw.sql*
