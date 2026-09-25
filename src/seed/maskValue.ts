@@ -6,8 +6,9 @@ import type { MaskCategory } from "./maskConfig";
  *
  * 每個原始值先做 HMAC-SHA256（固定 key，非亂數、非時間戳），再依欄位類別轉成
  * 對應形狀的合成值。只要原始值相同，不論它出現在哪張表、哪個欄位，都會算出
- * 同一組合成值——這是「保持關聯」的必要條件：同一支手機、同一個帳號在不同
- * 表之間如果代表同一個人，遮罩後也必須還是同一個字串。
+ * 同一組合成值——這是「保持關聯」的必要條件：同一個帳號字串在不同表之間如果
+ * 代表同一個人（例如 `players.account` 還原出的使用者帳號段落），遮罩後也必須
+ * 還是同一個字串。
  *
  * code review：key 不能寫死在這個公開 repo 裡（就算它本身不是「機密」，寫死等於
  * 任何人都能自己算出「某個已知原始值」遮罩後長什麼樣子，削弱遮罩的意義）。
@@ -41,16 +42,6 @@ function maskAccount(value: string): string {
   return `synthetic_account_${digestHex(value).slice(0, 12)}`;
 }
 
-function maskPhone(value: string): string {
-  const digest = digestHex(value);
-  // 台灣手機號碼固定 09 開頭 + 8 碼，取雜湊值的十六進位字元逐一 mod 10 轉成數字。
-  let digits = "";
-  for (let i = 0; digits.length < 8; i++) {
-    digits += (parseInt(digest[i % digest.length], 16) % 10).toString();
-  }
-  return `09${digits}`;
-}
-
 function maskName(value: string): string {
   const digest = digestHex(value);
   const surnameIndex = parseInt(digest.slice(0, 4), 16) % SYNTHETIC_SURNAMES.length;
@@ -73,8 +64,6 @@ export function maskValue(category: MaskCategory, value: string): string {
       return maskSecretKey(value);
     case "account":
       return maskAccount(value);
-    case "phone":
-      return maskPhone(value);
     case "name":
       return maskName(value);
     case "email":

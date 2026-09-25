@@ -10,6 +10,8 @@ import { maskJsonText } from "./jsonValueMasker";
 import { maskValue } from "./maskValue";
 import {
   findMatchingParen,
+  parseIdentifier,
+  parseQualifiedName,
   skipLeadingTrivia,
   skipQuoted,
   splitTopLevelByComma,
@@ -20,61 +22,139 @@ import {
 /**
  * Issue #13：把 mysqldump 產出的 SQL 文字，依 `maskConfig.ts` 的規則做遮罩。
  *
- * 策略是「外科手術式」取代：只改動落在需要處理的欄位上的字面值本身，其餘所有
- * 文字（schema DDL、註解、`INSERT` 陳述式的排版、非規則內欄位的值）逐字元保留。
+ * 第二輪 code review 決議的兩個結構性改變：
+ * 1. 輸出剝除 dump 自帶的 `DROP TABLE`/`CREATE TABLE`——schema 一律以凍結的
+ *    `seeds/mysql-schema.sql` 為準（`env-reset.sh` 會先載入它），這份遮罩後的
+ *    種子只負責 DML。dump 裡的 `CREATE TABLE` 還是要解析（拿欄位順序），只是
+ *    解析完不再原樣輸出。
+ * 2. 每一句 INSERT 在輸出裡一律帶明確欄位列表（不管原本有沒有），逐一對照
+ *    resolveColumns() 決定的欄位順序重新產生。這樣測試站的實際欄位順序跟這份
+ *    凍結 schema 不一樣時，MySQL 靠欄位名稱對齊值，不會插進錯的欄位；欄位名稱
+ *    在凍結 schema 裡不存在的話，匯入當場就會噴錯，不會悄悄把值塞錯地方。
  *
- * 安全原則（code review 決議）：凡是 `COLUMN_RULES`／`CLEAR_TABLES` 內的表，任何
- * 無法安全解析的情況——INSERT 沒有欄位列表又找不到對應的 CREATE TABLE、欄位數與
- * 值數不符、該處理的欄位值不是字串字面值（`_binary '…'`、`0x…` 之類）又不是
- * NULL——一律 throw，絕不默默放行、絕不猜測。
+ * 安全原則（第一輪 code review 決議，延續）：凡是需要遮罩處理的表，任何無法
+ * 安全解析的情況——INSERT/REPLACE 開頭卻解析不出表名或 VALUES 子句、沒有欄位
+ * 列表又找不到對應的 CREATE TABLE、欄位數與值數不符、該處理的欄位值不是字串
+ * 字面值（`_binary '…'`、`0x…` 之類）又不是 NULL——一律 throw，絕不默默放行、
+ * 絕不猜測。
  */
 
 interface InsertHeader {
   readonly table: string;
   readonly explicitColumns: readonly string[] | null;
+  /** `INSERT`/`REPLACE` 關鍵字開始的 index（等於陳述式跳過前導註解/空白後的位置）。 */
+  readonly headerStart: number;
+  /** 表名結束的 index（欄位列表或 VALUES 開始之前）。 */
+  readonly keywordEnd: number;
   /** VALUES 關鍵字之後、第一個 row 的 '(' 開始的 index。 */
   readonly valuesStart: number;
 }
 
-const INSERT_HEADER_RE = /^(?:INSERT(?:\s+IGNORE)?|REPLACE)\s+INTO\s+`([^`]+)`\s*(?:\(([^)]*)\))?\s*VALUES\s*/i;
-const CREATE_TABLE_RE = /CREATE TABLE\s+`([^`]+)`\s*\(/i;
+const INSERT_OR_REPLACE_RE = /^(?:INSERT|REPLACE)\b/i;
+const MODIFIER_RE = /^\s*(?:LOW_PRIORITY|DELAYED|HIGH_PRIORITY|IGNORE)\b/i;
+const INTO_RE = /^\s*INTO\b/i;
+const VALUES_RE = /^\s*VALUES\b\s*/i;
+const CREATE_TABLE_PREFIX_RE = /^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?/i;
+const DROP_TABLE_PREFIX_RE = /^DROP TABLE\s+(?:IF EXISTS\s+)?/i;
 
-function splitColumnList(raw: string): string[] {
-  return raw.split(",").map((c) => c.trim().replace(/^`|`$/g, ""));
+function parseFailure(rest: string, reason: string): never {
+  throw new Error(`${reason}，拒絕原樣放行。陳述式開頭：${rest.slice(0, 80).trim()}`);
 }
 
-/** 解析一個陳述式是不是 `INSERT`/`INSERT IGNORE`/`REPLACE INTO`；不是就回傳 null。 */
+/**
+ * 解析一個陳述式是不是 `INSERT`/`INSERT IGNORE`/`REPLACE INTO`（含
+ * `LOW_PRIORITY`/`DELAYED`/`HIGH_PRIORITY` 修飾詞、`` `db`.`table` `` 限定名、
+ * ANSI 雙引號、完全不加引號的表名）。開頭不是 `INSERT`/`REPLACE` 就回傳
+ * null（表示這不是我們要處理的陳述式）；開頭是但後面解析不出表名/VALUES
+ * 子句，一律 throw——這種陳述式一定牽動資料列，不能因為「看不懂」就放行。
+ */
 function parseInsertHeader(stmt: string): InsertHeader | null {
   const bodyStart = skipLeadingTrivia(stmt, 0);
-  const match = INSERT_HEADER_RE.exec(stmt.slice(bodyStart));
-  if (!match) return null;
+  const rest = stmt.slice(bodyStart);
+
+  const kwMatch = INSERT_OR_REPLACE_RE.exec(rest);
+  if (!kwMatch) return null;
+
+  let i = kwMatch[0].length;
+  while (true) {
+    const mod = MODIFIER_RE.exec(rest.slice(i));
+    if (!mod) break;
+    i += mod[0].length;
+  }
+
+  const into = INTO_RE.exec(rest.slice(i));
+  if (!into) parseFailure(rest, "陳述式以 INSERT/REPLACE 開頭卻解析不出 INTO 子句");
+  i += into[0].length;
+
+  while (/\s/.test(rest[i])) i++;
+  const tableIdent = parseQualifiedName(rest, i);
+  if (!tableIdent) parseFailure(rest, "陳述式解析不出表名");
+  i = tableIdent.end;
+  const keywordEnd = bodyStart + i;
+
+  while (/\s/.test(rest[i])) i++;
+  let explicitColumns: string[] | null = null;
+  if (rest[i] === "(") {
+    const closeIdx = findMatchingParen(rest, i);
+    const colSpans = splitTopLevelByComma(rest, i + 1, closeIdx);
+    explicitColumns = colSpans.map((span) => {
+      const seg = rest.slice(span.start, span.end).trim();
+      const ident = parseIdentifier(seg, 0);
+      return ident ? ident.name : seg;
+    });
+    i = closeIdx + 1;
+  }
+
+  const valuesMatch = VALUES_RE.exec(rest.slice(i));
+  if (!valuesMatch) parseFailure(rest, `表 \`${tableIdent.name}\` 的陳述式解析不到 VALUES 子句`);
+  i += valuesMatch[0].length;
 
   return {
-    table: match[1],
-    explicitColumns: match[2] != null ? splitColumnList(match[2]) : null,
-    valuesStart: bodyStart + match[0].length,
+    table: tableIdent.name,
+    explicitColumns,
+    headerStart: bodyStart,
+    keywordEnd,
+    valuesStart: bodyStart + i,
   };
 }
 
-/** 解析一個陳述式是不是 `CREATE TABLE`，取出欄位順序；不是就回傳 null。 */
+/** 解析一個陳述式是不是 `CREATE TABLE`，取出表名與欄位順序；不是就回傳 null。 */
 function parseCreateTableColumns(stmt: string): { table: string; columns: string[] } | null {
-  const match = CREATE_TABLE_RE.exec(stmt);
-  if (!match) return null;
+  const bodyStart = skipLeadingTrivia(stmt, 0);
+  const rest = stmt.slice(bodyStart);
 
-  const openIdx = match.index + match[0].length - 1;
-  const closeIdx = findMatchingParen(stmt, openIdx);
-  const defSpans = splitTopLevelByComma(stmt, openIdx + 1, closeIdx);
+  const prefixMatch = CREATE_TABLE_PREFIX_RE.exec(rest);
+  if (!prefixMatch) return null;
+
+  let i = prefixMatch[0].length;
+  const tableIdent = parseQualifiedName(rest, i);
+  if (!tableIdent) return null;
+  i = tableIdent.end;
+
+  while (/\s/.test(rest[i])) i++;
+  if (rest[i] !== "(") return null;
+
+  const closeIdx = findMatchingParen(rest, i);
+  const defSpans = splitTopLevelByComma(rest, i + 1, closeIdx);
 
   const columns: string[] = [];
   for (const span of defSpans) {
-    const def = stmt.slice(span.start, span.end).trim();
-    // 只有真正的欄位定義是以反引號識別字開頭；PRIMARY KEY／KEY／UNIQUE KEY／
-    // CONSTRAINT 這些表格層級的宣告開頭是關鍵字，不會直接是反引號。
-    const colMatch = /^`([^`]+)`/.exec(def);
-    if (colMatch) columns.push(colMatch[1]);
+    const def = rest.slice(span.start, span.end).trim();
+    // 只有真正的欄位定義是以引號識別字開頭；PRIMARY KEY／KEY／UNIQUE KEY／
+    // CONSTRAINT 這些表格層級的宣告開頭是裸字關鍵字，不會直接是引號。
+    if (def[0] === "`" || def[0] === '"') {
+      const colIdent = parseIdentifier(def, 0);
+      if (colIdent) columns.push(colIdent.name);
+    }
   }
 
-  return { table: match[1], columns };
+  return { table: tableIdent.name, columns };
+}
+
+/** 陳述式是不是 `DROP TABLE`（不需要表名，輸出時整句剝除）。 */
+function isDropTableStatement(stmt: string): boolean {
+  const bodyStart = skipLeadingTrivia(stmt, 0);
+  return DROP_TABLE_PREFIX_RE.test(stmt.slice(bodyStart));
 }
 
 /** 掃過整份 dump 的所有陳述式，建立 table -> 欄位順序 的對照表。 */
@@ -90,7 +170,8 @@ function collectSchemaColumns(statements: readonly string[]): Map<string, string
 /**
  * 決定一個 INSERT 陳述式的欄位順序：陳述式自帶欄位列表就直接用；沒有的話（mysqldump
  * 預設不帶欄位列表）就查同一份 dump 裡的 CREATE TABLE。兩者都沒有就 throw——絕不
- * 假設「大概跟 SELECT * 順序一樣」。
+ * 假設「大概跟 SELECT * 順序一樣」。輸出永遠帶明確欄位列表，所以這個函式現在對
+ * 「每一張表」都會被呼叫，不是只有需要遮罩的表。
  */
 function resolveColumns(
   table: string,
@@ -104,8 +185,8 @@ function resolveColumns(
 
   throw new Error(
     `無法判斷表 \`${table}\` 的欄位順序：這個 INSERT 陳述式沒有帶欄位列表，` +
-      `同一份 dump 裡也找不到對應的 CREATE TABLE \`${table}\`。這張表需要遮罩，` +
-      `拒絕用猜測的欄位順序繼續執行（可能會把 secret_key 之類的欄位當成別的欄位放行）。`
+      `同一份 dump 裡也找不到對應的 CREATE TABLE \`${table}\`。輸出的每一句 INSERT` +
+      "都必須帶明確欄位列表，拒絕用猜測的欄位順序繼續執行。"
   );
 }
 
@@ -216,44 +297,43 @@ function makeLiteralEdit(literal: QuotedLiteral, plainValue: string): Edit {
   };
 }
 
-/** `players.account` 專用：保留「使用者帳號 + 站台代碼 + p + 平台 id」的推導關係。 */
-function buildDerivedPlayerAccountEdit(
+/**
+ * `players.account` 專用：能還原「使用者帳號 + 站台代碼 + p + 平台 id」的推導
+ * 關係（見 `LobbyAbstract::getFormattedPlayerAccount()`）就保留這個關係，只換
+ * 使用者帳號那一段；還原不了（主平台直接存 `users.account` 沒有任何後綴、
+ * Mg/Pinnacle 之類直接存供應商值、Sa 是小寫化再接雜湊後綴……這些格式都不一樣）
+ * 就退回當一般帳號字串整串遮罩——第二輪 code review 決議：格式對不上不是
+ * 「資料有問題」，是本來就有好幾種合法格式，不該 throw。
+ *
+ * 因為合成值是原始值本身的 keyed hash，主平台那種「整串就是 users.account」
+ * 的情況，遮罩後會跟 users.account 自己被遮罩的結果算出同一個合成值，關聯不會
+ * 丟失（見 `sqlDumpMasker.test.ts` 的對應測試）。
+ */
+function buildPlayerAccountEdit(
   stmt: string,
   literal: QuotedLiteral,
   row: readonly SourceSpan[],
   columns: readonly string[],
   stationCodeByStationId: ReadonlyMap<string, string>
 ): Edit {
+  const original = decodeSqlStringLiteral(stmt.slice(literal.contentStart, literal.contentEnd), literal.quote);
+
   const stationIdIdx = columns.indexOf("station_id");
   const platformIdIdx = columns.indexOf("platform_id");
-  if (stationIdIdx === -1 || platformIdIdx === -1) {
-    throw new Error(
-      "players.account 遮罩失敗：這筆 INSERT 的欄位列表裡沒有 station_id 或 platform_id，" +
-        "無法依推導公式（見 LobbyAbstract::getFormattedPlayerAccount）安全遮罩，拒絕原樣放行。"
-    );
+  if (stationIdIdx !== -1 && platformIdIdx !== -1) {
+    const stationIdRaw = stmt.slice(row[stationIdIdx].start, row[stationIdIdx].end).trim();
+    const platformIdRaw = stmt.slice(row[platformIdIdx].start, row[platformIdIdx].end).trim();
+    const stationCode = stationCodeByStationId.get(stationIdRaw);
+    if (stationCode !== undefined) {
+      const expectedSuffix = `${stationCode}p${platformIdRaw}`;
+      if (original.endsWith(expectedSuffix)) {
+        const prefix = original.slice(0, original.length - expectedSuffix.length);
+        return makeLiteralEdit(literal, maskValue("account", prefix) + expectedSuffix);
+      }
+    }
   }
 
-  const stationIdRaw = stmt.slice(row[stationIdIdx].start, row[stationIdIdx].end).trim();
-  const platformIdRaw = stmt.slice(row[platformIdIdx].start, row[platformIdIdx].end).trim();
-  const stationCode = stationCodeByStationId.get(stationIdRaw);
-  if (stationCode === undefined) {
-    throw new Error(
-      `players.account 遮罩失敗：找不到 station_id=${stationIdRaw} 對應的 stations.code` +
-        "（這份 dump 裡可能缺少該站台的 INSERT，或 stations 表還沒被掃過）。"
-    );
-  }
-
-  const expectedSuffix = `${stationCode}p${platformIdRaw}`;
-  const original = decodeSqlStringLiteral(stmt.slice(literal.contentStart, literal.contentEnd), literal.quote);
-  if (!original.endsWith(expectedSuffix)) {
-    throw new Error(
-      `players.account="${original}" 不符合預期的推導格式 <使用者帳號>${expectedSuffix}` +
-        "（見 LobbyAbstract::getFormattedPlayerAccount()），拒絕用猜測的方式遮罩。"
-    );
-  }
-
-  const prefix = original.slice(0, original.length - expectedSuffix.length);
-  return makeLiteralEdit(literal, maskValue("account", prefix) + expectedSuffix);
+  return makeLiteralEdit(literal, maskValue("account", original));
 }
 
 interface RowMaskContext {
@@ -296,7 +376,7 @@ function buildColumnEdit(span: SourceSpan, column: string, action: ColumnAction,
       return makeLiteralEdit(literal, maskJsonText(original));
     }
     case "derive_player_account":
-      return buildDerivedPlayerAccountEdit(stmt, literal, ctx.row, ctx.columns, ctx.stationCodeByStationId);
+      return buildPlayerAccountEdit(stmt, literal, ctx.row, ctx.columns, ctx.stationCodeByStationId);
   }
 }
 
@@ -310,25 +390,38 @@ function applyEdits(stmt: string, edits: readonly Edit[]): string {
   return result;
 }
 
-/** 對一個 INSERT 陳述式套用某張表的欄位規則，回傳改寫後的陳述式文字。 */
-function maskInsertStatement(
+function quoteIdentifier(name: string): string {
+  return "`" + name.replace(/`/g, "``") + "`";
+}
+
+/**
+ * 重寫一句 INSERT/REPLACE：欄位列表永遠換成 `resolveColumns()` 決定的明確列表
+ * （不管原本有沒有帶），再依 `columnRules`（可能是 null——這張表沒有遮罩規則）
+ * 對每個 row 逐欄位套用動作。
+ */
+function rewriteInsertStatement(
   stmt: string,
   header: InsertHeader,
-  columnRules: ReadonlyMap<string, ColumnAction>,
+  columnRules: ReadonlyMap<string, ColumnAction> | null,
   schemaColumns: ReadonlyMap<string, string[]>,
   stationCodeByStationId: ReadonlyMap<string, string>
 ): string {
   const columns = resolveColumns(header.table, header.explicitColumns, schemaColumns);
   const rows = parseValueRows(stmt, header.valuesStart);
 
-  const edits: Edit[] = [];
+  const headerText =
+    stmt.slice(header.headerStart, header.keywordEnd) + " (" + columns.map(quoteIdentifier).join(", ") + ") VALUES ";
+  const edits: Edit[] = [{ start: header.headerStart, end: header.valuesStart, text: headerText }];
+
   for (const row of rows) {
     if (row.length !== columns.length) {
       throw new Error(
         `表 \`${header.table}\` 的一筆 INSERT 值數量（${row.length}）與欄位數量（${columns.length}）不符，` +
-          "拒絕在欄位對不齊的狀態下繼續遮罩。"
+          "拒絕在欄位對不齊的狀態下繼續處理（明確欄位列表跟值對不上，MySQL 匯入時也一定會失敗）。"
       );
     }
+
+    if (!columnRules) continue;
 
     const ctx: RowMaskContext = { stmt, table: header.table, row, columns, stationCodeByStationId };
     columns.forEach((column, colIndex) => {
@@ -354,17 +447,14 @@ function collectStationCodes(statements: readonly string[], schemaColumns: Reado
     const idIdx = columns.indexOf("id");
     const codeIdx = columns.indexOf("code");
     // 不是每份快照都會用到 players.account 的推導遮罩；stations 的 INSERT 沒帶
-    // id/code 欄位時，單純跳過（不納入對照表），留到真的需要查表時才 throw
-    // （見 buildDerivedPlayerAccountEdit 的「找不到 station_id=… 對應的
-    // stations.code」錯誤）。
+    // id/code 欄位時，單純跳過（不納入對照表），players.account 那邊本來就有
+    // 「查不到就退回一般帳號遮罩」的 fallback，不需要在這裡先 throw。
     if (idIdx === -1 || codeIdx === -1) continue;
 
     for (const row of parseValueRows(stmt, header.valuesStart)) {
       const idRaw = stmt.slice(row[idIdx].start, row[idIdx].end).trim();
       const codeLiteral = findQuotedLiteral(stmt, row[codeIdx].start, row[codeIdx].end);
-      if (!codeLiteral) {
-        throw new Error(`stations.code（id=${idRaw}）不是字串字面值，無法建立 players.account 推導需要的對照表。`);
-      }
+      if (!codeLiteral) continue; // code 不是字串字面值（理論上不會），一樣跳過、留給 fallback 處理
       const code = decodeSqlStringLiteral(stmt.slice(codeLiteral.contentStart, codeLiteral.contentEnd), codeLiteral.quote);
       stationCodeByStationId.set(idRaw, code);
     }
@@ -379,15 +469,18 @@ function maskStatement(
   schemaColumns: ReadonlyMap<string, string[]>,
   stationCodeByStationId: ReadonlyMap<string, string>
 ): string {
+  // schema 以凍結的 seeds/mysql-schema.sql 為準：dump 自帶的 DROP/CREATE TABLE
+  // 只拿來解析欄位順序（collectSchemaColumns 用的是掃描整份 dump 的結果，跟這裡
+  // 的輸出過濾是兩個獨立步驟），輸出裡不重複帶一份。
+  if (parseCreateTableColumns(stmt)) return "";
+  if (isDropTableStatement(stmt)) return "";
+
   const header = parseInsertHeader(stmt);
-  if (!header) return stmt; // 不是 INSERT/REPLACE 陳述式，原樣通過
+  if (!header) return stmt; // 不是 INSERT/REPLACE 陳述式，原樣通過（LOCK TABLES、SET、註解...）
 
   if (CLEAR_TABLES.has(header.table)) return ""; // 整表清空：直接捨棄這筆 INSERT
 
-  const columnRules = columnRuleLookup.get(header.table);
-  if (!columnRules) return stmt; // 這張表沒有欄位規則，原樣通過
-
-  return maskInsertStatement(stmt, header, columnRules, schemaColumns, stationCodeByStationId);
+  return rewriteInsertStatement(stmt, header, columnRuleLookup.get(header.table) ?? null, schemaColumns, stationCodeByStationId);
 }
 
 /**
@@ -438,7 +531,8 @@ function splitStatements(sql: string): string[] {
 /**
  * 遮罩整份 mysqldump SQL 文字。同一份輸入、同一份規則、同一把 `MASK_HMAC_KEY`，
  * 永遠產生同一份輸出（決定性：合成值只由原值的 keyed hash 推得，見
- * `maskValue.ts`）。
+ * `maskValue.ts`）。輸出不含 dump 自帶的 DROP/CREATE TABLE，且每句 INSERT 都
+ * 帶明確欄位列表（見檔案開頭說明）。
  */
 export function maskMysqlDump(sql: string, rules: readonly ColumnRule[] = COLUMN_RULES): string {
   const columnRuleLookup = buildColumnRuleLookup(rules);

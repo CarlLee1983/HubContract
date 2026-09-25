@@ -10,7 +10,7 @@ describe("Issue #13：maskValue 決定性合成值", () => {
   });
 
   it("同一原值即使類別不同，也不會等於原值本身", () => {
-    for (const category of ["secret_key", "account", "phone", "name", "email", "wallet_address"] as const) {
+    for (const category of ["secret_key", "account", "name", "email", "wallet_address"] as const) {
       const masked = maskValue(category, "0912345678");
       expect(masked).not.toBe("0912345678");
     }
@@ -27,12 +27,6 @@ describe("Issue #13：maskValue 決定性合成值", () => {
     const masked = maskValue("secret_key", original);
     expect(masked).not.toContain(original);
     expect(masked.startsWith("synthetic_secret_key_")).toBe(true);
-  });
-
-  it("phone 遮罩後是 09 開頭的 10 碼數字字串", () => {
-    const masked = maskValue("phone", "0987654321");
-    expect(masked).toMatch(/^09\d{8}$/);
-    expect(masked).not.toBe("0987654321");
   });
 
   it("name 遮罩後是非空字串，且不等於原始姓名", () => {

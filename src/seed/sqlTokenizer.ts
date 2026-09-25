@@ -1,8 +1,6 @@
 /**
- * Issue #13 code review：字元級的 SQL 掃描邏輯（引號、括號深度）原本在
- * `sqlDumpMasker.ts` 裡重複了兩次（陳述式切割、VALUES tuple 解析各寫一份），
- * 且 `'a''b'` 這種用重複單引號跳脫的字串會被漏判。這裡統一成一份共用實作，
- * 給 `sqlDumpMasker.ts` 的每個掃描步驟共用。
+ * Issue #13 code review：字元級的 SQL 掃描邏輯（引號、括號深度、identifier）統一
+ * 放在這裡，給 `sqlDumpMasker.ts` 的每個掃描步驟共用，不要各自重寫一份。
  */
 
 export interface SourceSpan {
@@ -125,4 +123,38 @@ export function trimSpan(text: string, start: number, end: number): SourceSpan {
   while (s < e && /\s/.test(text[s])) s++;
   while (e > s && /\s/.test(text[e - 1])) e--;
   return { start: s, end: e };
+}
+
+export interface ParsedIdentifier extends SourceSpan {
+  readonly name: string;
+}
+
+/**
+ * 解析一個 SQL identifier：反引號（MySQL 預設）、雙引號（ANSI_QUOTES / 其他資料庫
+ * 常見寫法）、或完全不加引號的裸字（`INSERT INTO stations ...`）。不是合法
+ * identifier 就回傳 null，由呼叫端決定要 throw 還是當作「這不是我要找的陳述式」。
+ */
+export function parseIdentifier(text: string, start: number): ParsedIdentifier | null {
+  const ch = text[start];
+  if (ch === "`" || ch === '"') {
+    const closeIdx = skipQuoted(text, start, ch);
+    return { name: text.slice(start + 1, closeIdx), start, end: closeIdx + 1 };
+  }
+  const match = /^[A-Za-z_][A-Za-z0-9_$]*/.exec(text.slice(start));
+  if (!match) return null;
+  return { name: match[0], start, end: start + match[0].length };
+}
+
+/**
+ * 解析 `table` 或 `db`.`table`（兩段各自可加引號、可不加），回傳最後一段當表名
+ * ——我們的遮罩規則只認表名，不管掛在哪個 database 底下。
+ */
+export function parseQualifiedName(text: string, start: number): ParsedIdentifier | null {
+  const first = parseIdentifier(text, start);
+  if (!first) return null;
+  if (text[first.end] === "." ) {
+    const second = parseIdentifier(text, first.end + 1);
+    if (second) return second;
+  }
+  return first;
 }
