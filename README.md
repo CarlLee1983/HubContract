@@ -44,15 +44,62 @@ npm run env:down
 ### 契約測試與 Runner 操作
 
 ```bash
-# 執行所有單元與整合測試（含 Walking Skeleton 端到端驗證）
+# 離線單元測試（schema、filter、report、signer、normalizer...），不需要錄製環境
 bun test
+
+# 含錄製環境的整合測試（Walking Skeleton、pilot 情境、MCP 情境、probe），
+# 需要先 `npm run env:up`
+HUB_CONTRACT_INTEGRATION=1 bun test
 
 # 錄製單一情境（對 Legacy 執行並產出 golden fixture）
 bun run record scenarios/wallet/check-transaction-deposit-hit.json
 
-# 驗證受測目標是否符合契約（可對 Legacy 或 StationHubNext 執行）
+# 驗證單一情境是否符合契約（可對 Legacy 或 StationHubNext 執行）
 bun run verify scenarios/wallet/check-transaction-deposit-hit.json
+
+# 驗證整個 scenarios/ 目錄（預設路徑），輸出人類可讀報告到 stdout
+bun run verify -t http://localhost:8080
+
+# 只跑符合條件的情境：--route 與 --tag 皆可重複帶入多次（OR），兩者併用時是 AND；
+# 不支援逗號分隔（例如 --tag a,b 會被當成單一 tag "a,b"）
+bun run verify --route /v1/wallet/check-transaction --tag deposit --tag withdrawal
+
+# 額外輸出機器可讀的 JSON 報告（見下方「JSON 報告格式」），可接進 StationHubNext CI 當上線閘門
+bun run verify --report-json report.json
 ```
+
+每個情境執行前都會重置一次錄製環境（`--skip-reset` 可關閉），符合「情境彼此獨立、結果可重現」的規格；重置或情境本身丟出的任何錯誤，都只會讓那一個情境變成 `errored`，不會中斷其餘情境。情境檔本身若無法通過 schema 驗證，也不會讓整個 process 中止——會以該檔案的路徑當作 `id`，變成一筆 `errored` 報告紀錄。篩選後若沒有任何情境符合條件，CLI 會印出錯誤訊息，仍然照常輸出（空的）報告，並以非 0 結束；只要有任何情境 `failed` 或 `errored`，或整批一個情境都沒跑到，process 就以非 0 結束。
+
+### JSON 報告格式
+
+`--report-json <path>` 輸出的檔案符合 `src/schema/report.ts` 匯出的 `ReportSchema`（zod），即使沒有任何情境符合篩選條件、或每個情境檔都載入失敗，也一定會寫出這份報告（CI 的上線閘門不該找不到報告檔）：
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "mode": "verify", // 或 "record"
+  "target": "http://localhost:8080",
+  "startedAt": "2026-09-26T00:00:00.000Z",
+  "finishedAt": "2026-09-26T00:00:05.000Z",
+  "summary": { "total": 3, "passed": 1, "failed": 1, "errored": 1, "recorded": 0 },
+  "scenarios": [
+    {
+      "id": "check-transaction-deposit-hit",
+      "route": { "method": "POST", "path": "/v1/wallet/check-transaction" },
+      "tags": ["wallet", "pilot", "deposit"],
+      "status": "passed", // "passed" | "failed" | "errored" | "recorded"
+      "differences": [
+        { "layer": "inbound_response", "path": "body.data.amount", "expected": 100, "actual": 999 }
+      ],
+      "error": "..." // 只有 status === "errored" 時才有
+    }
+  ]
+}
+```
+
+`status` 在 `verify` 模式下是 `"passed"` / `"failed"` / `"errored"`；在 `record` 模式下（沒有比對，只是錄製成功與否）是 `"recorded"` / `"errored"`——record 模式的成功不算 `"passed"`，避免和「跟 golden fixture 比對過」混淆。
+
+`schemaVersion` 在這個形狀有不相容變更時才會遞增；StationHubNext 的 CI 上線閘門應該檢查 `schemaVersion`、`summary.failed === 0 && summary.errored === 0`，並且 `scenarios.length > 0`（一個情境都沒跑到——例如篩選條件打錯字——不該被當成「全部通過」）。
 
 ### 服務與連接埠配置
 
@@ -75,6 +122,17 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 `legacy-app` 掛載的 `vendor/`（唯讀）來自 `STATIONHUB_REPO`（預設 `../StationHub`）工作區當下 `composer install` 產生的內容，**不是**從 `docker/legacy.commit` 記錄的 `LEGACY_COMMIT` 重新裝出來的。`scripts/env-up.sh` 只驗證「工作區已提交狀態（`HEAD`）的 `composer.lock`」與「pinned commit 的 `composer.lock`」是否一致（且要求工作區沒有未提交的 `composer.lock` 修改）；如果兩者不一致，`env-up.sh` 會大聲失敗並中止。
 
 但即使這個檢查通過，也只保證「composer.lock 內容一致」，不保證 `vendor/` 目錄本身確實是依照那份 `composer.lock` 重新 `composer install` 出來的（例如工作區手動改過 `vendor/` 裡的檔案、或裝的時候用了不同的 composer 版本／平台）。這是已知限制：目前沒有自動化機制驗證 `vendor/` 本身的內容雜湊，只驗證了它「應該」對應的 lock 檔一致。若懷疑 `vendor/` 與 pinned commit 不符，最保險的做法是在 `STATIONHUB_REPO` 對著 pinned commit 的 `composer.lock` 重新執行一次 `composer install`。
+
+### 本機流程：先 `verify` 再 `record`（2026-09-26 範圍調整）
+
+> [!IMPORTANT]
+> 原訂「CI 定期對 Legacy 錄製環境跑 `verify`」已取消（見 [HubRefactoring#12](https://github.com/CarlLee1983/HubRefactoring/issues/12) 的範圍調整）：Legacy 原始碼在私有 Azure DevOps，HubContract 是 public repo，在公開的 GitHub runner 上建置 Legacy 等於把公司程式碼搬上公開 runner。
+>
+> 因此這道防線改成**在本機、於 PR 提交前**手動執行：修改種子資料、normalizer 或情境後，先對 Legacy 執行 `bun run verify`（而不是直接 `bun run record` 覆蓋 fixture），確認目前的 fixture 仍然對得上 Legacy 的實際行為，再視需要用 `bun run record` 重新錄製並提交新的 fixture。CI（`.github/workflows/ci.yml`）只跑離線檢查（runner 單元測試、`scenarios/`／`fixtures/` 的 schema 驗證），不含 Docker、不需要任何 secrets，也不會碰錄製環境。代價：少了自動防線，改了種子卻忘記在本機重跑 `verify` 不會被 CI 擋下。
+
+### CI（離線檢查）
+
+`.github/workflows/ci.yml` 在 `push` 與 `pull_request` 時執行：安裝 Bun（`oven-sh/setup-bun`）、`bun install --frozen-lockfile`、`bun test`。預設（未設定 `HUB_CONTRACT_INTEGRATION=1`）只會跑離線的單元測試與 `scenarios/`／`fixtures/` 的 schema 驗證；需要錄製環境的整合測試（Walking Skeleton、pilot 情境、MCP 情境、DB/Redis probe）會被 `describe.skipIf` 跳過，只能在本機（`npm run env:up` 之後）用 `HUB_CONTRACT_INTEGRATION=1 bun test` 執行。
 
 ### 排程器（Scheduler）安全邊界
 

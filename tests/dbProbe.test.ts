@@ -1,7 +1,8 @@
 import { describe, expect, it, afterAll } from "bun:test";
 import { MariaDbProbe } from "../src/probe/dbProbe";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("MariaDbProbe", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("MariaDbProbe", () => {
   const probe = new MariaDbProbe();
 
   afterAll(async () => {

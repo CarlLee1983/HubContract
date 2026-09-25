@@ -6,6 +6,7 @@
     "method": "DELETE",
     "path": "/mcp/platform-maintenance/cq9"
   },
+  "tags": ["mcp", "platform-maintenance", "error"],
   "request": {
     "headers": {
       "Host": "localhost:8080",
