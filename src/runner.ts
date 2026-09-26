@@ -1,12 +1,13 @@
-import type { ScenarioDefinition, ScenarioPreconditions, Fixture } from "./schema/scenario";
+import { assertFixtureMatchesScenario, type ScenarioDefinition, type ScenarioPreconditions, type Fixture } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
-import { MariaDbProbe } from "./probe/dbProbe";
+import { MariaDbProbe, type DbConfig } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
 import { MongoProbeService } from "./probe/mongoProbe";
 import { RedisQueueDrain, type QueueDrain } from "./probe/queueDrain";
 import type { RedisKeyRecord, StubRequestRecord } from "./schema/scenario";
 import { StubClient } from "./stub/client";
+import type { TargetAdapter } from "./target/legacyAdapter";
 import {
   compareInboundResponse,
   compareDbState,
@@ -18,13 +19,7 @@ import {
 
 export interface RunnerOptions {
   baseUrl: string;
-  dbConfig?: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  };
+  dbConfig?: DbConfig;
   redisConfig?: {
     host?: string;
     port?: number;
@@ -43,6 +38,7 @@ export interface RunnerOptions {
   stubUrl: string;
   preconditionAdapter?: PreconditionAdapter;
   fixedTimestamp?: number;
+  targetAdapter?: TargetAdapter;
 }
 
 export interface PreconditionAdapter {
@@ -76,6 +72,7 @@ export function buildHttpRequest(
   baseUrl: string,
   normalizerOptions: { fixedTimestamp?: number } = {}
 ): BuiltHttpRequest {
+  if (!scenario.route) throw new Error("HTTP request requires a route");
   // 1. Apply normalizers to request (e.g. current_timestamp)
   let rawReq = applyNormalizers(
     { request: scenario.request },
@@ -154,7 +151,7 @@ interface CapturedRun {
   dbBefore: Record<string, unknown>;
   redisBefore: RedisCapture;
   mongoNewDocuments: Record<string, Record<string, unknown>[]>;
-  response: {
+  response?: {
     statusCode: number;
     statusText: string;
     headers: Record<string, string>;
@@ -188,12 +185,14 @@ function filterOutboundHeaders(
 export class ContractRunner {
   private baseUrl: string;
   private dbProbe: MariaDbProbe;
+  private dbConfig?: DbConfig;
   private redisProbe: RedisProbeService;
   private mongoProbe: MongoProbeService;
   private queueDrain: QueueDrain;
   private stubClient: StubClient;
   private preconditionAdapter?: PreconditionAdapter;
   private fixedTimestamp?: number;
+  private targetAdapter?: TargetAdapter;
   private environmentSafe = true;
 
   constructor(options: RunnerOptions) {
@@ -207,6 +206,7 @@ export class ContractRunner {
       );
     }
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
+    this.dbConfig = options.dbConfig;
     this.dbProbe = new MariaDbProbe(options.dbConfig);
     this.redisProbe = new RedisProbeService(options.redisConfig);
     this.mongoProbe = new MongoProbeService(options.mongoConfig);
@@ -214,6 +214,7 @@ export class ContractRunner {
     this.stubClient = new StubClient(options.stubUrl);
     this.preconditionAdapter = options.preconditionAdapter;
     this.fixedTimestamp = options.fixedTimestamp;
+    this.targetAdapter = options.targetAdapter;
   }
 
   async close(): Promise<void> {
@@ -297,6 +298,15 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
+    if (scenario.trigger && !this.targetAdapter) {
+      throw new Error("Schedule trigger requires a target adapter");
+    }
+    if (scenario.setup) {
+      if (!scenario.trigger || !this.targetAdapter?.setupSchedule) {
+        throw new Error("Schedule setup requires a target adapter with setupSchedule()");
+      }
+      await this.targetAdapter.setupSchedule(scenario.setup.statements, this.dbConfig);
+    }
     // The target owns how a domain precondition is created. Apply it before
     // probes so both record and verify see the same initial state.
     if (scenario.preconditions?.smsLock) {
@@ -321,10 +331,14 @@ export class ContractRunner {
     await this.stubClient.reset();
     await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
 
-    // Layer 1: Execute inbound request
-    let response: Awaited<ReturnType<typeof this.executeRequest>>["response"];
+    // The trigger is target-neutral; the adapter owns the concrete dispatch.
+    let response: CapturedRun["response"];
     try {
-      ({ response } = await this.executeRequest(scenario));
+      if (scenario.trigger) {
+        await this.targetAdapter!.triggerSchedule(scenario.trigger.name);
+      } else {
+        response = (await this.executeRequest(scenario)).response;
+      }
     } catch (error) {
       // The target may have queued work before the connection failed. Do not
       // reset this environment for another scenario until workers are stopped.
@@ -389,22 +403,21 @@ export class ContractRunner {
 
     const fixture: Fixture = {
       scenarioId: scenario.id,
-      layer1_inboundResponse: {
+      layer1_inboundResponse: response ? {
         statusCode: response.statusCode,
         statusText: response.statusText,
         headers: {
           "content-type": response.headers["content-type"] || "application/json",
         },
         body: response.body,
-      },
+      } : undefined,
       layer2_dbState: {
         before: dbBefore,
         after: dbAfter,
       },
-      // Only recorded when there actually were outbound calls — a scenario
-      // with no `stub` (and no surprise undefined calls, or record() above
-      // would already have thrown) has nothing structural to compare here.
-      layer3_outboundCalls: outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
+      // Schedules declare the outbound layer even when it is empty, so a
+      // later provider call is a contract difference rather than omitted.
+      layer3_outboundCalls: scenario.trigger || outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
       layer4_sharedResources: hasRedis || hasMongo
         ? {
             redis: hasRedis ? {
@@ -425,6 +438,7 @@ export class ContractRunner {
    * data drift) is a contract failure just as much as a post-condition mismatch.
    */
   async verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult> {
+    assertFixtureMatchesScenario(scenario, golden);
     const differences: Difference[] = [];
 
     const { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
@@ -450,14 +464,17 @@ export class ContractRunner {
     }
 
     // Compare Layer 1: Inbound Response
-    const responseDiffs = compareInboundResponse(
-      { statusCode: response.statusCode, body: response.body },
-      {
-        statusCode: golden.layer1_inboundResponse.statusCode,
-        body: golden.layer1_inboundResponse.body,
-      }
-    );
-    differences.push(...responseDiffs);
+    if (response && golden.layer1_inboundResponse) {
+      differences.push(...compareInboundResponse(
+        { statusCode: response.statusCode, body: response.body },
+        {
+          statusCode: golden.layer1_inboundResponse.statusCode,
+          body: golden.layer1_inboundResponse.body,
+        }
+      ));
+    } else if (Boolean(response) !== Boolean(golden.layer1_inboundResponse)) {
+      differences.push({ layer: "inbound_response", path: "presence", expected: Boolean(golden.layer1_inboundResponse), actual: Boolean(response) });
+    }
 
     // Compare Layer 2: DB State (before & after)
     if (golden.layer2_dbState) {

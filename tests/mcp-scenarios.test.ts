@@ -109,7 +109,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #7: MCP Platform Maintenance
     const rawFixture = JSON.parse(await fs.readFile(fixturePath, "utf-8"));
     const golden = FixtureSchema.parse(rawFixture);
 
-    expect(golden.layer1_inboundResponse.statusCode).toBe(403);
+    expect(golden.layer1_inboundResponse!.statusCode).toBe(403);
     // The golden fixture itself must prove no side effect: before == after,
     // and the key is still present (not cleared).
     const redisGolden = golden.layer4_sharedResources?.redis;

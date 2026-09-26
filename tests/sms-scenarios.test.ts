@@ -51,8 +51,8 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #18: SMS Legacy contract", (
       expect(result.passed).toBe(true);
 
       if (name === "index") {
-        expect(fixture.layer1_inboundResponse.body.data.some((row: { active: number }) => row.active === 0)).toBe(true);
-        expect(fixture.layer1_inboundResponse.body.data[0].settings.appsecret).toBe("synthetic_appsecret");
+        expect(fixture.layer1_inboundResponse!.body.data.some((row: { active: number }) => row.active === 0)).toBe(true);
+        expect(fixture.layer1_inboundResponse!.body.data[0].settings.appsecret).toBe("synthetic_appsecret");
       }
       if (name === "update-mass-assignment") {
         const updated = fixture.layer2_dbState?.after.sms.find((row: { id: number }) => row.id === 1);
@@ -60,29 +60,29 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #18: SMS Legacy contract", (
         expect(updated.amount).toBe(42);
       }
       if (name === "send-inactive" || name === "send-asmsc-sender-id" || name === "send-without-currency") {
-        expect(fixture.layer1_inboundResponse.statusCode).toBe(500);
+        expect(fixture.layer1_inboundResponse!.statusCode).toBe(500);
       }
       if (name === "send-asmsc-sender-id") {
         expect(fixture.layer3_outboundCalls?.calls.map((call) => call.path)).toEqual(["/api/GetSenderIDList"]);
       }
       if (name === "send-locked") {
-        expect(fixture.layer1_inboundResponse.body.message).toContain("Unable to resend SMS");
+        expect(fixture.layer1_inboundResponse!.body.message).toContain("Unable to resend SMS");
         expect(fixture.layer3_outboundCalls?.calls ?? []).toEqual([]);
       }
       if (name.endsWith("validation") || name.endsWith("signature-failed")) {
-        expect(fixture.layer1_inboundResponse.statusCode).toBe(422);
+        expect(fixture.layer1_inboundResponse!.statusCode).toBe(422);
       }
       if (name.endsWith("unknown-station")) {
-        expect(fixture.layer1_inboundResponse.statusCode).toBe(500);
+        expect(fixture.layer1_inboundResponse!.statusCode).toBe(500);
       }
       if (name === "amount-provider-failure" || name.endsWith("provider-failure")) {
-        expect(fixture.layer1_inboundResponse.body.data.amount).toBe(0);
+        expect(fixture.layer1_inboundResponse!.body.data.amount).toBe(0);
       }
       if (name === "amount-asmsc-success" || name === "amount-abo-send-success") {
-        expect(fixture.layer1_inboundResponse.body.data.amount).toBe(9);
+        expect(fixture.layer1_inboundResponse!.body.data.amount).toBe(9);
       }
       if (name === "amount-success") {
-        expect(fixture.layer1_inboundResponse.body.data.amount).toBe(17);
+        expect(fixture.layer1_inboundResponse!.body.data.amount).toBe(17);
       }
     }, 30000);
   }

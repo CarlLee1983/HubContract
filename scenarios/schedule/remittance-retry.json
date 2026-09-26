@@ -1,0 +1,55 @@
+{
+  "id": "remittance-retry",
+  "name": "Retry an unsettled remittance",
+  "description": "A processing main-to-game SBO remittance is confirmed by the provider on one scheduled retry.",
+  "trigger": { "kind": "schedule", "name": "remittance.retry" },
+  "tags": ["schedule", "remittance"],
+  "setup": {
+    "statements": [
+      {
+        "name": "unsettled_remittance",
+        "sql": "INSERT INTO remittance_records (id, platform_id, station_id, user_id, no, txn_no, type, wallet_id, receipt_wallet_id, currency, amount, status, stage, created_at, updated_at) VALUES (100, 3, 1, 1, 'RE_SYNTHETIC_RETRY', 'SBO_SYNTHETIC_TXN', 'main2game', 1, 3, 'TWD', 25.0000, 'processing', 'situation', NOW(), NOW())",
+        "params": []
+      }
+    ]
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "remittance",
+        "sql": "SELECT id, no, txn_no, status, stage, amount, note, error_code, error_message FROM remittance_records WHERE id = 100",
+        "params": []
+      },
+      {
+        "name": "wallets",
+        "sql": "SELECT id, balance, freeze FROM wallets WHERE id IN (1, 3) ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "transactions",
+        "sql": "SELECT id, user_id, model_type, model_id, model_no, wallet_id, platform_name, trade_type, currency, balance_original, balance_variable, balance_complete FROM transactions WHERE model_no = 'RE_SYNTHETIC_RETRY' ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, event, JSON_VALUE(properties, '$.attributes.model_no') AS model_no, JSON_VALUE(properties, '$.attributes.wallet_id') AS wallet_id, JSON_VALUE(properties, '$.attributes.trade_type') AS trade_type, JSON_VALUE(properties, '$.attributes.balance_variable') AS balance_variable, JSON_VALUE(properties, '$.old.balance') AS old_balance, JSON_VALUE(properties, '$.attributes.balance') AS new_balance, JSON_VALUE(properties, '$.old.status') AS old_status, JSON_VALUE(properties, '$.attributes.status') AS new_status, JSON_VALUE(properties, '$.old.stage') AS old_stage, JSON_VALUE(properties, '$.attributes.stage') AS new_stage FROM activity_log ORDER BY subject_type, event, trade_type, model_no",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/check-transaction-status.aspx",
+          "body": { "txnId": "SBO_SYNTHETIC_TXN" },
+          "response": {
+            "status": 200,
+            "body": { "error": { "id": 0, "msg": "" }, "transactionType": "deposit", "amount": 25 }
+          }
+        }
+      ]
+    }
+  }
+}

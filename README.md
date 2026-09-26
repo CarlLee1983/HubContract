@@ -62,7 +62,7 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 bun run verify scenarios/wallet/deposit-queued-sync.json
 
 # 驗證整個 scenarios/ 目錄（預設路徑），輸出人類可讀報告到 stdout
-bun run verify -t http://localhost:8080
+bun run verify -t http://localhost:8080 --adapter legacy
 
 # 只跑符合條件的情境：--route 與 --tag 皆可重複帶入多次（OR），兩者併用時是 AND；
 # 不支援逗號分隔（例如 --tag a,b 會被當成單一 tag "a,b"）
@@ -186,6 +186,22 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 > [!IMPORTANT]
 > 依據 ADR-0010 與 Issue #3 規格，**Legacy 排程器（`schedule:run`）絕對不常駐執行**。
 > 如有特定測試情境需要觸發排程作業，必須在 runner 執行該情境時顯式手動觸發單次 Artisan command，不可掛載背景 daemon 避免造成非預期狀態副作用。
+
+### 排程情境：`remittance.retry`（Issue #10）
+
+`scenarios/schedule/remittance-retry.json` 使用 `trigger: {"kind":"schedule","name":"remittance.retry"}`，不含 Artisan 指令。情境的 `setup.statements` 由目標 adapter 在每次重置後加入一筆合成的未完成匯款；runner 先擷取 DB 與 stub 狀態，再交給目標 adapter 觸發一次排程，最後擷取匯款單、錢包、交易與出站呼叫。排程情境沒有 HTTP 回應層。Golden fixture 是在 Legacy 錄製環境實際執行後產生的。
+
+Legacy adapter 只接受已映射的名稱，並以單次 `docker compose exec -T legacy-app php artisan remittance:retry` 執行；不呼叫 `schedule:run`。CLI 只在沒有指定 `--target`、且最終目標 URL 等於本機 `http://localhost:${LEGACY_PORT:-8080}` 時自動選擇 Legacy adapter。因此預設本機錄製環境可直接跑 `bun run verify`；若 `HUBCONTRACT_BASE_URL` 指向 StationHubNext 或其他目標，即使沒有 `--target` 也不會觸發本機 Legacy。明確指定 `--target` 時，排程情境須用 `--adapter legacy` 指向本機錄製環境；Legacy adapter 與其他 URL 的組合會拒絕執行：
+
+```bash
+bun run verify scenarios/schedule/remittance-retry.json
+bun run record scenarios/schedule/remittance-retry.json
+# 明確指定 Legacy target 時：
+bun run verify scenarios/schedule/remittance-retry.json --target http://localhost:8080 --adapter legacy
+HUB_CONTRACT_INTEGRATION=1 bun test tests/schedule.test.ts
+```
+
+新目標需在程式端提供實作 `TargetAdapter.triggerSchedule(name)` 的 adapter，並保持同一個中立名稱；在此之前，指向新目標的排程情境會明確報錯。`activity_log` 探針從每次重置後的空表擷取本次排程產生的紀錄，只選穩定的事件欄位與 JSON scalar，不錄製自動遞增 ID、時間戳或原始 JSON 字串。排程 fixture 一律宣告出站呼叫層（即使呼叫清單為空），讓新增的出站呼叫也能被比對。此情境目前使用 synthetic seed 的固定錢包 ID；snapshot 模式需要另外核對其前置資料。
 
 ## 資料安全
 

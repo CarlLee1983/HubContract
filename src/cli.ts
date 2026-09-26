@@ -1,5 +1,6 @@
 import { parseArgs } from "util";
 import fs from "fs/promises";
+import { selectTarget } from "./target/selectTarget";
 import path from "path";
 import { pathToFileURL } from "url";
 import { ContractRunner, type PreconditionAdapter } from "./runner";
@@ -32,6 +33,7 @@ function parseCliArgs() {
       route: { type: "string", multiple: true },
       tag: { type: "string", multiple: true },
       "report-json": { type: "string" },
+      adapter: { type: "string" },
     },
     strict: true,
     allowPositionals: true,
@@ -47,7 +49,12 @@ async function main() {
     process.exit(1);
   }
 
-  const targetUrl = values.target ?? config.baseUrl;
+  const { targetUrl, targetAdapter } = selectTarget({
+    target: values.target,
+    baseUrl: config.baseUrl,
+    adapter: values.adapter,
+    legacyPort: config.legacyPort,
+  });
   const outDir = values.outDir!;
   // Issue #12: scenario path is a file OR a directory of scenarios; defaults
   // to scenarios/ so a bare `bun run verify` runs the whole suite.
@@ -82,6 +89,10 @@ async function main() {
     console.error(
       `[HubContract] No scenarios matched --route=${JSON.stringify(values.route ?? [])} --tag=${JSON.stringify(values.tag ?? [])} under "${scenarioPath}".`
     );
+  }
+
+  if (scenariosToRun.some((scenario) => scenario.trigger) && !targetAdapter) {
+    throw new Error(`Target ${targetUrl} needs a schedule target adapter`);
   }
 
   const localLegacyUrl = `http://localhost:${process.env.LEGACY_PORT || 8080}`;
@@ -120,6 +131,7 @@ async function main() {
     stubUrl: config.stub.baseUrl,
     queueDrain,
     preconditionAdapter,
+    targetAdapter,
   });
   const startedAt = new Date();
   let runOutcomes: Awaited<ReturnType<typeof runScenarios>> = [];

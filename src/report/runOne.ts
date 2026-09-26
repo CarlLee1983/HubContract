@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import type { ScenarioDefinition, Fixture } from "../schema/scenario";
-import { FixtureSchema } from "../schema/scenario";
+import { FixtureSchema, assertFixtureMatchesScenario } from "../schema/scenario";
 import type { VerifyResult } from "../runner";
 import type { ScenarioReport } from "../schema/report";
 
@@ -30,7 +30,11 @@ export interface OutcomeContext {
 }
 
 export function outcomeContext(scenario: ScenarioDefinition): OutcomeContext {
-  return { id: scenario.id, route: scenario.route, tags: scenario.tags };
+  return {
+    id: scenario.id,
+    route: scenario.route ?? { method: "SCHEDULE", path: scenario.trigger!.name },
+    tags: scenario.tags,
+  };
 }
 
 /**
@@ -62,6 +66,7 @@ export async function runOne(options: RunOneOptions): Promise<ScenarioReport> {
 
     const fixtureContent = JSON.parse(await fs.readFile(fixturePath, "utf-8"));
     const golden = FixtureSchema.parse(fixtureContent);
+    assertFixtureMatchesScenario(scenario, golden);
     const result = await runner.verify(scenario, golden);
     return {
       ...outcomeContext(scenario),
