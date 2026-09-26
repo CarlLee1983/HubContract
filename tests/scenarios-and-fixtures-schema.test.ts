@@ -36,4 +36,24 @@ describe("Offline: scenarios/ and fixtures/ schema validation", () => {
       }
     }
   });
+
+  it("records all four layers for funds writing scenarios", async () => {
+    const files = await listJsonFilesRecursive(path.join(repoRoot, "scenarios/wallet"));
+    const writing = [];
+    for (const file of files) {
+      const scenario = ScenarioDefinitionSchema.parse(JSON.parse(await fs.readFile(file, "utf-8")));
+      if (!scenario.tags.includes("funds-write")) continue;
+      writing.push(scenario.id);
+      expect(scenario.dbProbe?.queries.length).toBeGreaterThan(0);
+      expect(scenario.redisProbe?.keys.length).toBeGreaterThan(0);
+      expect(scenario.mongoProbe).toBeDefined();
+      const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(path.join(repoRoot, "fixtures", `${scenario.id}.fixture.json`), "utf-8")));
+      expect(fixture.layer1_inboundResponse).toBeDefined();
+      expect(fixture.layer2_dbState).toBeDefined();
+      expect(fixture.layer3_outboundCalls).toBeDefined();
+      expect(fixture.layer4_sharedResources?.redis).toBeDefined();
+      expect(fixture.layer4_sharedResources?.mongo).toBeDefined();
+    }
+    expect(writing.length).toBeGreaterThan(0);
+  });
 });

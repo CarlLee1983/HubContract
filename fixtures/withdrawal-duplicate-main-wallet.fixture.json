@@ -1,0 +1,110 @@
+{
+  "scenarioId": "withdrawal-duplicate-main-wallet",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "<MASKED>",
+        "trade_no": "TRADE_WITHDRAWAL_DUPLICATE_MAIN_WALLET",
+        "balance": 975,
+        "amount": 25,
+        "currency": "TWD",
+        "datetime": "<MASKED>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 6,
+          "balance": "2000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [],
+      "transactions": [],
+      "activity_log": [
+        {
+          "count": 0
+        }
+      ],
+      "remittance": []
+    },
+    "after": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "975.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 6,
+          "balance": "2000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [
+        {
+          "trade_no": "TRADE_WITHDRAWAL_DUPLICATE_MAIN_WALLET",
+          "wallet_id": 1,
+          "amount": "25.0000",
+          "status": "completed",
+          "stage": "finished",
+          "error_code": null,
+          "error_message": null
+        }
+      ],
+      "transactions": [
+        {
+          "model_type": "App\\Models\\WithdrawalRecord",
+          "type": "withdrawal",
+          "trade_type": "wallet_out",
+          "balance_original": "1000.0000",
+          "balance_variable": "-25.0000",
+          "balance_complete": "975.0000"
+        }
+      ],
+      "activity_log": [
+        {
+          "count": 5
+        }
+      ],
+      "remittance": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

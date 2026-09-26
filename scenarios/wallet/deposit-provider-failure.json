@@ -1,0 +1,142 @@
+{
+  "id": "deposit-provider-failure",
+  "name": "Deposit: Provider Failure",
+  "description": "Deposit queues SBO wallet sync; characterize provider provider-failure after the credited deposit.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/deposit"
+  },
+  "tags": [
+    "wallet",
+    "deposit",
+    "funds-write",
+    "provider-failure"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "trade_no": "TRADE_DEPOSIT_PROVIDER_FAILURE",
+      "amount": 25,
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "queueDrain": {
+    "queues": [
+      "HubWalletSync",
+      "HttpLogging"
+    ],
+    "timeoutMs": 150000
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "main_wallet",
+        "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id = w.user_id JOIN stations s ON s.id = u.station_id JOIN platforms p ON p.id = w.platform_id WHERE u.account = ? AND s.code = ? AND p.name = ? AND w.currency = ?",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION",
+          "main",
+          "TWD"
+        ]
+      },
+      {
+        "name": "game_wallet",
+        "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id = w.user_id JOIN stations s ON s.id = u.station_id JOIN platforms p ON p.id = w.platform_id WHERE u.account = ? AND s.code = ? AND p.name = ? AND w.currency = ?",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION",
+          "sbo",
+          "TWD"
+        ]
+      },
+      {
+        "name": "deposit_record",
+        "sql": "SELECT trade_no, amount, status, stage FROM deposit_records WHERE trade_no = ?",
+        "params": [
+          "TRADE_DEPOSIT_PROVIDER_FAILURE"
+        ]
+      },
+      {
+        "name": "remittance",
+        "sql": "SELECT r.amount, r.status, r.stage FROM remittance_records r JOIN users u ON u.id = r.user_id JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? ORDER BY r.id",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "failed_jobs",
+        "sql": "SELECT COUNT(*) AS failed_count FROM failed_jobs"
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/deposit.aspx",
+          "response": {
+            "status": 200,
+            "body": {
+              "error": {
+                "id": 9999,
+                "msg": "Insufficient permission"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.txn_no",
+      "type": "mask"
+    },
+    {
+      "target": "response.body.data.datetime",
+      "type": "mask"
+    },
+    {
+      "target": "outbound.0.body.txnId",
+      "type": "mask"
+    },
+    {
+      "target": "mongo.httplog_deposit.0.context.datetime",
+      "type": "mask"
+    },
+    {
+      "target": "mongo.httplog_deposit.0.context.request.txnId",
+      "type": "mask"
+    },
+    {
+      "target": "mongo.httplog_deposit.0.datetime",
+      "type": "mask"
+    }
+  ]
+}
