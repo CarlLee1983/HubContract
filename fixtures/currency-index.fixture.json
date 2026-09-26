@@ -1,0 +1,104 @@
+{
+  "scenarioId": "currency-index",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "currency": "TWD",
+          "region": "taiwan",
+          "region_name": "Taiwan",
+          "region_code": "TW",
+          "country_code": 886,
+          "locale_code": "zh_tw",
+          "symbol": "NT$"
+        },
+        {
+          "currency": "USD",
+          "region": "united_states",
+          "region_name": "United States",
+          "region_code": "US",
+          "country_code": 1,
+          "locale_code": "en_us",
+          "symbol": "$"
+        },
+        {
+          "currency": "PHP",
+          "region": "philippines",
+          "region_name": "Philippines",
+          "region_code": "PH",
+          "country_code": 63,
+          "locale_code": "en_ph",
+          "symbol": "₱"
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "station_currencies": [
+        {
+          "id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "id": 2,
+          "currency": "USD",
+          "status": 1
+        },
+        {
+          "id": 3,
+          "currency": "PHP",
+          "status": 1
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "station_currencies": [
+        {
+          "id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "id": 2,
+          "currency": "USD",
+          "status": 1
+        },
+        {
+          "id": 3,
+          "currency": "PHP",
+          "status": 1
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

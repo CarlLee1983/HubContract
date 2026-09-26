@@ -21,7 +21,7 @@ export class LegacyPreconditionAdapter implements PreconditionAdapter {
   private prefix: string;
 
   async apply(preconditions: ScenarioPreconditions): Promise<void> {
-    if (!preconditions.smsLock && !preconditions.walletLock) return;
+    if (!preconditions.smsLock && !preconditions.platformMaintenance && !preconditions.walletLock) return;
     if (this.redis.status === "wait") await this.redis.connect();
 
     if (preconditions.smsLock) {
@@ -30,6 +30,23 @@ export class LegacyPreconditionAdapter implements PreconditionAdapter {
       const key = `${this.prefix}stationhublegacy_cache_:sms_${preconditions.smsLock.nationalNumber}`;
       const result = await this.redis.set(key, "synthetic_contract_lock_owner", "EX", 10, "NX");
       if (result !== "OK") throw new Error(`Legacy SMS lock precondition already exists for ${preconditions.smsLock.nationalNumber}`);
+    }
+
+    if (preconditions.platformMaintenance) {
+      const { platform } = preconditions.platformMaintenance;
+      const setAt = new Date();
+      const until = new Date(setAt.getTime() + 3_600_000);
+      const key = `${this.prefix}platform-maintenance:v1:${platform}`;
+      const value = {
+        reason: "Contract testing maintenance flag",
+        source: "manual",
+        set_by: "contract",
+        set_at: setAt.toISOString(),
+        until: until.toISOString(),
+        estimated: true,
+      };
+      const result = await this.redis.set(key, JSON.stringify(value), "EX", 3600, "NX");
+      if (result !== "OK") throw new Error(`Legacy platform maintenance precondition already exists for ${platform}`);
     }
 
     if (preconditions.walletLock) {

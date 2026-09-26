@@ -1,0 +1,64 @@
+{
+  "id": "currency-exchange-rate-show-unknown-station",
+  "name": "Currency exchange rate show unknown station",
+  "description": "Records Legacy exchange-rate lookup for TWD.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies/exchange-rate/TWD"
+  },
+  "tags": [
+    "currency",
+    "exchange-rate-show",
+    "unknown-station",
+    "CAP-14",
+    "CAP-01",
+    "BR-01",
+    "BR-92"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "NON_EXISTENT_STATION",
+      "sign": "dummy_sign_for_unknown_station"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "NON_EXISTENT_STATION"
+        ]
+      },
+      {
+        "name": "currencies",
+        "sql": "SELECT id, name, rate, active FROM currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  }
+}

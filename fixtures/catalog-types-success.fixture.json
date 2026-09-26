@@ -1,0 +1,101 @@
+{
+  "scenarioId": "catalog-types-success",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "id": 1,
+          "name": "slots",
+          "active": 1,
+          "created_at": "2024-12-31 16:00:00",
+          "updated_at": "2024-12-31 16:00:00",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "name": "live",
+          "active": 1,
+          "created_at": "2024-12-31 16:00:00",
+          "updated_at": "2024-12-31 16:00:00",
+          "deleted_at": null
+        },
+        {
+          "id": 3,
+          "name": "sports",
+          "active": 0,
+          "created_at": "2024-12-31 16:00:00",
+          "updated_at": "2024-12-31 16:00:00",
+          "deleted_at": null
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "game_types": [
+        {
+          "id": 1,
+          "name": "slots",
+          "active": 1
+        },
+        {
+          "id": 2,
+          "name": "live",
+          "active": 1
+        },
+        {
+          "id": 3,
+          "name": "sports",
+          "active": 0
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "game_types": [
+        {
+          "id": 1,
+          "name": "slots",
+          "active": 1
+        },
+        {
+          "id": 2,
+          "name": "live",
+          "active": 1
+        },
+        {
+          "id": 3,
+          "name": "sports",
+          "active": 0
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

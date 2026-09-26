@@ -140,6 +140,7 @@ describe("internal action scenarios", () => {
       const fixture = await runner.record(scenario);
       expect(fixture.layer1_inboundResponse!.statusCode).toBe(200);
       expect(fixture.layer1_inboundResponse!.body).toEqual({ ok: true });
+      expect(fixture.layer3_outboundCalls).toEqual({ calls: [] });
     } finally {
       globalThis.fetch = previousFetch;
       await runner.close();
