@@ -39,10 +39,10 @@
       },
       {
         "name": "activity_log",
-        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE subject_type IN (?, ?) ORDER BY id",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE NOT (subject_type <=> ? AND COALESCE(description, '') LIKE ?) ORDER BY id",
         "params": [
-          "App\\Models\\ServiceIssue",
-          "App\\Models\\ChatRoomMessage"
+          "App\\Models\\Administer",
+          "%last_login%"
         ]
       }
     ]

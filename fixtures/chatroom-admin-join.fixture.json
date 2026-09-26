@@ -36,29 +36,10 @@
         }
       ],
       "chat_room_messages": [],
-      "activity_log": [
-        {
-          "log_name": "admin",
-          "description": "last_login_ip has be change.,last_login_at has be change.",
-          "subject_type": "App\\Models\\Administer",
-          "subject_id": 1,
-          "event": "updated"
-        }
-      ]
+      "activity_log": []
     }
   },
-  "layer3_outboundCalls": {
-    "calls": []
-  },
   "layer4_sharedResources": {
-    "redis": {
-      "before": {
-        "platform-maintenance:v1:cq9": null
-      },
-      "after": {
-        "platform-maintenance:v1:cq9": null
-      }
-    },
     "mongo": {
       "newDocuments": {}
     }
