@@ -1,0 +1,41 @@
+{
+  "id": "currency-index-signature-failed",
+  "name": "Currency index signature failed",
+  "description": "Records Legacy currency route index-signature-failed.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies"
+  },
+  "tags": [
+    "currency",
+    "index",
+    "signature-failed"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "DEMO_STATION",
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

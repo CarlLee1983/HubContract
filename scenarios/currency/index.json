@@ -1,0 +1,43 @@
+{
+  "id": "currency-index",
+  "name": "Currency index",
+  "description": "Records Legacy currency route index.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies"
+  },
+  "tags": [
+    "currency",
+    "index",
+    "success"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "DEMO_STATION"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

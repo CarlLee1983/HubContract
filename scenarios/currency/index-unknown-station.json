@@ -1,0 +1,41 @@
+{
+  "id": "currency-index-unknown-station",
+  "name": "Currency index unknown station",
+  "description": "Records Legacy currency route index-unknown-station.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies"
+  },
+  "tags": [
+    "currency",
+    "index",
+    "unknown-station"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "NON_EXISTENT_STATION",
+      "sign": "dummy_sign_for_unknown_station"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}
