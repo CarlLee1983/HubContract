@@ -228,3 +228,10 @@ export function compareRedisState(
 
   return diffs;
 }
+
+export function compareMongoDocuments(
+  actual: Record<string, Record<string, unknown>[]>,
+  expected: Record<string, Record<string, unknown>[]>
+): Difference[] {
+  return compareDiff(actual, expected, "after.mongo.newDocuments", "shared_resources");
+}

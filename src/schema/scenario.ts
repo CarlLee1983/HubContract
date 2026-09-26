@@ -47,6 +47,16 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+export const MongoProbeSchema = z.object({
+  collections: z.array(z.string().startsWith("httplog_")).optional(),
+  pattern: z.string().startsWith("httplog_").optional(),
+});
+
+export const QueueDrainSchema = z.object({
+  queues: z.array(z.string().min(1)).min(1),
+  timeoutMs: z.number().int().positive().default(150000),
+});
+
 /**
  * Provider stub schema (Issue #8): describes how the stub (compose service
  * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
@@ -129,6 +139,8 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  mongoProbe: MongoProbeSchema.optional(),
+  queueDrain: QueueDrainSchema.optional(),
   // Issue #8: captureRun() *always* resets the stub and loads this script (or
   // an empty one, if omitted) before executing the request — every scenario
   // is checked for undefined outbound calls, not just ones that declare a
@@ -189,6 +201,9 @@ export const FixtureSchema = z.object({
           before: z.record(z.string(), RedisKeyRecordSchema.nullable()),
           after: z.record(z.string(), RedisKeyRecordSchema.nullable()),
         })
+        .optional(),
+      mongo: z
+        .object({ newDocuments: z.record(z.string(), z.array(z.record(z.string(), z.any()))) })
         .optional(),
     })
     .optional(),

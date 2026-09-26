@@ -1,0 +1,51 @@
+{
+  "id": "deposit-queued-sync",
+  "name": "Wallet deposit drains sync and HTTP logging queues",
+  "description": "Issue #9: deposit to the synthetic player's main wallet, then sync to SBO via HubWalletSync and capture the resulting httplog document.",
+  "route": { "method": "POST", "path": "/v1/wallet/deposit" },
+  "tags": ["wallet", "deposit", "queue", "mongo"],
+  "request": {
+    "headers": { "Host": "localhost:8080", "Accept": "application/json" },
+    "body": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "trade_no": "TRADE_QUEUE_DEP_001",
+      "amount": 25,
+      "timestamp": 0
+    },
+    "signWith": { "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890" }
+  },
+  "queueDrain": { "queues": ["HubWalletSync", "HttpLogging"], "timeoutMs": 150000 },
+  "dbProbe": {
+    "queries": [
+      { "name": "main_wallet", "sql": "SELECT balance, freeze FROM wallets WHERE id = 1" },
+      { "name": "game_wallet", "sql": "SELECT balance, freeze FROM wallets WHERE id = 3" },
+      { "name": "deposit_record", "sql": "SELECT trade_no, amount, status, stage FROM deposit_records WHERE trade_no = ?", "params": ["TRADE_QUEUE_DEP_001"] },
+      { "name": "remittance", "sql": "SELECT amount, status, stage FROM remittance_records WHERE user_id = 1 ORDER BY id" },
+      { "name": "failed_jobs", "sql": "SELECT COUNT(*) AS failed_count FROM failed_jobs" }
+    ]
+  },
+  "redisProbe": { "keys": [{ "pattern": "game_to_main_wallet_sync:*", "db": 1 }] },
+  "mongoProbe": { "collections": ["httplog_deposit"] },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/deposit.aspx",
+          "response": { "status": 200, "body": { "error": { "id": 0, "msg": "" }, "balance": 1025, "outstanding": 0 } }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    { "target": "request.body.timestamp", "type": "current_timestamp" },
+    { "target": "response.body.data.txn_no", "type": "mask" },
+    { "target": "response.body.data.datetime", "type": "mask" },
+    { "target": "outbound.0.body.txnId", "type": "mask" },
+    { "target": "mongo.httplog_deposit.0.context.datetime", "type": "mask" },
+    { "target": "mongo.httplog_deposit.0.context.request.txnId", "type": "mask" },
+    { "target": "mongo.httplog_deposit.0.datetime", "type": "mask" }
+  ]
+}

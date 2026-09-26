@@ -18,6 +18,10 @@ fi
 # (Issue #8) — this must run from ROOT_DIR so compose finds docker-compose.yml
 # and this worktree's .env.
 cd "${ROOT_DIR}"
+# Compose interpolates every service volume even for `exec mariadb`; worker
+# services use the same vendor mount as legacy-app.
+STATIONHUB_VENDOR_DIR="${STATIONHUB_VENDOR_DIR:-${ROOT_DIR}/${STATIONHUB_REPO:-../StationHub}/vendor}"
+export STATIONHUB_VENDOR_DIR
 
 echo "==> [HubContract] Resetting MariaDB schema and synthetic seeds..."
 docker compose exec -T mariadb mariadb -uroot -proot_recording_pass -e "
