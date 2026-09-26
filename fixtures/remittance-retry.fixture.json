@@ -1,0 +1,107 @@
+{
+  "scenarioId": "remittance-retry",
+  "layer2_dbState": {
+    "before": {
+      "remittance": [
+        {
+          "id": 100,
+          "no": "RE_SYNTHETIC_RETRY",
+          "txn_no": "SBO_SYNTHETIC_TXN",
+          "status": "processing",
+          "stage": "situation",
+          "amount": "25.0000",
+          "note": null,
+          "error_code": null,
+          "error_message": null
+        }
+      ],
+      "wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "transactions": []
+    },
+    "after": {
+      "remittance": [
+        {
+          "id": 100,
+          "no": "RE_SYNTHETIC_RETRY",
+          "txn_no": "SBO_SYNTHETIC_TXN",
+          "status": "completed",
+          "stage": "finished",
+          "amount": "25.0000",
+          "note": "",
+          "error_code": null,
+          "error_message": null
+        }
+      ],
+      "wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 3,
+          "balance": "25.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "transactions": [
+        {
+          "id": 1,
+          "user_id": 1,
+          "model_type": "App\\Models\\RemittanceRecord",
+          "model_id": 100,
+          "model_no": "RE_SYNTHETIC_RETRY",
+          "wallet_id": 1,
+          "platform_name": "main",
+          "trade_type": "wallet_out",
+          "currency": "TWD",
+          "balance_original": "1025.0000",
+          "balance_variable": "-25.0000",
+          "balance_complete": "1000.0000"
+        },
+        {
+          "id": 2,
+          "user_id": 1,
+          "model_type": "App\\Models\\RemittanceRecord",
+          "model_id": 100,
+          "model_no": "RE_SYNTHETIC_RETRY",
+          "wallet_id": 3,
+          "platform_name": "sbo",
+          "trade_type": "wallet_in",
+          "currency": "TWD",
+          "balance_original": "0.0000",
+          "balance_variable": "25.0000",
+          "balance_complete": "25.0000"
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/check-transaction-status.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01",
+          "txnId": "SBO_SYNTHETIC_TXN"
+        }
+      }
+    ]
+  }
+}

@@ -31,8 +31,8 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Walking Skeleton: Contract Runner 
     const fixture = await runner.record(scenario);
 
     expect(fixture.scenarioId).toBe(scenario.id);
-    expect(fixture.layer1_inboundResponse.statusCode).toBe(200);
-    expect(fixture.layer1_inboundResponse.body).toEqual({
+    expect(fixture.layer1_inboundResponse!.statusCode).toBe(200);
+    expect(fixture.layer1_inboundResponse!.body).toEqual({
       message: "OK",
       data: {
         txn_no: "DE_SYNTHETIC_001",
@@ -65,7 +65,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Walking Skeleton: Contract Runner 
 
     // Tamper layer 1 response body field
     const tamperedFixture: Fixture = JSON.parse(JSON.stringify(fixture));
-    tamperedFixture.layer1_inboundResponse.body.data.amount = 999;
+    tamperedFixture.layer1_inboundResponse!.body.data.amount = 999;
 
     const result1 = await runner.verify(scenario, tamperedFixture);
     expect(result1.passed).toBe(false);

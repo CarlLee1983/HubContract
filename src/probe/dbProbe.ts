@@ -45,6 +45,12 @@ export class MariaDbProbe {
     return state;
   }
 
+  async setup(statements: DbProbe["queries"]): Promise<void> {
+    for (const statement of statements) {
+      await this.pool.execute(statement.sql, statement.params);
+    }
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

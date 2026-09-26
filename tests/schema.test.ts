@@ -43,7 +43,7 @@ describe("Scenario Schema (Zod)", () => {
 
     const parsed = ScenarioDefinitionSchema.parse(validScenario);
     expect(parsed.id).toBe("check-transaction-deposit-hit");
-    expect(parsed.route.method).toBe("POST");
+    expect(parsed.route!.method).toBe("POST");
   });
 
   it("should fail validation and pinpoint missing/invalid fields", () => {

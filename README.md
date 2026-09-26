@@ -177,6 +177,22 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 > 依據 ADR-0010 與 Issue #3 規格，**Legacy 排程器（`schedule:run`）絕對不常駐執行**。
 > 如有特定測試情境需要觸發排程作業，必須在 runner 執行該情境時顯式手動觸發單次 Artisan command，不可掛載背景 daemon 避免造成非預期狀態副作用。
 
+### 排程情境：`remittance.retry`（Issue #10）
+
+`scenarios/schedule/remittance-retry.json` 使用 `trigger: {"kind":"schedule","name":"remittance.retry"}`，不含 Artisan 指令。情境的 `setup.statements` 在每次重置後加入一筆合成的未完成匯款；runner 先擷取 DB 與 stub 狀態，再交給目標 adapter 觸發一次排程，最後擷取匯款單、錢包、交易與出站呼叫。排程情境沒有 HTTP 回應層。Golden fixture 是在 Legacy 錄製環境實際執行後產生的。
+
+Legacy adapter 只接受已映射的名稱，並以單次 `docker compose exec -T legacy-app php artisan remittance:retry` 執行；不呼叫 `schedule:run`。CLI 沒有指定 `--target` 時使用本機 Legacy adapter，所以既有的 `bun run verify` 全情境指令仍可用。指定 `--target` 時，排程情境需要明確選擇 adapter，避免誤觸本機 Legacy：
+
+```bash
+bun run verify scenarios/schedule/remittance-retry.json
+bun run record scenarios/schedule/remittance-retry.json
+# 明確指定 Legacy target 時：
+bun run verify scenarios/schedule/remittance-retry.json --target http://localhost:8080 --adapter legacy
+HUB_CONTRACT_INTEGRATION=1 bun test tests/schedule.test.ts
+```
+
+新目標需在程式端提供實作 `TargetAdapter.triggerSchedule(name)` 的 adapter，並保持同一個中立名稱。此情境目前使用 synthetic seed 的固定錢包 ID；snapshot 模式需要另外核對其前置資料。
+
 ## 資料安全
 
 這個 repo 是公開的。fixture 與種子資料一律遮罩後才能提交；站台 `secret_key`、帳號、手機號碼全部使用 100% 合成假資料（例如 `DEMO_STATION`、`synthetic_secret_key_...`、`synthetic_user_01`）。

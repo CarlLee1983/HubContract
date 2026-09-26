@@ -113,7 +113,8 @@ export const ScenarioDefinitionSchema = z.object({
   route: z.object({
     method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
     path: z.string().startsWith("/"),
-  }),
+  }).optional(),
+  trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
   // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
   // "deposit"). Optional so pre-existing scenario files without tags stay valid.
   tags: z.array(z.string()).default([]),
@@ -126,7 +127,8 @@ export const ScenarioDefinitionSchema = z.object({
         secretKey: z.string().min(1),
       })
       .optional(),
-  }),
+  }).default({ headers: {} }),
+  setup: z.object({ statements: z.array(DbProbeQuerySchema).min(1) }).optional(),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
   // Issue #8: captureRun() *always* resets the stub and loads this script (or
@@ -145,6 +147,8 @@ export const ScenarioDefinitionSchema = z.object({
     })
     .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
+}).refine((value) => Boolean(value.route) !== Boolean(value.trigger), {
+  message: "Declare exactly one of route or trigger",
 });
 
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
@@ -170,7 +174,7 @@ export const FixtureSchema = z.object({
     statusText: z.string(),
     headers: z.record(z.string(), z.string()),
     body: z.any(),
-  }),
+  }).optional(),
   layer2_dbState: z
     .object({
       before: z.record(z.string(), z.any()),
@@ -195,3 +199,15 @@ export const FixtureSchema = z.object({
 });
 
 export type Fixture = z.infer<typeof FixtureSchema>;
+
+export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixture: Fixture): void {
+  if (fixture.scenarioId !== scenario.id) {
+    throw new Error(`Fixture scenarioId ${fixture.scenarioId} does not match ${scenario.id}`);
+  }
+  if (scenario.route && !fixture.layer1_inboundResponse) {
+    throw new Error(`HTTP scenario ${scenario.id} requires layer1_inboundResponse`);
+  }
+  if (scenario.trigger && fixture.layer1_inboundResponse) {
+    throw new Error(`Schedule scenario ${scenario.id} must not declare layer1_inboundResponse`);
+  }
+}

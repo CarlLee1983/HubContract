@@ -1,10 +1,11 @@
-import type { ScenarioDefinition, Fixture } from "./schema/scenario";
+import { assertFixtureMatchesScenario, type ScenarioDefinition, type Fixture } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
 import type { RedisKeyRecord, StubRequestRecord } from "./schema/scenario";
 import { StubClient } from "./stub/client";
+import type { TargetAdapter } from "./target/legacyAdapter";
 import {
   compareInboundResponse,
   compareDbState,
@@ -37,6 +38,7 @@ export interface RunnerOptions {
    */
   stubUrl: string;
   fixedTimestamp?: number;
+  targetAdapter?: TargetAdapter;
 }
 
 export interface VerifyResult {
@@ -65,6 +67,7 @@ export function buildHttpRequest(
   baseUrl: string,
   normalizerOptions: { fixedTimestamp?: number } = {}
 ): BuiltHttpRequest {
+  if (!scenario.route) throw new Error("HTTP request requires a route");
   // 1. Apply normalizers to request (e.g. current_timestamp)
   let rawReq = applyNormalizers(
     { request: scenario.request },
@@ -142,7 +145,7 @@ export function buildHttpRequest(
 interface CapturedRun {
   dbBefore: Record<string, unknown>;
   redisBefore: RedisCapture;
-  response: {
+  response?: {
     statusCode: number;
     statusText: string;
     headers: Record<string, string>;
@@ -178,6 +181,7 @@ export class ContractRunner {
   private redisProbe: RedisProbeService;
   private stubClient: StubClient;
   private fixedTimestamp?: number;
+  private targetAdapter?: TargetAdapter;
 
   constructor(options: RunnerOptions) {
     if (!options.stubUrl) {
@@ -194,6 +198,7 @@ export class ContractRunner {
     this.redisProbe = new RedisProbeService(options.redisConfig);
     this.stubClient = new StubClient(options.stubUrl);
     this.fixedTimestamp = options.fixedTimestamp;
+    this.targetAdapter = options.targetAdapter;
   }
 
   async close(): Promise<void> {
@@ -270,6 +275,7 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
+    if (scenario.setup) await this.dbProbe.setup(scenario.setup.statements);
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before
@@ -285,8 +291,14 @@ export class ContractRunner {
     await this.stubClient.reset();
     await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
 
-    // Layer 1: Execute inbound request
-    const { response } = await this.executeRequest(scenario);
+    // The trigger is target-neutral; the adapter owns the concrete dispatch.
+    let response: CapturedRun["response"];
+    if (scenario.trigger) {
+      if (!this.targetAdapter) throw new Error("Schedule trigger requires a target adapter");
+      await this.targetAdapter.triggerSchedule(scenario.trigger.name);
+    } else {
+      response = (await this.executeRequest(scenario)).response;
+    }
 
     // Layer 3: read back what the target under test actually sent to the stub
     const { requests, unmatchedCount } = await this.stubClient.getRequests();
@@ -330,14 +342,14 @@ export class ContractRunner {
 
     const fixture: Fixture = {
       scenarioId: scenario.id,
-      layer1_inboundResponse: {
+      layer1_inboundResponse: response ? {
         statusCode: response.statusCode,
         statusText: response.statusText,
         headers: {
           "content-type": response.headers["content-type"] || "application/json",
         },
         body: response.body,
-      },
+      } : undefined,
       layer2_dbState: {
         before: dbBefore,
         after: dbAfter,
@@ -365,6 +377,7 @@ export class ContractRunner {
    * data drift) is a contract failure just as much as a post-condition mismatch.
    */
   async verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult> {
+    assertFixtureMatchesScenario(scenario, golden);
     const differences: Difference[] = [];
 
     const { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
@@ -390,14 +403,17 @@ export class ContractRunner {
     }
 
     // Compare Layer 1: Inbound Response
-    const responseDiffs = compareInboundResponse(
-      { statusCode: response.statusCode, body: response.body },
-      {
-        statusCode: golden.layer1_inboundResponse.statusCode,
-        body: golden.layer1_inboundResponse.body,
-      }
-    );
-    differences.push(...responseDiffs);
+    if (response && golden.layer1_inboundResponse) {
+      differences.push(...compareInboundResponse(
+        { statusCode: response.statusCode, body: response.body },
+        {
+          statusCode: golden.layer1_inboundResponse.statusCode,
+          body: golden.layer1_inboundResponse.body,
+        }
+      ));
+    } else if (Boolean(response) !== Boolean(golden.layer1_inboundResponse)) {
+      differences.push({ layer: "inbound_response", path: "presence", expected: Boolean(golden.layer1_inboundResponse), actual: Boolean(response) });
+    }
 
     // Compare Layer 2: DB State (before & after)
     if (golden.layer2_dbState) {
