@@ -171,11 +171,13 @@ export const HttpStepSchema = z.object({
   id: z.string().min(1),
   route: HttpRouteSchema,
   request: HttpRequestSchema.default({ headers: {} }),
+  normalizers: z.array(NormalizerRuleSchema).optional(),
   // PG's callback receives the ops issued in GetLaunchURLHTML.extra_args.
   pgOpsFromLaunch: z.boolean().optional(),
   expirePgOpsBeforeRequest: z.boolean().optional(),
   redisCheckpoint: RedisProbeSchema.optional(),
 });
+export type HttpStep = z.infer<typeof HttpStepSchema>;
 
 const ScenarioDefinitionBaseSchema = z.object({
   id: z.string().min(1),

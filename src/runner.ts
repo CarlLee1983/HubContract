@@ -1,4 +1,4 @@
-import { assertFixtureMatchesScenario, type ScenarioDefinition, type ScenarioPreconditions, type Fixture } from "./schema/scenario";
+import { assertFixtureMatchesScenario, type ScenarioDefinition, type ScenarioPreconditions, type Fixture, type HttpStep } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe, type DbConfig } from "./probe/dbProbe";
@@ -62,6 +62,24 @@ export interface BuiltHttpRequest {
   headers: Record<string, string>;
   body?: string;
   requestData: unknown;
+}
+
+/** Build the request boundary for one HTTP step; scenario-wide rules still normalize captures. */
+export function httpStepScenario(scenario: ScenarioDefinition, step: HttpStep, pgOps?: string): ScenarioDefinition {
+  const request = step.pgOpsFromLaunch
+    ? { ...step.request, body: { ...step.request.body, operator_player_session: pgOps } }
+    : step.request;
+  return {
+    ...scenario,
+    route: step.route,
+    request,
+    steps: undefined,
+    // A request normalizer for launch must never create a field in callback.
+    normalizers: [
+      ...scenario.normalizers.filter((rule) => !rule.target.startsWith("request.")),
+      ...(step.normalizers ?? []),
+    ],
+  };
 }
 
 /**
@@ -387,10 +405,7 @@ export class ContractRunner {
             if (!pgOps) throw new Error(`Step ${step.id} cannot expire PG ops before launch`);
             await this.redisProbe.expirePgOps(pgOps);
           }
-          const request = step.pgOpsFromLaunch
-            ? { ...step.request, body: { ...step.request.body, operator_player_session: pgOps } }
-            : step.request;
-          const stepScenario = { ...scenario, route: step.route, request, steps: undefined };
+          const stepScenario = httpStepScenario(scenario, step, pgOps);
           const result = (await this.executeRequest(stepScenario)).response;
           stepResponses.push({ id: step.id, ...result, headers: { "content-type": result.headers["content-type"] || "application/json" } });
           if (step.redisCheckpoint || scenario.steps.some((later) => later.pgOpsFromLaunch)) {

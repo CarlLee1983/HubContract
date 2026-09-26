@@ -45,7 +45,13 @@
             "ttlToleranceSeconds": 5
           }
         ]
-      }
+      },
+      "normalizers": [
+        {
+          "target": "request.body.timestamp",
+          "type": "current_timestamp"
+        }
+      ]
     },
     {
       "id": "verifySession",
@@ -138,10 +144,6 @@
     }
   },
   "normalizers": [
-    {
-      "target": "request.body.timestamp",
-      "type": "current_timestamp"
-    },
     {
       "target": "outbound.0.query.trace_id",
       "type": "mask",

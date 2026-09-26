@@ -1,14 +1,14 @@
 {
-  "id": "pg-callback-auth-rejected",
-  "name": "PG callback rejects invalid credentials",
-  "description": "Failed authentication leaves launch verifyData valid until its TTL.",
+  "id": "pg-callback-wrong-ops",
+  "name": "PG callback rejects wrong ops",
+  "description": "A callback with the wrong operator_player_session is rejected while the issued verifyData key remains valid.",
   "tags": [
     "game",
     "launch",
     "pg",
     "callback",
     "CAP-03",
-    "auth-rejected"
+    "wrong-ops"
   ],
   "steps": [
     {
@@ -59,7 +59,6 @@
         "method": "POST",
         "path": "/callback/game/pg/verifySession"
       },
-      "pgOpsFromLaunch": true,
       "request": {
         "headers": {
           "Host": "localhost:8080",
@@ -67,8 +66,9 @@
         },
         "body": {
           "operator_token": "synthetic_pg_operator_token",
-          "secret_key": "wrong_synthetic_pg_secret",
-          "bet_type": 1
+          "secret_key": "synthetic_pg_secret_key",
+          "bet_type": 1,
+          "operator_player_session": "wrong_pg_ops"
         }
       },
       "redisCheckpoint": {
