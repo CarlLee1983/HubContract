@@ -187,6 +187,7 @@ export class ContractRunner {
   private queueDrain: QueueDrain;
   private stubClient: StubClient;
   private fixedTimestamp?: number;
+  private environmentSafe = true;
 
   constructor(options: RunnerOptions) {
     if (!options.stubUrl) {
@@ -212,6 +213,10 @@ export class ContractRunner {
     await this.redisProbe.close();
     await this.mongoProbe.close();
     await this.queueDrain.close();
+  }
+
+  canResetEnvironment(): boolean {
+    return this.environmentSafe;
   }
 
   /**
@@ -303,7 +308,14 @@ export class ContractRunner {
     const { response } = await this.executeRequest(scenario);
 
     const drain = scenario.queueDrain ?? DEFAULT_QUEUE_DRAIN;
-    await this.queueDrain.waitForIdle(drain.queues, drain.timeoutMs);
+    try {
+      await this.queueDrain.waitForIdle(drain.queues, drain.timeoutMs);
+    } catch (error) {
+      // A timed-out worker may still write after reset; no later scenario may
+      // use this recording environment until the workers are stopped.
+      this.environmentSafe = false;
+      throw error;
+    }
 
     // Layer 3: read back what the target under test actually sent to the stub
     const { requests, unmatchedCount } = await this.stubClient.getRequests();

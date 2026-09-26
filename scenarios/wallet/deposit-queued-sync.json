@@ -19,15 +19,15 @@
   "queueDrain": { "queues": ["HubWalletSync", "HttpLogging"], "timeoutMs": 150000 },
   "dbProbe": {
     "queries": [
-      { "name": "main_wallet", "sql": "SELECT balance, freeze FROM wallets WHERE id = 1" },
-      { "name": "game_wallet", "sql": "SELECT balance, freeze FROM wallets WHERE id = 3" },
+      { "name": "main_wallet", "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id = w.user_id JOIN stations s ON s.id = u.station_id JOIN platforms p ON p.id = w.platform_id WHERE u.account = ? AND s.code = ? AND p.name = ? AND w.currency = ?", "params": ["synthetic_user_01", "DEMO_STATION", "main", "TWD"] },
+      { "name": "game_wallet", "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id = w.user_id JOIN stations s ON s.id = u.station_id JOIN platforms p ON p.id = w.platform_id WHERE u.account = ? AND s.code = ? AND p.name = ? AND w.currency = ?", "params": ["synthetic_user_01", "DEMO_STATION", "sbo", "TWD"] },
       { "name": "deposit_record", "sql": "SELECT trade_no, amount, status, stage FROM deposit_records WHERE trade_no = ?", "params": ["TRADE_QUEUE_DEP_001"] },
-      { "name": "remittance", "sql": "SELECT amount, status, stage FROM remittance_records WHERE user_id = 1 ORDER BY id" },
+      { "name": "remittance", "sql": "SELECT r.amount, r.status, r.stage FROM remittance_records r JOIN users u ON u.id = r.user_id JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? ORDER BY r.id", "params": ["synthetic_user_01", "DEMO_STATION"] },
       { "name": "failed_jobs", "sql": "SELECT COUNT(*) AS failed_count FROM failed_jobs" }
     ]
   },
   "redisProbe": { "keys": [{ "pattern": "game_to_main_wallet_sync:*", "db": 1 }] },
-  "mongoProbe": { "collections": ["httplog_deposit"] },
+  "mongoProbe": { "pattern": "httplog_*" },
   "stub": {
     "script": {
       "matchers": [

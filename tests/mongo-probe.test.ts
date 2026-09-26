@@ -37,6 +37,7 @@ describe("MongoProbeService", () => {
     const newId = new ObjectId("000000000000000000000002");
     const collections: Record<string, Record<string, unknown>[]> = {
       httplog_api: [{ _id: oldId, event: "existing" }],
+      httplog_untouched: [{ _id: new ObjectId(), event: "old" }],
       unrelated: [{ _id: newId, event: "ignore" }],
     };
     const fake = fakeClient(collections);

@@ -117,7 +117,9 @@ bun run verify --report-json report.json
 | `hub-wallet-sync-worker` | — | — | 消化 `HubWalletSync` queue |
 | `http-logging-worker` | — | — | 消化 `HttpLogging` queue，寫入 Mongo `httplog_*` |
 
-`queueDrain` 使用 Redis DB 1 與 `REDIS_PREFIX`（預設 `hub_recording:`）；其他受測目標可透過 runner 的 `queueDrain` adapter 提供自己的完成判斷。`mongoProbe.collections` 指定要比對的 `httplog_*` 集合，只記錄情境期間新增的文件，fixture 不包含 Mongo `_id` 與 queue payload。
+本機 Legacy 的 `queueDrain` 使用 Redis DB 1 與 `REDIS_PREFIX`（預設 `hub_recording:`）。驗證其他受測目標時，`-t` 必須搭配 `--queue-drain-adapter ./path/to/adapter.ts`；該模組匯出 `createQueueDrain({ targetUrl })`，回傳有 `waitForIdle(queues, timeoutMs)` 與 `close()` 的物件。程式呼叫 runner 時也可直接傳入 `queueDrain`。這讓等待訊號來自實際受測目標，不會因本機 Legacy queue 為空而提前比對。`mongoProbe.pattern: "httplog_*"` 會觀察所有符合的集合，只記錄情境期間新增的文件；fixture 不包含 Mongo `_id` 與 queue payload。
+
+Queue 等待失敗後，runner 會把同批後續情境標成 `errored`，停止重置錄製環境；先停止仍在執行的 worker，再重置後重新執行。
 
 主機連接埠、docker network 子網段與 compose project name 都可由本機 `.env` 覆寫，見下一節。
 

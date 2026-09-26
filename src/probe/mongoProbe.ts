@@ -1,4 +1,5 @@
 import { BSON, MongoClient, ObjectId } from "mongodb";
+import { MongoCollectionGlobPattern, MongoCollectionNamePattern } from "../schema/scenario";
 
 export interface MongoProbeConfig {
   host?: string;
@@ -44,11 +45,11 @@ function idKey(id: unknown): string {
 
 function validateProbe(probe?: MongoProbe): void {
   for (const name of probe?.collections ?? []) {
-    if (!/^httplog_[\w-]+$/.test(name)) {
+    if (!MongoCollectionNamePattern.test(name)) {
       throw new Error(`Mongo probe collection must be httplog_*: ${name}`);
     }
   }
-  if (probe?.pattern && !/^httplog_[\w*\-]+$/.test(probe.pattern)) {
+  if (probe?.pattern && !MongoCollectionGlobPattern.test(probe.pattern)) {
     throw new Error(`Mongo probe pattern must be httplog_*: ${probe.pattern}`);
   }
 }
@@ -116,7 +117,9 @@ export class MongoProbeService {
           return normalize(fields) as Record<string, MongoJson>;
         })
         .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-      capture[name] = added;
+      // A pattern observes new documents, not the existence of old empty
+      // collections. Explicitly selected collections keep [] as a contract.
+      if (added.length > 0 || probe?.collections?.includes(name)) capture[name] = added;
     }
     return capture;
   }

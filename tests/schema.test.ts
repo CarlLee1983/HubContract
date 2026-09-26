@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema, MongoProbeSchema } from "../src/schema/scenario";
 
 describe("Scenario Schema (Zod)", () => {
+  it("rejects Mongo collection names the probe cannot capture", () => {
+    expect(MongoProbeSchema.safeParse({ collections: ["httplog_deposit!"] }).success).toBe(false);
+    expect(MongoProbeSchema.safeParse({ pattern: "httplog_*" }).success).toBe(true);
+  });
+
   it("should validate a valid check-transaction scenario definition", () => {
     const validScenario = {
       id: "check-transaction-deposit-hit",

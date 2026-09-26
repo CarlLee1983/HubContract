@@ -47,9 +47,12 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+export const MongoCollectionNamePattern = /^httplog_[\w-]+$/;
+export const MongoCollectionGlobPattern = /^httplog_[\w*\-]+$/;
+
 export const MongoProbeSchema = z.object({
-  collections: z.array(z.string().startsWith("httplog_")).optional(),
-  pattern: z.string().startsWith("httplog_").optional(),
+  collections: z.array(z.string().regex(MongoCollectionNamePattern)).optional(),
+  pattern: z.string().regex(MongoCollectionGlobPattern).optional(),
 });
 
 export const QueueDrainSchema = z.object({

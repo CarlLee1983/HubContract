@@ -1,6 +1,9 @@
 import { parseArgs } from "util";
 import fs from "fs/promises";
+import path from "path";
+import { pathToFileURL } from "url";
 import { ContractRunner } from "./runner";
+import type { QueueDrain } from "./probe/queueDrain";
 import { ReportSchema } from "./schema/report";
 import { config } from "./config";
 import { resetEnvironment } from "./env/reset";
@@ -21,6 +24,7 @@ function parseCliArgs() {
       scenario: { type: "string", short: "s" },
       outDir: { type: "string", short: "o", default: "fixtures" },
       "skip-reset": { type: "boolean", default: false },
+      "queue-drain-adapter": { type: "string" },
       // Issue #12: repeatable, e.g. `--route /v1/wallet/check-transaction --route
       // /mcp/platform-maintenance/cq9`. Not a comma list (see filterScenarios.ts).
       route: { type: "string", multiple: true },
@@ -42,6 +46,20 @@ async function main() {
   }
 
   const targetUrl = values.target!;
+  let queueDrain: QueueDrain | undefined;
+  if (values["queue-drain-adapter"]) {
+    const adapterUrl = pathToFileURL(path.resolve(values["queue-drain-adapter"])).href;
+    const adapterModule = await import(adapterUrl);
+    if (typeof adapterModule.createQueueDrain !== "function") {
+      throw new Error(`Queue drain adapter ${adapterUrl} must export createQueueDrain({ targetUrl })`);
+    }
+    queueDrain = await adapterModule.createQueueDrain({ targetUrl });
+    if (typeof queueDrain?.waitForIdle !== "function" || typeof queueDrain.close !== "function") {
+      throw new Error(`Queue drain adapter ${adapterUrl} must provide waitForIdle() and close()`);
+    }
+  } else if (new URL(targetUrl).href.replace(/\/$/, "") !== `http://localhost:${process.env.LEGACY_PORT || 8080}`) {
+    throw new Error(`Target ${targetUrl} needs --queue-drain-adapter; local Legacy Redis cannot prove its jobs are drained`);
+  }
   const outDir = values.outDir!;
   // Issue #12: scenario path is a file OR a directory of scenarios; defaults
   // to scenarios/ so a bare `bun run verify` runs the whole suite.
@@ -78,7 +96,7 @@ async function main() {
     );
   }
 
-  const runner = new ContractRunner({ baseUrl: targetUrl, stubUrl: config.stub.baseUrl });
+  const runner = new ContractRunner({ baseUrl: targetUrl, stubUrl: config.stub.baseUrl, queueDrain });
   const startedAt = new Date();
   let runOutcomes: Awaited<ReturnType<typeof runScenarios>> = [];
 

@@ -13,6 +13,7 @@ import type { ScenarioReport } from "../schema/report";
 export interface ScenarioRunner {
   record(scenario: ScenarioDefinition): Promise<Fixture>;
   verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult>;
+  canResetEnvironment?(): boolean;
 }
 
 export interface RunOneOptions {
