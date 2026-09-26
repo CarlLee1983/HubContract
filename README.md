@@ -179,13 +179,23 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 
 ## 資料安全
 
+### SMS 契約情境（Issue #18）
+
+`scenarios/sms/` 涵蓋列表、更新、發送、餘額四條路由，各路由包含驗證失敗、簽章失敗與未知站台；餘額另涵蓋 Chuanx、Asmsc、AboSend 的成功及供應商故障。錄製環境的 `SMS_TEST=false` 只用於本機 Legacy 容器；種子資料中的供應商 URL 全部指向 `mock-provider:8081`，憑證和電話都是合成值。可用 `bun run record scenarios/sms` 錄製，並以 `bun run verify scenarios/sms` 驗證。
+
+Legacy 實際錄製顯示：一般 `/v1/sms/send` 請求未帶 `currency` 時，`siteCurrency()` 為 null，解析電話先產生 500，尚未走到供應商；對應 `send-without-currency`。另外三個發送情境在簽章請求中帶 `currency=TWD`，讓路由初始化幣別以觀察更深的流程：inactive SMS 未被拒絕、供應商建 log 時的未初始化屬性 500、Asmsc 在該 500 前先呼叫 `GetSenderIDList`，以及預先佔用 Redis DB1 的 cache lock 時回傳重送錯誤。這些是錄製環境的現行行為，並非建議新版維持缺陷。`/amount` 的供應商 500 則被 Legacy 吞掉，回應餘額 0。
+
+SMS fixture 含合成供應商憑證，因 Legacy 的列表資源和出站呼叫原樣帶出設定。鎖定情境只宣告手機的 national number，由 Legacy 前置條件 adapter 依錄製環境的 cache prefix 建立 Redis lock。500 回應的 `file` 和 `trace` 以逐欄位 normalizer 遮罩，錯誤訊息和其他欄位仍逐字比對。
+
+指定其他目標的 `-t` 時，鎖定情境需同時提供 `--precondition-adapter ./path/to/adapter.ts`；該模組匯出 `createPreconditionAdapter({ targetUrl })`，回傳有 `apply(preconditions)` 方法的 adapter。未提供時會明確失敗，不會替其他目標寫入 Legacy 的 Redis key。AboSend 的動態 `rand` 和 `sign` 由 stub 重新計算 MD5 驗證後才套用欄位 normalizer。
+
 這個 repo 是公開的。fixture 與種子資料一律遮罩後才能提交；站台 `secret_key`、帳號、手機號碼全部使用 100% 合成假資料（例如 `DEMO_STATION`、`synthetic_secret_key_...`、`synthetic_user_01`）。
 
 `src/config.ts` 裡的 DB/Redis 連線預設值，以及 `docker/.env.recording` 的 `APP_KEY`，都是合成、非機密的本機錄製環境帳密（與 `docker-compose.yml` 定義一致），僅用於本機一次性、可拋棄的錄製環境，不對應任何真實環境的憑證。
 
 ### 從測試站快照產生基準種子（Issue #13）
 
-手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子。
+手寫的 `seeds/synthetic-seed.sql` 涵蓋 Pilot 與目前的合成契約情境。要涵蓋更多真實資料組合時，改用「真實測試站快照經過遮罩」產生的基準種子。
 
 #### 為什麼是「起一個真的資料庫」而不是自己寫 SQL parser，為什麼是白名單而不是黑名單
 

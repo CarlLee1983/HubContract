@@ -47,6 +47,15 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+/** Domain preconditions; each target adapter chooses its own storage details. */
+export const ScenarioPreconditionsSchema = z.object({
+  smsLock: z.object({
+    nationalNumber: z.string().regex(/^[0-9]+$/),
+  }).optional(),
+});
+
+export type ScenarioPreconditions = z.infer<typeof ScenarioPreconditionsSchema>;
+
 /**
  * Provider stub schema (Issue #8): describes how the stub (compose service
  * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
@@ -76,6 +85,12 @@ export const StubMatcherSchema = z.object({
     .describe(
       "Partial match against the parsed JSON/form request body — every key here must deep-equal the corresponding key in the request body, nested objects/arrays included."
     ),
+  bodyMd5: z.object({
+    outputField: z.string().min(1),
+    inputFields: z.array(z.string().min(1)).min(1),
+    suffix: z.string(),
+    uppercase: z.boolean().default(true),
+  }).optional().describe("Validate a dynamic MD5 body field from ordered body fields and a synthetic suffix"),
   response: StubResponseSchema,
 });
 
@@ -129,6 +144,7 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  preconditions: ScenarioPreconditionsSchema.optional(),
   // Issue #8: captureRun() *always* resets the stub and loads this script (or
   // an empty one, if omitted) before executing the request — every scenario
   // is checked for undefined outbound calls, not just ones that declare a

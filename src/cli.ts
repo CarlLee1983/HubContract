@@ -1,6 +1,9 @@
 import { parseArgs } from "util";
 import fs from "fs/promises";
-import { ContractRunner } from "./runner";
+import path from "path";
+import { pathToFileURL } from "url";
+import { ContractRunner, type PreconditionAdapter } from "./runner";
+import { LegacyPreconditionAdapter } from "./target/legacyPreconditions";
 import { ReportSchema } from "./schema/report";
 import { config } from "./config";
 import { resetEnvironment } from "./env/reset";
@@ -17,7 +20,8 @@ function parseCliArgs() {
     args: Bun.argv.slice(2),
     options: {
       mode: { type: "string", short: "m", default: "verify" },
-      target: { type: "string", short: "t", default: config.baseUrl },
+      target: { type: "string", short: "t" },
+      "precondition-adapter": { type: "string" },
       scenario: { type: "string", short: "s" },
       outDir: { type: "string", short: "o", default: "fixtures" },
       "skip-reset": { type: "boolean", default: false },
@@ -41,7 +45,7 @@ async function main() {
     process.exit(1);
   }
 
-  const targetUrl = values.target!;
+  const targetUrl = values.target ?? config.baseUrl;
   const outDir = values.outDir!;
   // Issue #12: scenario path is a file OR a directory of scenarios; defaults
   // to scenarios/ so a bare `bun run verify` runs the whole suite.
@@ -78,7 +82,25 @@ async function main() {
     );
   }
 
-  const runner = new ContractRunner({ baseUrl: targetUrl, stubUrl: config.stub.baseUrl });
+  let preconditionAdapter: PreconditionAdapter | undefined;
+  if (values["precondition-adapter"]) {
+    const modulePath = pathToFileURL(path.resolve(values["precondition-adapter"])).href;
+    const module = await import(modulePath);
+    if (typeof module.createPreconditionAdapter !== "function") {
+      throw new Error(`${modulePath} must export createPreconditionAdapter({ targetUrl })`);
+    }
+    preconditionAdapter = await module.createPreconditionAdapter({ targetUrl });
+  } else if (targetUrl.replace(/\/$/, "") === config.baseUrl.replace(/\/$/, "")) {
+    // The configured local recording target is Legacy, whether selected by
+    // default or passed explicitly with --target.
+    preconditionAdapter = new LegacyPreconditionAdapter();
+  }
+
+  const runner = new ContractRunner({
+    baseUrl: targetUrl,
+    stubUrl: config.stub.baseUrl,
+    preconditionAdapter,
+  });
   const startedAt = new Date();
   let runOutcomes: Awaited<ReturnType<typeof runScenarios>> = [];
 
