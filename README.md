@@ -185,27 +185,35 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 
 ### 從測試站快照產生基準種子（Issue #13）
 
-手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子：
+手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子。
+
+#### 為什麼是「起一個真的資料庫」而不是自己寫 SQL parser，為什麼是白名單而不是黑名單
+
+這是這個功能第三次被 code review 打回票，前三輪都在同一種地方找到漏網：自己寫的 mysqldump 語法解析器有某種寫法沒認出來（不加引號的表名、`db`.`table`、`ON DUPLICATE KEY UPDATE`、`#` 註解……），或是「哪些表/欄位要遮」的清單漏了某一個（`note`、`settings.val`、fixture 裡寫死的 id）。SQL 語法的變化型態跟一份 100+ 張表的 schema 有多少個敏感欄位一樣，都是「幾乎數不完，只能不斷追著已知漏洞跑」的黑名單問題。
+
+現在的做法反過來解決兩件事：
+1. **解析交給真正的 MariaDB**：腳本起一個拋棄式 MariaDB 容器（`src/seed/dockerMariaDb.ts`，image/tag 跟 `docker-compose.yml` 的 `mariadb` service 釘死同一版本），把快照的原始 bytes 直接灌進容器內的 `mariadb` CLI，不在 Node/Bun 這邊解析或改寫任何一行 SQL。合法的 SQL，不管是什麼語法變體，MariaDB 都認得；我們只在資料庫「裡面」用 `SELECT`/`UPDATE`/`TRUNCATE` 做遮罩，最後用固定參數的 `mysqldump` 匯出。容器名稱、連接埠都跟錄製環境分開，兩者互不影響；跑完（不管成功或失敗）一定 `docker stop` 清掉，不留孤兒容器。
+2. **白名單，不是黑名單**：`src/seed/maskConfig.ts` 的 `TABLE_CONFIG` 對照 `seeds/mysql-schema.sql`（112 張表、1075 個欄位）逐一分類成 `keep`/`mask:<category>`/`null`/`fixed`/`mask_json`/`derive_player_account`，或整表 `truncate`。遮罩前會先查「載入後的資料庫」的 `information_schema`（不是凍結的 schema 檔——這樣測試站快照如果比 `seeds/mysql-schema.sql` 多出表或欄位，也會被抓到），任何一個表或欄位在 `TABLE_CONFIG` 裡找不到分類，就列出全部後直接 throw、不遮罩任何東西。漏分類一個欄位，遮罩腳本會拒絕執行；黑名單漏一個欄位，遮罩腳本會「成功」但外洩。
 
 1. **取得快照**：由人（不是 agent）用 `mysqldump` 對測試站資料庫產生快照，存成 `.sql` 或 `.sql.gz`。**這份原始檔含真實的站台 `secret_key`、帳號、手機號碼、姓名、email 等個資，絕對不能放進這個公開 repo**——建議存在 repo 目錄外（例如自己的 `~/Downloads` 或任何 scratch 目錄），只把路徑傳給下一步的腳本。
 2. **設定 `MASK_HMAC_KEY`**：遮罩用 HMAC-SHA256 把原值決定性地轉成合成值，key 從環境變數 `MASK_HMAC_KEY` 讀，沒設就直接 throw（不提供預設值）。這把 key 本身不是遮罩後資料的機密（遮罩後的種子已經公開），但如果外流，別人可以拿一個「已知的原始值」自己算出遮罩後長怎樣，等於能反查特定帳號/手機是否在快照裡出現過——所以不要寫死在程式碼或提交進 repo，本機留著（例如 shell profile 或不會進版控的 `.env`）就好。**同一份快照要重跑出「同樣」的種子，前提是每次都用同一把 key**，換 key 等於重新生成一套完全不同的合成值。
    ```bash
    export MASK_HMAC_KEY="<自己挑一個固定字串，不要提交進 repo>"
    ```
-3. **跑遮罩腳本**：
+3. **跑遮罩腳本**（需要本機有 `docker`）：
    ```bash
    bun run seed:mask <你的快照路徑.sql|.sql.gz> seeds/snapshot-seed.sql
    ```
-   腳本依 `src/seed/maskConfig.ts` 的設定做幾件事：
-   - **換成合成值**：站台 `secret_key`、各表的帳號欄位（含 `players.account`——這欄位常見格式是 `使用者帳號 + 站台代碼 + p + 平台 id` 組出來的，遮罩時只換使用者帳號那一段、站台代碼與平台 id 保留明文，才不會破壞這個推導關係，見 `LobbyAbstract::getFormattedPlayerAccount()`；不符合這個格式的（主平台直接存 `users.account`、部分廠商直接存供應商值等）退回當一般帳號字串整串遮罩，不會 throw）、需實名登記的姓名欄位、`administers.email`、加密貨幣錢包地址。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。**目前沒有手機號碼欄位被遮罩**——原本設想遮 `sms_logs.phone`，但 `sms_logs` 整表都清空了（見下方），`phone` 這個遮罩類別已經沒有任何欄位在用，直接從程式碼移除，不留死碼。
+   腳本依 `src/seed/maskConfig.ts` 的 `TABLE_CONFIG` 做幾件事：
+   - **換成合成值**：站台 `secret_key`、各表的帳號欄位（含 `players.account`——這欄位常見格式是 `使用者帳號 + 站台代碼 + p + 平台 id` 組出來的，遮罩時只換使用者帳號那一段、站台代碼與平台 id 保留明文，才不會破壞這個推導關係，見 `LobbyAbstract::getFormattedPlayerAccount()`；不符合這個格式的（主平台直接存 `users.account`、Mg/Pinnacle 之類直接存供應商值、Sa 是小寫化再接雜湊後綴）退回當一般帳號字串整串遮罩，不會 throw）、需實名登記的姓名欄位、`administers.email`、加密貨幣錢包地址。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。**目前沒有手機號碼欄位被遮罩**——原本設想遮 `sms_logs.phone`，但 `sms_logs` 整表都清空了（見下方），`phone` 這個遮罩類別已經沒有任何欄位在用，直接從程式碼移除，不留死碼。
    - **換成固定值 / 清成 NULL**：`administers.password` 統一換成 `seeds/synthetic-seed.sql` 用的那組合成 bcrypt 雜湊；`administers.remember_token`／`last_login_token`／`last_login_ip`、`players.vendor_player_id`、`betting_logs.raw_data` 清 `NULL`；`payments.api_url` 換成 stub 位址。
-   - **JSON 欄位**（只有 `platforms.api_settings`、`payments.api_tokens`、`sms.settings` 這三個——情境/stub 實際會依內容組出對外請求，遮罩後仍要是合法 JSON）：鍵名符合 `account`/`name`/`phone`/`mobile`/`tel`/`email`/`pwd`/`pass`/`merchant`/`key`/`secret`/`token`/`password`/`sign`（不分大小寫）的字串值換成合成值；值本身是 `http(s)` URL 就換成錄製環境的線路 stub 位址 `http://mock-provider:8081`（parent spec [#1](https://github.com/CarlLee1983/HubRefactoring/issues/1) 第 18 點）；陣列元素繼承父鍵名脈絡（`{"token":["A","B"]}` 兩個元素都當 token 處理）；字串值本身又能解析成 JSON 物件/陣列就遞迴處理（雙重編碼）。
-   - **純回應／紀錄用的 blob 欄位清成 NULL**（不是「設定」、是 Legacy 存下來的第三方回應原文或使用者自由輸入內容，遮罩內部結構沒意義）：`commission_withdraws.{receipt_data,trade_response_data,trade_error_reason,txn_data}`、`payment_history_records.response_data`、`payment_deposit_options.txn_data`、`payment_withdrawal_options.txn_data`、`service_issues.{summaries,answer}`。這幾欄在 schema 裡都是 `DEFAULT NULL`，不需要用 `'{}'`/`''` 代替。
-   - **整表清空**（`sessions`、`personal_access_tokens`、`password_reset_tokens`、`failed_jobs`、`activity_log`、`sms_logs`、`chat_room_messages`、`login_logs`、`user_login_logs`）：情境不會用到，內容又可能夾帶使用者敏感資料或內部堆疊資訊，乾脆不把這些表的資料列寫進遮罩後的種子。
-   - **安全原則**：上面任何一步只要遇到無法安全解析的狀況（陳述式以 `INSERT`/`REPLACE` 開頭卻解析不出表名/欄位列表/`VALUES` 子句、沒有欄位列表又找不到對應的 `CREATE TABLE`、欄位數與值數不符、該處理的欄位值不是字串字面值也不是 `NULL`、JSON 欄位內容不是合法 JSON），一律直接 throw、腳本失敗退出——不會猜測欄位順序、不會把看起來奇怪的值原樣放行。表名支援不加引號、`` `db`.`table` ``、ANSI 雙引號、`LOW_PRIORITY`/`DELAYED`/`HIGH_PRIORITY`/`IGNORE` 修飾詞。
-   - **輸出剝除 `DROP TABLE`/`CREATE TABLE`**：schema 一律以凍結的 `seeds/mysql-schema.sql` 為準（`env-reset.sh` 一定先載入它），dump 自帶的 DDL 只拿來解析欄位順序，不重複輸出。
-   - **每一句 INSERT 輸出時都帶明確欄位列表**（不管原本有沒有）：這樣測試站實際的欄位物理順序跟這份凍結 schema 不一樣時，MySQL 靠欄位名稱對齊值，不會把值插進錯的欄位；欄位名稱在凍結 schema 裡不存在的話，匯入當場就會噴錯，不會悄悄塞錯地方。
-   - 沒列在設定裡的欄位／資料表原樣保留（例如 `stations.callback_domain`、`settings.val`——已查證見下方「不遮罩的欄位」）。
+   - **JSON 欄位**（`platforms.api_settings`、`payments.api_tokens`、`sms.settings`、`settings.val` 這四個——情境/stub 實際會依內容組出對外請求，或是內容結構完全不固定，遮罩後仍要是合法 JSON）：鍵名先切成 snake_case/camelCase 片段再比對敏感片段集合 `{key, secret, token, password, pwd, pass, sign, signature, account, phone, mobile, tel, email, merchant, salt, iv, auth, cert, user, uid, name}`（含簡單複數，`tokens`/`accounts` 也算），再用一份明確的安全例外清單（`sign_type`、`platform_name`）排除誤判；值本身是 `http(s)` URL 就換成錄製環境的線路 stub 位址 `http://mock-provider:8081`（parent spec [#1](https://github.com/CarlLee1983/HubRefactoring/issues/1) 第 18 點）；陣列元素繼承父鍵名脈絡（`{"token":["A","B"]}` 兩個元素都當 token 處理）；字串值本身又能解析成 JSON 物件/陣列就遞迴處理（雙重編碼）；數字在敏感鍵底下也會被遮（型別會變成字串），非敏感鍵底下的數字/布林/`null` 原樣保留。`settings.val` 存的是任意 `name` 對應的任意 JSON（例如 `site_google_recaptcha` 的 `server_token`、`site_contact` 的 `email`/`tel`），沒有固定 schema，用同一套鍵名規則遞迴處理，不需要照 `name` 個別設定。
+   - **純回應／紀錄用的 blob 欄位清成 NULL**（不是「設定」、是 Legacy 存下來的第三方回應原文或使用者自由輸入內容，遮罩內部結構沒意義）：任何欄名符合 `note`/`memo`/`remark`/`summary`/`content`/`body`/`description`/`reason`/`message`/`comment`/`raw`/`response`/`request`/`payload`/`log`/`receipt`/`snapshot`/`reply`/`answer` 這類自由文字樣式的欄位（例如 `withdrawal_records.note`、`deposit_records.note`、`remittance_records.note`、`risk_events.note`、`user_events.note_user`/`note_inner`、`commission_withdraws.{receipt_data,trade_response_data,trade_error_reason,txn_data}`、`payment_history_records.response_data`、`payment_deposit_options.txn_data`、`payment_withdrawal_options.txn_data`、`service_issues.{summaries,answer}`），一律清成 `NULL`（這幾欄在 schema 裡都是 `DEFAULT NULL`，不需要用 `'{}'`/`''` 代替）。
+   - **整表清空**（`sessions`、`personal_access_tokens`、`password_reset_tokens`、`failed_jobs`、`activity_log`、`sms_logs`、`chat_room_messages`、`login_logs`、`user_login_logs`、`pulse_aggregates`、`pulse_entries`、`pulse_values`、`job_batches`、`schedule_logs`、`report_logs`）：情境不會用到，內容又可能夾帶使用者敏感資料、內部堆疊資訊，或是格式完全不受控的遙測資料（Laravel Pulse），乾脆不把這些表的資料列寫進遮罩後的種子。
+   - **白名單完整性檢查**：資料庫裡（依 `information_schema`，不是凍結的 schema 檔）的每一張表、每一個欄位都必須在 `TABLE_CONFIG` 裡有分類，找不到就列出全部後直接 throw；`players.account`、JSON 欄位、`_binary`/`0x...` 之類無法安全處理的值也都有對應的錯誤訊息，不會猜測著繼續跑。
+   - **每一句 INSERT 輸出時都帶明確欄位列表**：`mysqldump --complete-insert` 保證的，不用自己重組 SQL。這樣測試站實際的欄位物理順序跟凍結 schema 不一樣時，MySQL 靠欄位名稱對齊值，不會把值插進錯的欄位。
+   - **輸出不含 `CREATE TABLE`**：`mysqldump --no-create-info`，schema 一律以凍結的 `seeds/mysql-schema.sql` 為準（`env-reset.sh` 一定先載入它）。
+   - 沒列在設定裡的欄位／資料表原樣保留（例如 `stations.callback_domain`——已查證見下方「不遮罩的欄位」）。
 4. **輸出位置**：遮罩後的種子固定寫到 `seeds/snapshot-seed.sql`（已遮罩，可以提交）。
 5. **切換 `env-reset.sh` 使用的種子**：用 `HUB_SEED` 環境變數明確指定，不是自動偵測（兩個 checkout 用同一個 commit，卻因為「誰本機有沒有跑過 seed:mask」重置出不同資料，會讓錄製結果不可靠）：
    ```bash
@@ -224,7 +232,12 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 ### 不遮罩的欄位（查過 `.legacy-src`，不是漏掉）
 
 - **`stations.callback_domain`**：一開始猜是「打給站台的回呼網域」該換成 stub，查證後發現 Legacy 自己的 ADR-0040（`.legacy-src/docs/adr/0040-game-wallet-balance-single-authority.md`）明講：「`stations.callback_domain` 存在於 `Station::$fillable`，但全 codebase 沒有任何地方讀它」——不是出站呼叫的目標，Legacy 根本不會打這個網域，不需要換成 stub。維持原樣。
-- **`settings.val`**：翻了 `app/Http/Resources/Settings*Resource.php` 一輪（`SettingsWithdrawalBasicResource`、`SettingsCommissionResource`、`SettingsRiskWinRateResource`、`SettingsPlatformGeneralResource`⋯），存的是提款限額、佣金比例、風控閾值這類業務設定，不是個資，維持原樣。
+- **`settings.val`**：翻了 `app/Http/Resources/Settings*Resource.php` 一輪（`SettingsWithdrawalBasicResource`、`SettingsCommissionResource`、`SettingsRiskWinRateResource`、`SettingsPlatformGeneralResource`⋯），大部分 `name` 存的是提款限額、佣金比例、風控閾值這類業務設定，但也有 `site_google_recaptcha`（`server_token`）、`site_contact`（`email`/`tel`）這種明確含機密/個資的 `name`，而且 `val` 沒有固定 schema、無法針對每個 `name` 個別設定——改成 `mask_json`（見上方），統一用鍵名規則遞迴處理，不是原樣保留。
+- **guild/user_level 相關的 JSON 快照欄位**（`guilds.settings`、`user_level_records.{settings,upgrade_condition,renewal_condition,rebates}`、`user_level_settings.{upgrade_condition,renewal_condition,rebates}`、`payments.{maximum_trades,current_trades,period}`、`platforms.{currencies,regions,game_types}`、`flatten_rebate_reports.data`）：翻過對應的 schema comment，都是遊戲規則/等級條件/報表聚合這類業務設定快照，不是個資或第三方回應原文，分類為 `keep`。這批是自動化分類規則沒攔到、人工複查後確認安全的項目，跟上面明確查證過 Legacy 程式碼的兩項不同等級，列在這裡是為了讓後續複查者知道「已經看過、不是漏掉」。
+
+### snapshot 模式下，既有的 golden fixture 需要重新 `record`
+
+`fixtures/*.fixture.json` 目前是對 **synthetic 模式**（`HUB_SEED=synthetic`，`seeds/synthetic-seed.sql` 的固定 id）錄製的，裡面直接寫死了 `user_id: 1`、`deposit_records` 的 `id: 4`/`5`（重複 `trade_no` 情境）這類數字。`scenario-baseline.sql` overlay 為了不跟真實快照的資料列衝突，id 統一落在 `900000000` 以上——這代表**在 `HUB_SEED=snapshot` 模式下對這些既有 fixture 跑 `verify` 一定會比對失敗**（`user_id`/`id` 對不上），這是預期中的落差，不是遮罩腳本的 bug。真的要在 snapshot 模式下驗證，必須先有一份真實快照、跑過 `bun run seed:mask`、`HUB_SEED=snapshot` 重置環境，再對 Legacy 重新 `record` 一次，產生對應 `900000000+` id 的新 fixture。這次沒有真實快照可以錄，所以現有 fixture 沒有被動過，synthetic 模式的驗證行為也完全不變。
 
 ## 狀態
 
