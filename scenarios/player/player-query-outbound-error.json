@@ -1,0 +1,82 @@
+{
+  "id": "player-query-outbound-error",
+  "name": "Player Query: synchronous SBO lookup error",
+  "description": "The provider returns a nonzero business error during synchronous lookup. Earning catches the exception; the Player response and unchanged wallet are recorded.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/"
+  },
+  "tags": [
+    "player",
+    "query",
+    "outbound",
+    "error"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "user_wallets",
+        "sql": "SELECT id, platform_id, balance, freeze, player_id FROM wallets WHERE user_id = 1 ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "sbo_player",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "user_transactions",
+        "sql": "SELECT id, wallet_id, balance_original, balance_variable, balance_complete, trade_type FROM transactions WHERE user_id = 1 ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/get-player-balance.aspx",
+          "body": {
+            "Username": "synthetic_user_01DEMO_STATIONp3"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "error": {
+                "id": 9999,
+                "msg": "Insufficient permission"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.created_at",
+      "type": "mask",
+      "replacement": "<CREATED_AT>"
+    }
+  ]
+}
