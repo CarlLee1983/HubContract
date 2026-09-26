@@ -128,4 +128,19 @@ describe("Scenario Schema (Zod)", () => {
       await runner.close();
     }
   });
+
+  it("fails closed for MCP maintenance when a target has no precondition adapter", async () => {
+    const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "mcp-clear",
+      name: "MCP clear",
+      route: { method: "DELETE", path: "/mcp/platform-maintenance/cq9" },
+      preconditions: { mcpMaintenance: { platform: "cq9", duration: "1h", reason: "Contract setup" } },
+    });
+    try {
+      await expect(runner.record(scenario)).rejects.toThrow("requires a precondition adapter");
+    } finally {
+      await runner.close();
+    }
+  });
 });
