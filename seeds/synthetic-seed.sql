@@ -6,14 +6,30 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- 1. Stations
 TRUNCATE TABLE `stations`;
 INSERT INTO `stations` (`id`, `name`, `code`, `secret_key`, `cost_percent`, `callback_domain`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, '合成測試站台', 'DEMO_STATION', 'synthetic_secret_key_for_contract_testing_only_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL);
+(1, '合成測試站台', 'DEMO_STATION', 'synthetic_secret_key_for_contract_testing_only_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
+-- Dedicated Stations keep catalogue edge cases independent of the baseline.
+(2, '合成空目錄站台', 'CATALOG_EMPTY', 'synthetic_secret_key_for_CATALOG_EMPTY_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
+(3, '合成孤兒目錄站台', 'CATALOG_ORPHAN', 'synthetic_secret_key_for_CATALOG_ORPHAN_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
+(4, '合成型別目錄站台', 'CATALOG_TYPED', 'synthetic_secret_key_for_CATALOG_TYPED_1234567890', '{"TWD":{"sbo":{"sports":2.5}}}', 'http://localhost:8080', NOW(), NOW(), NULL),
+(5, '合成維護目錄站台', 'CATALOG_MAINTAINED', 'synthetic_secret_key_for_CATALOG_MAINTAINED_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL);
 
 -- 2. Station Currencies
 TRUNCATE TABLE `station_currencies`;
 INSERT INTO `station_currencies` (`id`, `station_id`, `currency`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 'TWD', 1, NOW(), NOW(), NULL),
 (2, 1, 'USD', 1, NOW(), NOW(), NULL),
-(3, 1, 'PHP', 1, NOW(), NOW(), NULL);
+(3, 1, 'PHP', 1, NOW(), NOW(), NULL),
+(4, 2, 'TWD', 1, NOW(), NOW(), NULL),
+(5, 3, 'TWD', 1, NOW(), NOW(), NULL),
+(6, 4, 'TWD', 1, NOW(), NOW(), NULL),
+(7, 5, 'TWD', 1, NOW(), NOW(), NULL);
+
+-- The exchange-rate list filters active global currencies; show does not.
+TRUNCATE TABLE `currencies`;
+INSERT INTO `currencies` (`id`, `name`, `rate`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'TWD', 32.500000, 1, NOW(), NOW(), NULL),
+(2, 'USD', 1.000000, 0, NOW(), NOW(), NULL),
+(3, 'PHP', 56.000000, 1, NOW(), NOW(), NULL);
 
 -- 3. Platforms
 -- Note (Issue #8): the `cq9` row's api_settings uses the wrong key names —
@@ -29,12 +45,14 @@ INSERT INTO `platforms` (`id`, `name`, `is_original`, `api_settings`, `active`, 
 -- api_settings keys per Sbo::getApiRequiredSettings(); api_url points at the
 -- `mock-provider` compose service (stub) so findAccount() calls the stub, not
 -- a real vendor.
-(3, 'sbo', 1, '{"api_url":"http://mock-provider:8081","company_key":"synthetic_company_key","server_id":"synthetic-server-01","agent_id":"synthetic_agent","portfolio":"SportsBook","lang":"en"}', 1, 0, 1, 0, 1, 2, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL);
+(3, 'sbo', 1, '{"api_url":"http://mock-provider:8081","company_key":"synthetic_company_key","server_id":"synthetic-server-01","agent_id":"synthetic_agent","portfolio":"SportsBook","lang":"en"}', 1, 0, 1, 0, 1, 2, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL),
+(4, 'jdb', 1, '{"url":"http://mock-provider:8081"}', 1, 1, 1, 0, 1, 3, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL);
 
 TRUNCATE TABLE `game_types`;
 INSERT INTO `game_types` (`id`, `name`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'slots', 1, NOW(), NOW(), NULL),
-(2, 'live', 1, NOW(), NOW(), NULL);
+(2, 'live', 1, NOW(), NOW(), NULL),
+(3, 'sports', 0, NOW(), NOW(), NULL);
 
 TRUNCATE TABLE `platform_game_type_map`;
 INSERT INTO `platform_game_type_map` (`platform_id`, `game_type_id`, `active`, `cost_percent`) VALUES
@@ -82,13 +100,22 @@ INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_
 -- Issue #9: queued wallet sync follows this game and station mapping.
 TRUNCATE TABLE `games`;
 INSERT INTO `games` (`id`, `code`, `signature`, `name`, `type`, `platform_name`, `game_company_name`, `active`, `maintain`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'SBO_SYNTHETIC', 'sbo_synthetic_game', 'Synthetic SBO Game', 'sport', 'sbo', 'sbo', 1, 0, NOW(), NOW(), NULL);
+(1, 'SBO_SYNTHETIC', 'sbo_synthetic_game', 'Synthetic SBO Game', 'sport', 'sbo', 'sbo', 1, 0, NOW(), NOW(), NULL),
+(2, 'JDB_SYNTHETIC', 'jdb_synthetic_game', 'Synthetic Maintained JDB Game', 'slots', 'jdb', 'jdb', 1, 0, NOW(), NOW(), NULL);
+TRUNCATE TABLE `game_currencies`;
+INSERT INTO `game_currencies` (`id`, `game_id`, `currency`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'TWD', 1, NOW(), NOW(), NULL),
+(2, 2, 'TWD', 1, NOW(), NOW(), NULL);
 TRUNCATE TABLE `game_companies`;
 INSERT INTO `game_companies` (`id`, `name`, `platform_id`, `platform_name`, `currency`, `created_at`, `updated_at`) VALUES
-(1, 'sbo', 3, 'sbo', 'TWD', NOW(), NOW());
+(1, 'sbo', 3, 'sbo', 'TWD', NOW(), NOW()),
+(2, 'jdb', 4, 'jdb', 'TWD', NOW(), NOW());
 TRUNCATE TABLE `station_game_companies`;
 INSERT INTO `station_game_companies` (`id`, `station_id`, `game_company_id`, `game_company_name`, `currency`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL);
+(1, 1, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
+(2, 3, 999999, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
+(3, 4, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
+(4, 5, 2, 'jdb', 'TWD', 1, NOW(), NOW(), NULL);
 TRUNCATE TABLE `play_logs`;
 INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 3, 1, 1, 1, NOW(), NOW(), NULL);

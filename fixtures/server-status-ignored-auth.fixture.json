@@ -1,0 +1,144 @@
+{
+  "scenarioId": "server-status-ignored-auth",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Station not found",
+      "exception": "App\\Support\\Generator\\Exceptions\\RuntimeException",
+      "file": "/var/www/html/app/Support/ApiStation/ApiStation.php",
+      "line": 27,
+      "trace": [
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php",
+          "line": 355,
+          "function": "init",
+          "class": "App\\Support\\ApiStation\\ApiStation",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Providers/RouteServiceProvider.php",
+          "line": 104,
+          "function": "__callStatic",
+          "class": "Illuminate\\Support\\Facades\\Facade",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/app/Providers/RouteServiceProvider.php",
+          "line": 40,
+          "function": "apiInit",
+          "class": "App\\Providers\\RouteServiceProvider",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php",
+          "line": 36,
+          "function": "boot",
+          "class": "App\\Providers\\RouteServiceProvider",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Container/Util.php",
+          "line": 41,
+          "function": "Illuminate\\Container\\{closure}",
+          "class": "Illuminate\\Container\\BoundMethod",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php",
+          "line": 93,
+          "function": "unwrapIfClosure",
+          "class": "Illuminate\\Container\\Util",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php",
+          "line": 35,
+          "function": "callBoundMethod",
+          "class": "Illuminate\\Container\\BoundMethod",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Container/Container.php",
+          "line": 662,
+          "function": "call",
+          "class": "Illuminate\\Container\\BoundMethod",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php",
+          "line": 1059,
+          "function": "call",
+          "class": "Illuminate\\Container\\Container",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php",
+          "line": 1040,
+          "function": "bootProvider",
+          "class": "Illuminate\\Foundation\\Application",
+          "type": "->"
+        },
+        {
+          "function": "Illuminate\\Foundation\\{closure}",
+          "class": "Illuminate\\Foundation\\Application",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php",
+          "line": 1039,
+          "function": "array_walk"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php",
+          "line": 17,
+          "function": "boot",
+          "class": "Illuminate\\Foundation\\Application",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php",
+          "line": 286,
+          "function": "bootstrap",
+          "class": "Illuminate\\Foundation\\Bootstrap\\BootProviders",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 186,
+          "function": "bootstrapWith",
+          "class": "Illuminate\\Foundation\\Application",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 170,
+          "function": "bootstrap",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 144,
+          "function": "sendRequestThroughRouter",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/public/index.php",
+          "line": 51,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}
