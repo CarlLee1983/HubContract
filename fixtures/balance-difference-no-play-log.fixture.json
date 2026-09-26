@@ -1,0 +1,69 @@
+{
+  "scenarioId": "balance-difference-no-play-log",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "GAME_PLAY_LOG_NOT_FOUND"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "currency": "TWD",
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "currency": "TWD",
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "play_log": []
+    },
+    "after": {
+      "wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "currency": "TWD",
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "currency": "TWD",
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "play_log": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

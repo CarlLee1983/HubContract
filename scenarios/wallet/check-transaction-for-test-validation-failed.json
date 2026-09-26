@@ -1,0 +1,82 @@
+{
+  "id": "check-transaction-for-test-validation-failed",
+  "name": "Check Transaction For Test Validation Failed",
+  "description": "CAP-07 wallet contract; Legacy response and all observable side effects.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/check-transaction-for-test"
+  },
+  "tags": [
+    "wallet",
+    "check-transaction-for-test",
+    "CAP-07",
+    "validation-failed",
+    "BR-01",
+    "BR-48"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8180",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "txn_no": "TRADE_DEP_001",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "deposit_record",
+        "sql": "SELECT no,trade_no,user_id,wallet_id,amount,status FROM deposit_records WHERE trade_no = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "TRADE_DEP_001"
+        ]
+      },
+      {
+        "name": "transactions",
+        "sql": "SELECT model_type,model_id,model_no,wallet_id,balance_variable FROM transactions WHERE user_id=1 ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name,description,subject_type,event,subject_id,properties FROM activity_log ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "stub": {
+    "script": {
+      "matchers": []
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "mongo.httplog_check_transaction.0.context.datetime",
+      "type": "mask"
+    },
+    {
+      "target": "mongo.httplog_check_transaction.0.datetime",
+      "type": "mask"
+    }
+  ]
+}
