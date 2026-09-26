@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { pathToFileURL } from "url";
 import { ContractRunner, type PreconditionAdapter } from "./runner";
+import type { QueueDrain } from "./probe/queueDrain";
 import { LegacyPreconditionAdapter } from "./target/legacyPreconditions";
 import { ReportSchema } from "./schema/report";
 import { config } from "./config";
@@ -25,6 +26,7 @@ function parseCliArgs() {
       scenario: { type: "string", short: "s" },
       outDir: { type: "string", short: "o", default: "fixtures" },
       "skip-reset": { type: "boolean", default: false },
+      "queue-drain-adapter": { type: "string" },
       // Issue #12: repeatable, e.g. `--route /v1/wallet/check-transaction --route
       // /mcp/platform-maintenance/cq9`. Not a comma list (see filterScenarios.ts).
       route: { type: "string", multiple: true },
@@ -82,6 +84,23 @@ async function main() {
     );
   }
 
+  const localLegacyUrl = `http://localhost:${process.env.LEGACY_PORT || 8080}`;
+  const isLocalLegacy = targetUrl.replace(/\/$/, "") === localLegacyUrl;
+  let queueDrain: QueueDrain | undefined;
+  if (values["queue-drain-adapter"]) {
+    const adapterUrl = pathToFileURL(path.resolve(values["queue-drain-adapter"])).href;
+    const adapterModule = await import(adapterUrl);
+    if (typeof adapterModule.createQueueDrain !== "function") {
+      throw new Error(`Queue drain adapter ${adapterUrl} must export createQueueDrain({ targetUrl })`);
+    }
+    queueDrain = await adapterModule.createQueueDrain({ targetUrl });
+    if (typeof queueDrain?.waitForIdle !== "function" || typeof queueDrain.close !== "function") {
+      throw new Error(`Queue drain adapter ${adapterUrl} must provide waitForIdle() and close()`);
+    }
+  } else if (!isLocalLegacy && scenariosToRun.length > 0) {
+    throw new Error(`Target ${targetUrl} needs --queue-drain-adapter; local Legacy Redis cannot prove its jobs are drained`);
+  }
+
   let preconditionAdapter: PreconditionAdapter | undefined;
   if (values["precondition-adapter"]) {
     const modulePath = pathToFileURL(path.resolve(values["precondition-adapter"])).href;
@@ -90,7 +109,7 @@ async function main() {
       throw new Error(`${modulePath} must export createPreconditionAdapter({ targetUrl })`);
     }
     preconditionAdapter = await module.createPreconditionAdapter({ targetUrl });
-  } else if (targetUrl.replace(/\/$/, "") === config.baseUrl.replace(/\/$/, "")) {
+  } else if (isLocalLegacy) {
     // The configured local recording target is Legacy, whether selected by
     // default or passed explicitly with --target.
     preconditionAdapter = new LegacyPreconditionAdapter();
@@ -99,6 +118,7 @@ async function main() {
   const runner = new ContractRunner({
     baseUrl: targetUrl,
     stubUrl: config.stub.baseUrl,
+    queueDrain,
     preconditionAdapter,
   });
   const startedAt = new Date();

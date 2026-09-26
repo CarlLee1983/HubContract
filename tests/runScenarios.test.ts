@@ -138,4 +138,35 @@ describe("Issue #12: runScenarios", () => {
 
     await fs.rm(outDir, { recursive: true, force: true });
   });
+
+  it("does not reset or run another scenario after queue drain fails", async () => {
+    const outDir = await makeTempDir();
+    let safe = true;
+    let resets = 0;
+    let runs = 0;
+    const runner = {
+      canResetEnvironment: () => safe,
+      record: async () => {
+        runs++;
+        safe = false;
+        throw new Error("Queue drain timed out after 10ms: HubWalletSync reserved=1");
+      },
+      verify: async (): Promise<VerifyResult> => ({ scenarioId: "x", passed: true, differences: [] }),
+    };
+
+    const outcomes = await runScenarios({
+      scenarios: [scenario("a"), scenario("b")],
+      mode: "record",
+      runner,
+      outDir,
+      skipReset: false,
+      resetEnvironment: async () => { resets++; },
+    });
+
+    expect(resets).toBe(1);
+    expect(runs).toBe(1);
+    expect(outcomes.map((outcome) => outcome.status)).toEqual(["errored", "errored"]);
+    expect(outcomes[1].error).toContain("workers may still write");
+    await fs.rm(outDir, { recursive: true, force: true });
+  });
 });

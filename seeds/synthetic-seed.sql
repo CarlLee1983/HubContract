@@ -69,9 +69,19 @@ INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_
 
 -- 6c. Play logs (Issue #8): PlayerService::getPlayBalance() picks the platform
 -- from the user's most recent play_log row, not from the request.
+-- Issue #9: queued wallet sync follows this game and station mapping.
+TRUNCATE TABLE `games`;
+INSERT INTO `games` (`id`, `code`, `signature`, `name`, `type`, `platform_name`, `game_company_name`, `active`, `maintain`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'SBO_SYNTHETIC', 'sbo_synthetic_game', 'Synthetic SBO Game', 'sport', 'sbo', 'sbo', 1, 0, NOW(), NOW(), NULL);
+TRUNCATE TABLE `game_companies`;
+INSERT INTO `game_companies` (`id`, `name`, `platform_id`, `platform_name`, `currency`, `created_at`, `updated_at`) VALUES
+(1, 'sbo', 3, 'sbo', 'TWD', NOW(), NOW());
+TRUNCATE TABLE `station_game_companies`;
+INSERT INTO `station_game_companies` (`id`, `station_id`, `game_company_id`, `game_company_name`, `currency`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL);
 TRUNCATE TABLE `play_logs`;
 INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 3, 1, 1, NULL, NOW(), NOW(), NULL);
+(1, 1, 3, 1, 1, 1, NOW(), NOW(), NULL);
 
 -- 7. Deposit Records
 TRUNCATE TABLE `deposit_records`;

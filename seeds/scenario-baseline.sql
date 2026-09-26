@@ -83,9 +83,18 @@ ON DUPLICATE KEY UPDATE `balance` = VALUES(`balance`), `freeze` = VALUES(`freeze
 
 -- 6b. Play logs（Issue #8：PlayerService::getPlayBalance() 挑使用者最新一筆
 -- play_log 的平台，不是從 request 挑）。
+INSERT INTO `games` (`id`, `code`, `signature`, `name`, `type`, `platform_name`, `game_company_name`, `active`, `maintain`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000001, 'SBO_SYNTHETIC', 'sbo_synthetic_game', 'Synthetic SBO Game', 'sport', 'sbo', 'sbo', 1, 0, NOW(), NOW(), NULL)
+ON DUPLICATE KEY UPDATE `platform_name` = VALUES(`platform_name`), `game_company_name` = VALUES(`game_company_name`), `updated_at` = NOW(), `deleted_at` = NULL;
+INSERT INTO `game_companies` (`id`, `name`, `platform_id`, `platform_name`, `currency`, `created_at`, `updated_at`) VALUES
+(900000001, 'sbo', 900000003, 'sbo', 'TWD', NOW(), NOW())
+ON DUPLICATE KEY UPDATE `platform_id` = VALUES(`platform_id`), `updated_at` = NOW();
+INSERT INTO `station_game_companies` (`id`, `station_id`, `game_company_id`, `game_company_name`, `currency`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000001, 900000001, 900000001, 'sbo', 'TWD', 1, NOW(), NOW(), NULL)
+ON DUPLICATE KEY UPDATE `active` = VALUES(`active`), `updated_at` = NOW(), `deleted_at` = NULL;
 INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(900000001, 900000001, 900000003, 900000001, 900000001, NULL, NOW(), NOW(), NULL)
-ON DUPLICATE KEY UPDATE `updated_at` = NOW(), `deleted_at` = NULL;
+(900000001, 900000001, 900000003, 900000001, 900000001, 900000001, NOW(), NOW(), NULL)
+ON DUPLICATE KEY UPDATE `game_id` = VALUES(`game_id`), `updated_at` = NOW(), `deleted_at` = NULL;
 
 -- 7. Deposit Records
 INSERT INTO `deposit_records` (`id`, `no`, `trade_no`, `user_id`, `wallet_id`, `currency`, `amount`, `status`, `stage`, `note`, `expired_at`, `error_code`, `error_message`, `completed_at`, `created_at`, `updated_at`, `deleted_at`) VALUES

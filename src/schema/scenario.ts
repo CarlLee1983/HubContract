@@ -47,6 +47,19 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+export const MongoCollectionNamePattern = /^httplog_[\w-]+$/;
+export const MongoCollectionGlobPattern = /^httplog_[\w*\-]+$/;
+
+export const MongoProbeSchema = z.object({
+  collections: z.array(z.string().regex(MongoCollectionNamePattern)).optional(),
+  pattern: z.string().regex(MongoCollectionGlobPattern).optional(),
+});
+
+export const QueueDrainSchema = z.object({
+  queues: z.array(z.string().min(1)).min(1),
+  timeoutMs: z.number().int().positive().default(150000),
+});
+
 /** Domain preconditions; each target adapter chooses its own storage details. */
 export const ScenarioPreconditionsSchema = z.object({
   smsLock: z.object({
@@ -144,6 +157,8 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  mongoProbe: MongoProbeSchema.optional(),
+  queueDrain: QueueDrainSchema.optional(),
   preconditions: ScenarioPreconditionsSchema.optional(),
   // Issue #8: captureRun() *always* resets the stub and loads this script (or
   // an empty one, if omitted) before executing the request — every scenario
@@ -205,6 +220,9 @@ export const FixtureSchema = z.object({
           before: z.record(z.string(), RedisKeyRecordSchema.nullable()),
           after: z.record(z.string(), RedisKeyRecordSchema.nullable()),
         })
+        .optional(),
+      mongo: z
+        .object({ newDocuments: z.record(z.string(), z.array(z.record(z.string(), z.any()))) })
         .optional(),
     })
     .optional(),

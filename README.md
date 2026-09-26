@@ -19,6 +19,7 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
   - `record`：對 Legacy 錄製預期結果。
   - `verify`：對任一受測目標比對預期結果。
 - **錄製環境**：docker compose，內含 Legacy PHP (8.3 CLI)、MariaDB 10.11.6、Redis 7.2、Mongo 6.0。每個情境執行前都重置為固定的種子資料。
+- **非同步效果**：Runner 預設等待 `HubWalletSync`、`HttpLogging` 的待處理、執行中及延遲工作歸零，再讀出站呼叫和 DB／Redis／Mongo 最終狀態；情境可用 `queueDrain` 改指定 queue 與逾時。外部目標須提供自己的 queue adapter。逾時回報 `errored` 與 queue 計數。錄製環境啟動這兩個 worker。
 
 ## 錄製環境操作指南
 
@@ -56,6 +57,9 @@ bun run record scenarios/wallet/check-transaction-deposit-hit.json
 
 # 驗證單一情境是否符合契約（可對 Legacy 或 StationHubNext 執行）
 bun run verify scenarios/wallet/check-transaction-deposit-hit.json
+
+# 入金後等待 wallet sync／HTTP logging，並比對新增的 httplog_deposit
+bun run verify scenarios/wallet/deposit-queued-sync.json
 
 # 驗證整個 scenarios/ 目錄（預設路徑），輸出人類可讀報告到 stdout
 bun run verify -t http://localhost:8080
@@ -110,6 +114,12 @@ bun run verify --report-json report.json
 | `redis` | `6379` | `63799` | Redis 7.2-alpine |
 | `mongo` | `27017` | `27018` | MongoDB 6.0 (`stationhub_recording`) |
 | `mock-provider` | `8081` | `18081` | 線路／SMS 供應商 stub（Issue #8），控制 API 見下方 |
+| `hub-wallet-sync-worker` | — | — | 消化 `HubWalletSync` queue |
+| `http-logging-worker` | — | — | 消化 `HttpLogging` queue，寫入 Mongo `httplog_*` |
+
+本機 Legacy 的 `queueDrain` 使用 Redis DB 1 與 `REDIS_PREFIX`（預設 `hub_recording:`）。驗證其他受測目標時，`-t` 必須搭配 `--queue-drain-adapter ./path/to/adapter.ts`；該模組匯出 `createQueueDrain({ targetUrl })`，回傳有 `waitForIdle(queues, timeoutMs)` 與 `close()` 的物件。程式呼叫 runner 時也可直接傳入 `queueDrain`。這讓等待訊號來自實際受測目標，不會因本機 Legacy queue 為空而提前比對。`mongoProbe.pattern: "httplog_*"` 會觀察所有符合的集合，只記錄情境期間新增的文件；fixture 不包含 Mongo `_id` 與 queue payload。
+
+Queue 等待失敗後，runner 會把同批後續情境標成 `errored`，停止重置錄製環境；先停止仍在執行的 worker，再重置後重新執行。
 
 主機連接埠、docker network 子網段與 compose project name 都可由本機 `.env` 覆寫，見下一節。
 

@@ -3,6 +3,8 @@ import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signa
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
+import { MongoProbeService } from "./probe/mongoProbe";
+import { RedisQueueDrain, type QueueDrain } from "./probe/queueDrain";
 import type { RedisKeyRecord, StubRequestRecord } from "./schema/scenario";
 import { StubClient } from "./stub/client";
 import {
@@ -10,6 +12,7 @@ import {
   compareDbState,
   compareOutboundCalls,
   compareRedisState,
+  compareMongoDocuments,
   type Difference,
 } from "./comparator/comparator";
 
@@ -28,6 +31,8 @@ export interface RunnerOptions {
     password?: string;
     prefix?: string;
   };
+  mongoConfig?: { host?: string; port?: number; database?: string };
+  queueDrain?: QueueDrain;
   /**
    * Base URL of the provider stub's control API (Issue #8). Required, not
    * optional — every scenario (not just ones with a `stub`) is checked for
@@ -148,6 +153,7 @@ export function buildHttpRequest(
 interface CapturedRun {
   dbBefore: Record<string, unknown>;
   redisBefore: RedisCapture;
+  mongoNewDocuments: Record<string, Record<string, unknown>[]>;
   response: {
     statusCode: number;
     statusText: string;
@@ -166,6 +172,7 @@ interface CapturedRun {
 // applies to a scenario with no `stub` at all, which can still end up with
 // captured outbound calls (an undeclared call the stub had no script for).
 const DEFAULT_OUTBOUND_HEADER_ALLOWLIST = ["content-type", "authorization"];
+const DEFAULT_QUEUE_DRAIN = { queues: ["HubWalletSync", "HttpLogging"], timeoutMs: 150000 };
 
 function filterOutboundHeaders(
   headers: Record<string, string>,
@@ -182,9 +189,12 @@ export class ContractRunner {
   private baseUrl: string;
   private dbProbe: MariaDbProbe;
   private redisProbe: RedisProbeService;
+  private mongoProbe: MongoProbeService;
+  private queueDrain: QueueDrain;
   private stubClient: StubClient;
   private preconditionAdapter?: PreconditionAdapter;
   private fixedTimestamp?: number;
+  private environmentSafe = true;
 
   constructor(options: RunnerOptions) {
     if (!options.stubUrl) {
@@ -199,6 +209,8 @@ export class ContractRunner {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.dbProbe = new MariaDbProbe(options.dbConfig);
     this.redisProbe = new RedisProbeService(options.redisConfig);
+    this.mongoProbe = new MongoProbeService(options.mongoConfig);
+    this.queueDrain = options.queueDrain ?? new RedisQueueDrain(options.redisConfig);
     this.stubClient = new StubClient(options.stubUrl);
     this.preconditionAdapter = options.preconditionAdapter;
     this.fixedTimestamp = options.fixedTimestamp;
@@ -207,7 +219,13 @@ export class ContractRunner {
   async close(): Promise<void> {
     await this.dbProbe.close();
     await this.redisProbe.close();
+    await this.mongoProbe.close();
+    await this.queueDrain.close();
     await this.preconditionAdapter?.close?.();
+  }
+
+  canResetEnvironment(): boolean {
+    return this.environmentSafe;
   }
 
   /**
@@ -292,6 +310,7 @@ export class ContractRunner {
     // Layer 4: Redis Probe before
     const redisBeforeRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisBefore = this.normalizeRedisCapture(redisBeforeRaw, scenario);
+    const mongoBefore = await this.mongoProbe.snapshot(scenario.mongoProbe);
 
     // Issue #8 / code review Standards #1: reset the stub and load this
     // scenario's script (or an empty one) fresh before every run (record and
@@ -303,7 +322,25 @@ export class ContractRunner {
     await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
 
     // Layer 1: Execute inbound request
-    const { response } = await this.executeRequest(scenario);
+    let response: Awaited<ReturnType<typeof this.executeRequest>>["response"];
+    try {
+      ({ response } = await this.executeRequest(scenario));
+    } catch (error) {
+      // The target may have queued work before the connection failed. Do not
+      // reset this environment for another scenario until workers are stopped.
+      this.environmentSafe = false;
+      throw error;
+    }
+
+    const drain = scenario.queueDrain ?? DEFAULT_QUEUE_DRAIN;
+    try {
+      await this.queueDrain.waitForIdle(drain.queues, drain.timeoutMs);
+    } catch (error) {
+      // A timed-out worker may still write after reset; no later scenario may
+      // use this recording environment until the workers are stopped.
+      this.environmentSafe = false;
+      throw error;
+    }
 
     // Layer 3: read back what the target under test actually sent to the stub
     const { requests, unmatchedCount } = await this.stubClient.getRequests();
@@ -322,15 +359,19 @@ export class ContractRunner {
     // Layer 4: Redis Probe after
     const redisAfterRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisAfter = this.normalizeRedisCapture(redisAfterRaw, scenario);
+    const mongoRaw = await this.mongoProbe.captureNew(scenario.mongoProbe, mongoBefore);
+    const mongoNewDocuments = applyNormalizers({ mongo: mongoRaw }, scenario.normalizers, {
+      fixedTimestamp: this.fixedTimestamp,
+    }).mongo as Record<string, Record<string, unknown>[]>;
 
-    return { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };
+    return { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };
   }
 
   /**
    * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
    */
   async record(scenario: ScenarioDefinition): Promise<Fixture> {
-    const { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+    const { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
       await this.captureRun(scenario);
 
     // Issue #8/Story 17: a golden fixture must never encode "Legacy hit an
@@ -344,6 +385,7 @@ export class ContractRunner {
     }
 
     const hasRedis = scenario.redisProbe && scenario.redisProbe.keys.length > 0;
+    const hasMongo = !!scenario.mongoProbe;
 
     const fixture: Fixture = {
       scenarioId: scenario.id,
@@ -363,12 +405,13 @@ export class ContractRunner {
       // with no `stub` (and no surprise undefined calls, or record() above
       // would already have thrown) has nothing structural to compare here.
       layer3_outboundCalls: outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
-      layer4_sharedResources: hasRedis
+      layer4_sharedResources: hasRedis || hasMongo
         ? {
-            redis: {
+            redis: hasRedis ? {
               before: redisBefore,
               after: redisAfter,
-            },
+            } : undefined,
+            mongo: hasMongo ? { newDocuments: mongoNewDocuments } : undefined,
           }
         : undefined,
     };
@@ -384,7 +427,7 @@ export class ContractRunner {
   async verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult> {
     const differences: Difference[] = [];
 
-    const { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+    const { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
       await this.captureRun(scenario);
 
     // Issue #8/Story 17: an outbound call the stub script doesn't define a
@@ -430,6 +473,9 @@ export class ContractRunner {
       differences.push(
         ...compareRedisState(redisAfter, golden.layer4_sharedResources.redis.after, "after")
       );
+    }
+    if (golden.layer4_sharedResources?.mongo) {
+      differences.push(...compareMongoDocuments(mongoNewDocuments, golden.layer4_sharedResources.mongo.newDocuments));
     }
 
     return {
