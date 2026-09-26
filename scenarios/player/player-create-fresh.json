@@ -12,7 +12,9 @@
     "fresh",
     "CAP-02",
     "BR-02",
-    "BR-03"
+    "BR-03",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {
