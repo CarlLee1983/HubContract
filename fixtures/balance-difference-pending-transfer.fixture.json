@@ -1,0 +1,149 @@
+{
+  "scenarioId": "balance-difference-pending-transfer",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "balance_difference": -100,
+        "is_consistent": true,
+        "platform_balance": 0,
+        "local_balance": 100,
+        "balance_status": "pending_transfer"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "currency": "TWD",
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "currency": "TWD",
+          "balance": "100.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "play_log": [
+        {
+          "platform_id": 3,
+          "user_id": 1,
+          "player_id": 1,
+          "game_id": 1
+        }
+      ]
+    },
+    "after": {
+      "wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "currency": "TWD",
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "currency": "TWD",
+          "balance": "100.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "play_log": [
+        {
+          "platform_id": 3,
+          "user_id": 1,
+          "player_id": 1,
+          "game_id": 1
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/get-player-balance.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "Username": "synthetic_user_01DEMO_STATIONp3",
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01"
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {
+        "httplog_find_account": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-findAccount:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<MASKED>",
+              "header": {
+                "Content-Length": [
+                  "116"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "CompanyKey": "synthetic_company_key",
+                "ServerId": "synthetic-server-01",
+                "Username": "synthetic_user_01DEMO_STATIONp3"
+              },
+              "response": {
+                "balance": 0,
+                "error": {
+                  "id": 0,
+                  "msg": ""
+                },
+                "outstanding": 0
+              },
+              "uri": "http://mock-provider:8081/web-root/restricted/player/get-player-balance.aspx"
+            },
+            "datetime": "<MASKED>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}

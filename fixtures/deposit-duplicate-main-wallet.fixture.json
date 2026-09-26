@@ -1,0 +1,174 @@
+{
+  "scenarioId": "deposit-duplicate-main-wallet",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "<MASKED>",
+        "trade_no": "TRADE_DEPOSIT_DUPLICATE_MAIN_WALLET",
+        "balance": 1025,
+        "amount": 25,
+        "currency": "TWD",
+        "datetime": "<MASKED>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 6,
+          "balance": "2000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [],
+      "transactions": [],
+      "activity_log": [],
+      "remittance": []
+    },
+    "after": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1025.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 6,
+          "balance": "2000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [
+        {
+          "trade_no": "TRADE_DEPOSIT_DUPLICATE_MAIN_WALLET",
+          "wallet_id": 1,
+          "amount": "25.0000",
+          "status": "completed",
+          "stage": "finished",
+          "error_code": null,
+          "error_message": null
+        }
+      ],
+      "transactions": [
+        {
+          "model_type": "App\\Models\\DepositRecord",
+          "model_id": 6,
+          "wallet_id": 1,
+          "linked_trade_no": "TRADE_DEPOSIT_DUPLICATE_MAIN_WALLET",
+          "model_no_matches_order": 1,
+          "wallet_id_matches_order": 1,
+          "platform_name": "main",
+          "type": "deposit",
+          "trade_type": "wallet_in",
+          "currency": "TWD",
+          "balance_original": "1000.0000",
+          "balance_variable": "25.0000",
+          "balance_complete": "1025.0000"
+        }
+      ],
+      "activity_log": [
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\DepositRecord",
+          "subject_id": 6,
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": "pending",
+          "old_stage": null,
+          "new_stage": "pending"
+        },
+        {
+          "log_name": "wallet",
+          "description": "status has be change.,stage has be change.,completed_at has be change.",
+          "subject_type": "App\\Models\\DepositRecord",
+          "subject_id": 6,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": "pending",
+          "new_status": "completed",
+          "old_stage": "pending",
+          "new_stage": "finished"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\Wallet",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": "1000",
+          "new_balance": "1025",
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\Transaction",
+          "subject_id": 1,
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": "wallet_in",
+          "balance_variable": "25",
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        }
+      ],
+      "remittance": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

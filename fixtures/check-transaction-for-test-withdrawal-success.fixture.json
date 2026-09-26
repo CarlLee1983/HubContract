@@ -1,0 +1,150 @@
+{
+  "scenarioId": "check-transaction-for-test-withdrawal-success",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "WI_SYNTHETIC_001",
+        "trade_no": "TRADE_WITHDRAW_001",
+        "type": "withdrawal",
+        "status": "completed",
+        "amount": 50
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "withdrawal_record": [
+        {
+          "no": "WI_SYNTHETIC_001",
+          "trade_no": "TRADE_WITHDRAW_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "50.0000",
+          "status": "completed"
+        }
+      ],
+      "remittance": [
+        {
+          "no": "REMIT_CHECK_001",
+          "txn_no": null,
+          "type": "game2main",
+          "amount": "50.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "transactions": [],
+      "activity_log": []
+    },
+    "after": {
+      "withdrawal_record": [
+        {
+          "no": "WI_SYNTHETIC_001",
+          "trade_no": "TRADE_WITHDRAW_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "50.0000",
+          "status": "completed"
+        }
+      ],
+      "remittance": [
+        {
+          "no": "REMIT_CHECK_001",
+          "txn_no": "REMIT_CHECK_001",
+          "type": "game2main",
+          "amount": "50.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "transactions": [],
+      "activity_log": [
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "event": "updated",
+          "subject_id": 900001,
+          "properties": "{\"attributes\":{\"txn_no\":\"REMIT_CHECK_001\"},\"old\":{\"txn_no\":null}}"
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/check-transaction-status.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01",
+          "txnId": "REMIT_CHECK_001"
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {
+        "httplog_check_transaction": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-checkTransaction:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<MASKED>",
+              "header": {
+                "Content-Length": [
+                  "97"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "CompanyKey": "synthetic_company_key",
+                "ServerId": "synthetic-server-01",
+                "txnId": "REMIT_CHECK_001"
+              },
+              "response": {
+                "amount": 50,
+                "error": {
+                  "id": 0,
+                  "msg": ""
+                },
+                "transactionType": "withdraw"
+              },
+              "uri": "http://mock-provider:8081/web-root/restricted/player/check-transaction-status.aspx"
+            },
+            "datetime": "<MASKED>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -41,6 +41,7 @@ export const RedisProbeKeyRuleSchema = z.object({
     ),
   db: z.number().default(1).describe("Redis db index (default 1 per ADR-0013)"),
   ttlToleranceSeconds: z.number().default(30).describe("Acceptable difference in TTL seconds"),
+  ttlExpectedSeconds: z.number().int().positive().optional().describe("Stable fixture TTL anchor; verify still compares the observed TTL using ttlToleranceSeconds"),
 });
 
 export const RedisProbeSchema = z.object({
@@ -64,6 +65,11 @@ export const QueueDrainSchema = z.object({
 export const ScenarioPreconditionsSchema = z.object({
   smsLock: z.object({
     nationalNumber: z.string().regex(/^[0-9]+$/),
+  }).optional(),
+  walletLock: z.object({
+    account: z.string().min(1),
+    stationCode: z.string().min(1),
+    currency: z.string().min(1),
   }).optional(),
 });
 
