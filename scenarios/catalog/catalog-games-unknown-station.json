@@ -1,0 +1,43 @@
+{
+  "id": "catalog-games-unknown-station",
+  "name": "Catalog games: unknown station",
+  "description": "Unknown station_code fails provider initialization.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/games"
+  },
+  "tags": [
+    "catalog",
+    "games",
+    "unknown-station"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "NON_EXISTENT_STATION",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}
