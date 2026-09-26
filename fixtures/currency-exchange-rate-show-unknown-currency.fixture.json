@@ -1,0 +1,17 @@
+{
+  "scenarioId": "currency-exchange-rate-show-unknown-currency",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Currency not found"
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

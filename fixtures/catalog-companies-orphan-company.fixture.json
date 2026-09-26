@@ -1,0 +1,38 @@
+{
+  "scenarioId": "catalog-companies-orphan-company",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": []
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station_companies": [
+        {
+          "id": 2,
+          "game_company_id": 999999,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    },
+    "after": {
+      "station_companies": [
+        {
+          "id": 2,
+          "game_company_id": 999999,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "scenarioId": "catalog-companies-success",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "original_name": "sbo",
+          "name": "sbo",
+          "currency": "TWD",
+          "maintain": false,
+          "game_type": []
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    },
+    "after": {
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    }
+  }
+}

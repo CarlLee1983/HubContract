@@ -1,0 +1,25 @@
+{
+  "scenarioId": "catalog-companies-validation",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "The station code field is required. (and 1 more error)",
+      "errors": {
+        "station_code": [
+          "The station code field is required."
+        ],
+        "sign": [
+          "缺少必要的 station_code 參數"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

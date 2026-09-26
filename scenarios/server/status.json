@@ -6,7 +6,13 @@
     "method": "GET",
     "path": "/v1/server/status"
   },
-  "tags": ["server", "status", "success", "D-36"],
+  "tags": [
+    "server",
+    "status",
+    "success",
+    "D-36",
+    "CAP-17"
+  ],
   "request": {
     "headers": {
       "Host": "localhost:8080",

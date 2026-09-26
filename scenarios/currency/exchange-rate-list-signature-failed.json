@@ -9,7 +9,11 @@
   "tags": [
     "currency",
     "exchange-rate-list",
-    "signature-failed"
+    "signature-failed",
+    "CAP-14",
+    "CAP-01",
+    "BR-01",
+    "BR-92"
   ],
   "request": {
     "headers": {

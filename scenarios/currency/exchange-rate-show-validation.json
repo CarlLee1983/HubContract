@@ -9,7 +9,11 @@
   "tags": [
     "currency",
     "exchange-rate-show",
-    "validation"
+    "validation",
+    "CAP-14",
+    "CAP-01",
+    "BR-01",
+    "BR-92"
   ],
   "request": {
     "headers": {

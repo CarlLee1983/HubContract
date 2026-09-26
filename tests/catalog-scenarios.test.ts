@@ -46,7 +46,8 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV || process.env.HUB_SEED === "snapsho
             expect(response.body.data.games.some((game: { code: string }) => game.code === "SBO_SYNTHETIC")).toBe(true);
           }
           if (route === "games" && variant === "orphan-company") {
-            expect(response.body.message).not.toBe("OK");
+            expect(response.statusCode).toBe(200);
+            expect(response.body.message).toBe('Attempt to read property "name" on null');
           }
           if (route === "games" && variant === "maintenance") {
             expect(response.body.data.games.some((game: { maintain: boolean; status: boolean }) => game.maintain && !game.status)).toBe(true);

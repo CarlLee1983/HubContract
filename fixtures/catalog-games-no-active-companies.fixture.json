@@ -1,0 +1,49 @@
+{
+  "scenarioId": "catalog-games-no-active-companies",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "No active game companies found for the station"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": []
+    },
+    "after": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": []
+    }
+  }
+}

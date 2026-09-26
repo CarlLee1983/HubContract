@@ -1,0 +1,21 @@
+{
+  "scenarioId": "currency-exchange-rate-show",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "name": "TWD",
+        "rate": "32.500000"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

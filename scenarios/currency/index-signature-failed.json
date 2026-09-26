@@ -9,7 +9,10 @@
   "tags": [
     "currency",
     "index",
-    "signature-failed"
+    "signature-failed",
+    "CAP-14",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

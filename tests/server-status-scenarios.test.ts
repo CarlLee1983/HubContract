@@ -7,7 +7,7 @@ import { ContractRunner } from "../src/runner";
 import { FixtureSchema, ScenarioDefinitionSchema } from "../src/schema/scenario";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-const names = ["status", "status-ignored-auth"];
+const names = ["status", "status-unvalidated-params", "status-unknown-station"];
 
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #14: server status contract", () => {
   const runner = new ContractRunner({ baseUrl: config.baseUrl, stubUrl: config.stub.baseUrl });
@@ -21,8 +21,13 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #14: server status contract"
       const result = await runner.verify(scenario, fixture);
       expect(result.differences).toEqual([]);
       expect(result.passed).toBe(true);
-      expect(fixture.layer1_inboundResponse?.statusCode).toBe(200);
-      expect(fixture.layer1_inboundResponse?.body).toEqual({ message: "OK" });
+      if (name === "status-unknown-station") {
+        expect(fixture.layer1_inboundResponse?.statusCode).toBe(500);
+        expect(fixture.layer1_inboundResponse?.body.message).toBe("Station not found");
+      } else {
+        expect(fixture.layer1_inboundResponse?.statusCode).toBe(200);
+        expect(fixture.layer1_inboundResponse?.body).toEqual({ message: "OK" });
+      }
     }, 30_000);
   }
 });

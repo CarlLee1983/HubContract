@@ -1,0 +1,102 @@
+{
+  "scenarioId": "catalog-games-maintenance",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "games": [
+          {
+            "id": 1,
+            "name": "Synthetic SBO Game",
+            "names": {},
+            "code": "SBO_SYNTHETIC",
+            "game_company_name": "sbo",
+            "original_platform_name": null,
+            "currencies": [],
+            "type": "sports",
+            "logo": "",
+            "maintain": false,
+            "status": false,
+            "orientation": null,
+            "is_recommended": "none"
+          },
+          {
+            "id": 2,
+            "name": "Synthetic Maintained JDB Game",
+            "names": {},
+            "code": "JDB_SYNTHETIC",
+            "game_company_name": "jdb",
+            "original_platform_name": "jdb",
+            "currencies": [
+              "TWD"
+            ],
+            "type": "slots",
+            "logo": "",
+            "maintain": true,
+            "status": false,
+            "orientation": null,
+            "is_recommended": "none"
+          }
+        ],
+        "cursor": null
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 4,
+          "game_company_id": 2,
+          "game_company_name": "jdb",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    },
+    "after": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 4,
+          "game_company_id": 2,
+          "game_company_name": "jdb",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    }
+  }
+}

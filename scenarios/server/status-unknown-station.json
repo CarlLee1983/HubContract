@@ -1,0 +1,39 @@
+{
+  "id": "server-status-unknown-station",
+  "name": "Server status: supplied unknown Station fails during global initialization",
+  "description": "Route #20 / D-36: a supplied unknown station_code triggers RouteServiceProvider's global ApiStation initialization before this unauthenticated action.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/server/status"
+  },
+  "tags": [
+    "server",
+    "status",
+    "unauthenticated",
+    "D-36",
+    "CAP-17"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "NON_EXISTENT_STATION",
+      "timestamp": 0,
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

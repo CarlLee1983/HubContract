@@ -9,7 +9,11 @@
   "tags": [
     "catalog",
     "games",
-    "unknown-station"
+    "unknown-station",
+    "CAP-09",
+    "CAP-01",
+    "BR-01",
+    "BR-70"
   ],
   "request": {
     "headers": {

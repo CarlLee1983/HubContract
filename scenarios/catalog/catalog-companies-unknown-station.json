@@ -9,7 +9,10 @@
   "tags": [
     "catalog",
     "companies",
-    "unknown-station"
+    "unknown-station",
+    "CAP-09",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

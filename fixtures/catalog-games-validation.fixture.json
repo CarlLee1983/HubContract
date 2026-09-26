@@ -1,0 +1,25 @@
+{
+  "scenarioId": "catalog-games-validation",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "站台代碼必填 (and 1 more error)",
+      "errors": {
+        "station_code": [
+          "站台代碼必填"
+        ],
+        "sign": [
+          "缺少必要的 station_code 參數"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

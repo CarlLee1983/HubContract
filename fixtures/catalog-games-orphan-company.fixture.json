@@ -1,0 +1,65 @@
+{
+  "scenarioId": "catalog-games-orphan-company",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Attempt to read property \"name\" on null"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 2,
+          "game_company_id": 999999,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    },
+    "after": {
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 2,
+          "game_company_id": 999999,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    }
+  }
+}

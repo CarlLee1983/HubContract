@@ -10,6 +10,7 @@ import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
 const names = [
   "index",
+  "index-inactive-station-currency",
   "index-validation",
   "index-signature-failed",
   "index-unknown-station",
@@ -48,6 +49,11 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV || process.env.HUB_SEED === "snapsho
       if (name === "index") {
         expect(response.statusCode).toBe(200);
         expect(response.body.data.map((row: { currency: string }) => row.currency)).toEqual(["TWD", "USD", "PHP"]);
+      }
+      if (name === "index-inactive-station-currency") {
+        expect(response.statusCode).toBe(200);
+        expect(response.body.data.map((row: { currency: string }) => row.currency)).toEqual(["TWD"]);
+        expect(fixture.layer2_dbState?.before.station_currencies).toEqual([{ currency: "TWD", status: 0 }]);
       }
       if (name === "exchange-rate-list") {
         expect(response.statusCode).toBe(200);

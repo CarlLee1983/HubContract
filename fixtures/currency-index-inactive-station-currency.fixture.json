@@ -1,0 +1,42 @@
+{
+  "scenarioId": "currency-index-inactive-station-currency",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "currency": "TWD",
+          "region": "taiwan",
+          "region_name": "Taiwan",
+          "region_code": "TW",
+          "country_code": 886,
+          "locale_code": "zh_tw",
+          "symbol": "NT$"
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station_currencies": [
+        {
+          "currency": "TWD",
+          "status": 0
+        }
+      ]
+    },
+    "after": {
+      "station_currencies": [
+        {
+          "currency": "TWD",
+          "status": 0
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "scenarioId": "catalog-companies-maintenance",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "original_name": "jdb",
+          "name": "jdb",
+          "currency": "TWD",
+          "maintain": true,
+          "game_type": []
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station_companies": [
+        {
+          "id": 4,
+          "game_company_id": 2,
+          "game_company_name": "jdb",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    },
+    "after": {
+      "station_companies": [
+        {
+          "id": 4,
+          "game_company_id": 2,
+          "game_company_name": "jdb",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
+    }
+  }
+}

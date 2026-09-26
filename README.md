@@ -76,6 +76,8 @@ bun run verify --route /v1/wallet/check-transaction --tag deposit --tag withdraw
 bun run verify --report-json report.json
 ```
 
+目錄、幣別與健康檢查的 Legacy 契約情境分別在 `scenarios/catalog/`、`scenarios/currency/`、`scenarios/server/`，可用 `--tag CAP-09`、`--tag CAP-14`、`--tag CAP-17` 只跑單一 Capability。這批情境使用 `HUB_SEED=synthetic` 的固定邊界資料：目錄包含維護中的 Platform、孤兒 StationGameCompany、`game_type` 空陣列與非空物件；幣別包含已停用的全域匯率列。`GET /v1/server/status` 本身不驗證簽章或必填欄位，但若請求提供未知 `station_code`，全域初始化仍會先回錯誤。
+
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 
 每個情境執行前都會重置一次錄製環境（`--skip-reset` 可關閉），符合「情境彼此獨立、結果可重現」的規格；重置或情境本身丟出的任何錯誤，都只會讓那一個情境變成 `errored`，不會中斷其餘情境。情境檔本身若無法通過 schema 驗證，也不會讓整個 process 中止——會以該檔案的路徑當作 `id`，變成一筆 `errored` 報告紀錄。篩選後若沒有任何情境符合條件，CLI 會印出錯誤訊息，仍然照常輸出（空的）報告，並以非 0 結束；只要有任何情境 `failed` 或 `errored`，或整批一個情境都沒跑到，process 就以非 0 結束。

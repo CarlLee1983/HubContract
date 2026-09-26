@@ -9,7 +9,10 @@
   "tags": [
     "currency",
     "index",
-    "success"
+    "success",
+    "CAP-14",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

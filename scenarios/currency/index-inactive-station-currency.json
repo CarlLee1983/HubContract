@@ -1,0 +1,55 @@
+{
+  "id": "currency-index-inactive-station-currency",
+  "name": "Currency index includes an inactive Station currency",
+  "description": "StationCurrencyController@index returns the Station currency relation without filtering status=0.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies"
+  },
+  "tags": [
+    "currency",
+    "index",
+    "inactive",
+    "CAP-14",
+    "CAP-01",
+    "BR-01"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "CURRENCY_INACTIVE"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_CURRENCY_INACTIVE_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station_currencies",
+        "sql": "SELECT currency, status FROM station_currencies WHERE station_id = 6 ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}
