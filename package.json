@@ -9,6 +9,7 @@
     "env:reset": "./scripts/env-reset.sh",
     "record": "bun run src/cli.ts -m record",
     "verify": "bun run src/cli.ts -m verify",
+    "seed:mask": "bun run scripts/mask-snapshot.ts",
     "test": "bun test"
   },
   "devDependencies": {

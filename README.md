@@ -183,6 +183,68 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 
 `src/config.ts` 裡的 DB/Redis 連線預設值，以及 `docker/.env.recording` 的 `APP_KEY`，都是合成、非機密的本機錄製環境帳密（與 `docker-compose.yml` 定義一致），僅用於本機一次性、可拋棄的錄製環境，不對應任何真實環境的憑證。
 
+### 從測試站快照產生基準種子（Issue #13）
+
+手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子。
+
+#### 為什麼是「起一個真的資料庫」而不是自己寫 SQL parser，為什麼是白名單而不是黑名單
+
+這是這個功能第三次被 code review 打回票，前三輪都在同一種地方找到漏網：自己寫的 mysqldump 語法解析器有某種寫法沒認出來（不加引號的表名、`db`.`table`、`ON DUPLICATE KEY UPDATE`、`#` 註解……），或是「哪些表/欄位要遮」的清單漏了某一個（`note`、`settings.val`、fixture 裡寫死的 id）。SQL 語法的變化型態跟一份 100+ 張表的 schema 有多少個敏感欄位一樣，都是「幾乎數不完，只能不斷追著已知漏洞跑」的黑名單問題。
+
+現在的做法反過來解決兩件事：
+1. **解析交給真正的 MariaDB**：腳本起一個拋棄式 MariaDB 容器（`src/seed/dockerMariaDb.ts`，image/tag 跟 `docker-compose.yml` 的 `mariadb` service 釘死同一版本），把快照的原始 bytes 直接灌進容器內的 `mariadb` CLI，不在 Node/Bun 這邊解析或改寫任何一行 SQL。合法的 SQL，不管是什麼語法變體，MariaDB 都認得；我們只在資料庫「裡面」用 `SELECT`/`UPDATE`/`TRUNCATE` 做遮罩，最後用固定參數的 `mysqldump` 匯出。容器名稱、連接埠都跟錄製環境分開，兩者互不影響；跑完（不管成功或失敗）一定 `docker stop` 清掉，不留孤兒容器——包含腳本執行中按 Ctrl+C（`SIGINT`）或被 `SIGTERM`（例如 CI 逾時砍行程）的情況，也會先清掉容器再結束；`docker stop` 本身失敗時會直接拋錯，不會默默吞掉讓你以為清乾淨了。
+2. **白名單，不是黑名單**：`src/seed/maskConfig.ts` 的 `TABLE_CONFIG` 對照 `seeds/mysql-schema.sql`（112 張表、1075 個欄位）逐一分類成 `keep`/`mask:<category>`/`null`/`fixed`/`mask_json`/`derive_player_account`，或整表 `truncate`。遮罩前會先查「載入後的資料庫」的 `information_schema`（不是凍結的 schema 檔——這樣測試站快照如果比 `seeds/mysql-schema.sql` 多出表或欄位，也會被抓到），任何一個表或欄位在 `TABLE_CONFIG` 裡找不到分類，就列出全部後直接 throw、不遮罩任何東西。漏分類一個欄位，遮罩腳本會拒絕執行；黑名單漏一個欄位，遮罩腳本會「成功」但外洩。JSON 欄位內部的鍵名判斷也是同一個原則的白名單版本（見下方）——鍵名黑名單/敏感字集合一樣列不完，第四輪 review 已經在這裡踩到跟 SQL parser 一樣的坑（`appkey`/`md5key`/`mch_id`/`pin` 這些真正的憑證/個資鍵名沒被黑名單抓到而外洩）。
+
+除了「哪些欄位安全」，資料庫裡「有沒有會在遮罩過程中被觸發、或讓輸出跟實際內容對不上」的東西也要檢查：載入後如果發現有 trigger／stored procedure／function／event／view，或是快照帶了 `CREATE DATABASE`/`USE` 切到別的 schema，一律直接 throw（第四輪 code review 用探針證實過：trigger 可以在遮罩用的 `UPDATE` 執行時被觸發，把 `OLD.account` 這類原始值寫進另一張表；`USE` 切換後資料實際上沒寫進目標資料庫，遮罩腳本卻會「成功」跑完產出一份空種子）。這些狀況沒辦法自動判斷安全與否，需要人工處理，不會嘗試繞過或警告了事。
+
+1. **取得快照**：由人（不是 agent）用 `mysqldump` 對測試站資料庫產生快照，存成 `.sql` 或 `.sql.gz`。**這份原始檔含真實的站台 `secret_key`、帳號、手機號碼、姓名、email 等個資，絕對不能放進這個公開 repo**——建議存在 repo 目錄外（例如自己的 `~/Downloads` 或任何 scratch 目錄），只把路徑傳給下一步的腳本。
+2. **設定 `MASK_HMAC_KEY`**：遮罩用 HMAC-SHA256 把原值決定性地轉成合成值，key 從環境變數 `MASK_HMAC_KEY` 讀，沒設就直接 throw（不提供預設值）。這把 key 本身不是遮罩後資料的機密（遮罩後的種子已經公開），但如果外流，別人可以拿一個「已知的原始值」自己算出遮罩後長怎樣，等於能反查特定帳號/手機是否在快照裡出現過——所以不要寫死在程式碼或提交進 repo，本機留著（例如 shell profile 或不會進版控的 `.env`）就好。**同一份快照要重跑出「同樣」的種子，前提是每次都用同一把 key**，換 key 等於重新生成一套完全不同的合成值。
+   ```bash
+   export MASK_HMAC_KEY="<自己挑一個固定字串，不要提交進 repo>"
+   ```
+3. **跑遮罩腳本**（需要本機有 `docker`）：
+   ```bash
+   bun run seed:mask <你的快照路徑.sql|.sql.gz> seeds/snapshot-seed.sql
+   ```
+   腳本依 `src/seed/maskConfig.ts` 的 `TABLE_CONFIG` 做幾件事：
+   - **換成合成值**：站台 `secret_key`、各表的帳號欄位（含 `players.account`——這欄位常見格式是 `使用者帳號 + 站台代碼 + p + 平台 id` 組出來的，遮罩時只換使用者帳號那一段、站台代碼與平台 id 保留明文，才不會破壞這個推導關係，見 `LobbyAbstract::getFormattedPlayerAccount()`；不符合這個格式的（主平台直接存 `users.account`、Mg/Pinnacle 之類直接存供應商值、Sa 是小寫化再接雜湊後綴）退回當一般帳號字串整串遮罩，不會 throw）、需實名登記的姓名欄位、`administers.email`、加密貨幣錢包地址。合成值由原值做 keyed hash 決定性推得（見 `src/seed/maskValue.ts`）——同一份快照重跑會得到逐位元組相同的輸出，同一個原值不管出現在哪張表都會映射到同一個合成值，藉此保留資料間的關聯。**目前沒有手機號碼欄位被遮罩**——原本設想遮 `sms_logs.phone`，但 `sms_logs` 整表都清空了（見下方），`phone` 這個遮罩類別已經沒有任何欄位在用，直接從程式碼移除，不留死碼。
+   - **換成固定值 / 清成 NULL**：`administers.password` 統一換成 `seeds/synthetic-seed.sql` 用的那組合成 bcrypt 雜湊；`administers.remember_token`／`last_login_token`／`last_login_ip`、`players.vendor_player_id`、`betting_logs.raw_data` 清 `NULL`；`payments.api_url` 換成 stub 位址。
+   - **JSON 欄位**（`platforms.api_settings`、`payments.api_tokens`、`sms.settings`、`settings.val` 這四個——情境/stub 實際會依內容組出對外請求，或是內容結構完全不固定，遮罩後仍要是合法 JSON）：**白名單**，不是鍵名黑名單。每個欄位在 `TABLE_CONFIG` 裡自己宣告一份「可以原樣保留的鍵名」清單（`keep`，依 `.legacy-src` 實際讀取的非敏感鍵，例如 `platforms.api_settings` 的 `lang`/`dc`），或是「要換成 stub 的 URL 鍵」（`url`，例如 `api_url`）；**沒列在白名單裡的鍵，不管值是字串還是數字，一律遮罩**（字串換成合成字串、數字換成合成數字，型別不變），只有布林值和 `null` 原樣保留。`payments.api_tokens`、`settings.val` 這兩個欄位整欄都是憑證或無固定 schema 的任意內容，白名單是空的（等於全遮）。陣列元素繼承父鍵名脈絡（`{"token":["A","B"]}` 兩個元素都當 token 處理）；字串值本身又能解析成 JSON 物件/陣列就遞迴處理（雙重編碼，不因為外層鍵在白名單裡就整段信任，遞迴進去後看到的鍵名脈絡歸零）。白名單只認 JSON 結構的**頂層**鍵名，巢狀同名鍵不會被誤判成頂層的白名單鍵。**字串值只要長得像 `http(s)://` URL，不管鍵名有沒有在白名單裡（連標成 `keep` 的鍵都一樣），一律換成 stub**——每個平台/供應商叫端點的鍵名不一樣（`api_url`、`backoffice_api_url`……），要求每一個都手動列進白名單容易漏，用值的形狀判斷更不容易漏掉。
+   - **純回應／紀錄用的 blob 欄位清成 NULL**（不是「設定」、是 Legacy 存下來的第三方回應原文或使用者自由輸入內容，遮罩內部結構沒意義）：任何欄名符合 `note`/`memo`/`remark`/`summary`/`content`/`body`/`description`/`reason`/`message`/`comment`/`raw`/`response`/`request`/`payload`/`log`/`receipt`/`snapshot`/`reply`/`answer` 這類自由文字樣式的欄位（例如 `withdrawal_records.note`、`deposit_records.note`、`remittance_records.note`、`risk_events.note`、`user_events.note_user`/`note_inner`、`commission_withdraws.{receipt_data,trade_response_data,trade_error_reason,txn_data}`、`payment_history_records.response_data`、`payment_deposit_options.txn_data`、`payment_withdrawal_options.txn_data`、`service_issues.{summaries,answer}`），一律清成 `NULL`（這幾欄在 schema 裡都是 `DEFAULT NULL`，不需要用 `'{}'`/`''` 代替）。使用者自己填的顯示名稱/簡介（`guilds.name`/`intro`、`user_crypto_wallets.name`）也不算業務代碼，`name` 是 `NOT NULL` 換成合成名稱、`intro`/使用者自訂的錢包暱稱直接清 `NULL`。
+   - **整表清空**（`sessions`、`personal_access_tokens`、`password_reset_tokens`、`failed_jobs`、`activity_log`、`sms_logs`、`chat_room_messages`、`login_logs`、`user_login_logs`、`pulse_aggregates`、`pulse_entries`、`pulse_values`、`job_batches`、`schedule_logs`、`report_logs`、`migrations`）：情境不會用到，內容又可能夾帶使用者敏感資料、內部堆疊資訊，或是格式完全不受控的遙測資料（Laravel Pulse），乾脆不把這些表的資料列寫進遮罩後的種子。`migrations` 是第四輪 code review 才發現的必要項目：凍結的 `seeds/mysql-schema.sql` 本身已經內建一份完整的 128 列 migrations 資料（`env-reset.sh` 第一步就會載入），遮罩後的種子如果還帶自己的一份，載入時會撞主鍵 duplicate entry。
+   - **白名單完整性檢查**：資料庫裡（依 `information_schema`，不是凍結的 schema 檔）的每一張表、每一個欄位都必須在 `TABLE_CONFIG` 裡有分類，找不到就列出全部後直接 throw；`_binary`/`0x...` 之類無法安全解析成字串字面值的值也會擋下來，不會猜測著繼續跑。`players.account` 是唯一的例外：格式對不上「使用者帳號 + 站台代碼 + p + 平台 id」的推導公式時**不會 throw**，退回當一般帳號字串整串遮罩（主平台直接存 `users.account`、部分廠商直接存供應商值，本來就有好幾種合法格式）。
+   - **每一句 INSERT 輸出時都帶明確欄位列表**：`mysqldump --complete-insert` 保證的，不用自己重組 SQL。這樣測試站實際的欄位物理順序跟凍結 schema 不一樣時，MySQL 靠欄位名稱對齊值，不會把值插進錯的欄位。
+   - **輸出不含 `CREATE TABLE`/trigger**：`mysqldump --no-create-info --skip-triggers`，schema 一律以凍結的 `seeds/mysql-schema.sql` 為準（`env-reset.sh` 一定先載入它）。
+   - `TABLE_CONFIG` 裡沒有列出來的表/欄位——不存在這種狀態：白名單完整性檢查會在遮罩前就 throw，逼你先幫新表/新欄位分類，不會有「沒處理過的欄位就當作安全放行」的空隙。
+   - **每一筆遮罩 UPDATE 都斷言剛好改到一列**：全程用同一條專屬連線（不走 pool），連線開 `supportBigNumbers`/`bigNumberStrings`，主鍵是超出 JS number 安全整數範圍的 `BIGINT` 時也不會因為精度捨入而配不到列、悄悄變成 no-op（已用探針證實）；連線也強制設成嚴格 `sql_mode`，快照如果帶了 `SET GLOBAL sql_mode=''` 也不會讓遮罩值被靜默截斷。`ON UPDATE CURRENT_TIMESTAMP` 的欄位遮罩時會一併設回自己原本的值，不會被 UPDATE 悄悄改成現在時間。
+4. **輸出位置**：遮罩後的種子固定寫到 `seeds/snapshot-seed.sql`（已遮罩，可以提交）。
+5. **切換 `env-reset.sh` 使用的種子**：用 `HUB_SEED` 環境變數明確指定，不是自動偵測（兩個 checkout 用同一個 commit，卻因為「誰本機有沒有跑過 seed:mask」重置出不同資料，會讓錄製結果不可靠）：
+   ```bash
+   # 預設，跟原本行為一樣：
+   npm run env:reset
+   # 或明確指定：
+   HUB_SEED=synthetic npm run env:reset
+
+   # 改用遮罩後的快照（seeds/snapshot-seed.sql 不存在就直接失敗，不會默默 fallback）：
+   HUB_SEED=snapshot npm run env:reset
+   ```
+   `HUB_SEED=snapshot` 時，`env-reset.sh` 會在載入 `seeds/snapshot-seed.sql` 之後，再疊上 `seeds/scenario-baseline.sql`——這份 overlay 用 `INSERT ... ON DUPLICATE KEY UPDATE`（不 TRUNCATE）補回 `scenarios/*.json`、`fixtures/*.json` 依賴的固定業務資料（`DEMO_STATION`、`TRADE_DEP_001` 之類），id 統一落在 `900000000` 以上以避開真實快照的資料列，細節見該檔案開頭的註解。
+
+   關於 overlay 的 `platforms`：這張表沒有 `name` 的 unique key，真實快照如果本來就有一列 `name='cq9'`，遮罩後會跟 overlay 自己的 `cq9` 並存（兩個 id 都存在）。查過 `.legacy-src` 目前唯一有實作、且這個 repo 的情境會用到的兩條路由——`POST /v1/wallet/check-transaction`（`WalletController::checkTransaction()`，只查 `stations`、`deposit_records`/`withdrawal_records`）與 MCP `platform-maintenance`（`McpPlatformMaintenanceController` -> `TemporaryPlatformMaintenanceService`，用 `PlatformEnum` 常數 + Redis，不查 DB）——**都不會依 `name` 或 `is_main` 查 `platforms` 表**，`wallets.platform_id` 是我們 overlay 自己控制的固定值，不受並存的 `cq9` 影響。之後如果加了會查 `Platform::where('name', ...)` 或 `where('is_main', 1)->first()` 的內部路由情境，需要重新評估這個假設。
+
+### 不遮罩的欄位（查過 `.legacy-src`，不是漏掉）
+
+- **`stations.callback_domain`**：一開始猜是「打給站台的回呼網域」該換成 stub，查證後發現 Legacy 自己的 ADR-0040（`.legacy-src/docs/adr/0040-game-wallet-balance-single-authority.md`）明講：「`stations.callback_domain` 存在於 `Station::$fillable`，但全 codebase 沒有任何地方讀它」——不是出站呼叫的目標，Legacy 根本不會打這個網域，不需要換成 stub。維持原樣。
+- **`settings.val`**：翻了 `app/Http/Resources/Settings*Resource.php` 一輪（`SettingsWithdrawalBasicResource`、`SettingsCommissionResource`、`SettingsRiskWinRateResource`、`SettingsPlatformGeneralResource`⋯），大部分 `name` 存的是提款限額、佣金比例、風控閾值這類業務設定，但也有 `site_google_recaptcha`（`server_token`）、`site_contact`（`email`/`tel`）這種明確含機密/個資的 `name`，而且 `val` 沒有固定 schema、無法針對每個 `name` 個別設定——改成 `mask_json`（見上方），白名單是空的，所以**每一個 `name` 底下的每一個值都會被遮罩**，不是原樣保留。這代表如果之後有情境要依賴某個 `settings.val` 裡的實際數值（例如某個提款限額常數），需要先把那個 `name`／鍵名加進 `platforms.api_settings`/`payments.api_tokens`/`sms.settings`/`settings.val` 的白名單（`src/seed/maskConfig.ts` 的 `maskJson({...})`），不會自動被放行。
+- **guild/user_level 相關的 JSON 快照欄位**（`guilds.settings`、`user_level_records.{settings,upgrade_condition,renewal_condition,rebates}`、`user_level_settings.{upgrade_condition,renewal_condition,rebates}`、`payments.{maximum_trades,current_trades,period}`、`platforms.{currencies,regions,game_types}`、`flatten_rebate_reports.data`）：翻過對應的 schema comment，都是遊戲規則/等級條件/報表聚合這類業務設定快照，不是個資或第三方回應原文，分類為 `keep`。這批是自動化分類規則沒攔到、人工複查後確認安全的項目，跟上面明確查證過 Legacy 程式碼的兩項不同等級，列在這裡是為了讓後續複查者知道「已經看過、不是漏掉」。
+
+### snapshot 模式的已知限制：哪些 fixture 需要重新 `record`、哪些情境目前不能用
+
+`fixtures/*.fixture.json` 目前是對 **synthetic 模式**（`HUB_SEED=synthetic`，`seeds/synthetic-seed.sql` 的固定 id）錄製的。`scenario-baseline.sql` overlay 為了不跟真實快照的資料列衝突，id 統一落在 `900000000` 以上，所以任何 fixture 裡直接寫死數字 id 的欄位，在 `HUB_SEED=snapshot` 模式下對得上的機率是零。逐一對照 `scenarios/**` 全部情境後，分兩種情況：
+
+- **只是 fixture 裡的 golden 結果寫死了 id，情境本身用業務代碼查資料**：`check-transaction-both-hit`、`check-transaction-deposit-hit`、`check-transaction-duplicate-trade-no`、`check-transaction-withdrawal-hit` 這四個 fixture 的 `dbProbe` 結果裡有 `user_id: 1`；情境的 `request`/`dbProbe.sql` 本身查的是 `station_code`/`trade_no` 這類業務值（不是數字 id），所以 `scenario-baseline.sql` overlay 補的資料列在 snapshot 模式下查得到、`verify` 會拿新的 id 跑，只是跟這些寫死 `user_id: 1` 的舊 fixture 對不起來。真的要在 snapshot 模式下驗證，需要先有真實快照、跑過 `bun run seed:mask`、`HUB_SEED=snapshot` 重置環境，再對 Legacy 重新 `record` 一次，產生對應 `900000000+` id 的新 fixture。這次沒有真實快照可以錄，所以現有 fixture 沒有被動過，synthetic 模式的驗證行為也完全不變。
+- **情境本身（不只是 fixture）就寫死了數字 id，snapshot 模式下重新 `record` 也沒用**：`scenarios/player/player-balance-outbound-{success,error,timeout}.json` 的 `dbProbe.sql` 直接寫 `platform_id = 3`、`user_id = 1`（Issue #8 的 walking skeleton，dbProbe 目前還沒做成用業務代碼查詢）——這三個情境檔**本 PR 沒有修改**，因為改這三個檔案屬於 spec 的驗收條件三（等真的有快照、需要讓所有情境都能在兩種模式下跑時再處理），不是 Issue #13 遮罩腳本的範圍。`scenario-baseline.sql` 仍然照樣補了 `players`/`play_logs`/`platforms`(`sbo`)/`wallets`(`sbo` 錢包) 這幾張表的資料列（保持跟 `synthetic-seed.sql` 同步），只是因為 overlay 用的是 `900000003` 而不是 synthetic 模式的 `3`，這三個情境的 dbProbe 在 snapshot 模式下查不到列——這是已知、暫時無法避免的落差，不是遮罩腳本或 overlay 的 bug。
+
 ## 狀態
 
 建置中。進度追蹤在 [HubRefactoring 的 issues](https://github.com/CarlLee1983/HubRefactoring/issues)（#2–#21）。
