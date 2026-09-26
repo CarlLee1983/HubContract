@@ -25,8 +25,8 @@
       },
       {
         "name": "activity_log",
-        "sql": "SELECT id, log_name, subject_type, subject_id, description FROM activity_log WHERE log_name = 'platform' AND subject_id = ? ORDER BY id",
-        "params": [2]
+        "sql": "SELECT log_name, subject_type, subject_id, description FROM activity_log ORDER BY id",
+        "params": []
       }
     ]
   },

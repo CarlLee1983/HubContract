@@ -1,13 +1,14 @@
 import { afterAll, describe, expect, it } from "bun:test";
 import { ContractRunner } from "../src/runner";
 import { LegacyTargetAdapter } from "../src/target/legacyAdapter";
-import { ScenarioDefinitionSchema, type ActionFixture } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, ActionFixtureSchema } from "../src/schema/scenario";
 import { resetEnvironment } from "../src/env/reset";
 import { config } from "../src/config";
 import scenarioJson from "../scenarios/internal/platform-game-type-deactivate.json";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("Legacy internal action contract (#11)", () => {
-  const runner = new ContractRunner({ baseUrl: config.baseUrl, targetAdapter: new LegacyTargetAdapter() });
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy internal action contract (#11)", () => {
+  const runner = new ContractRunner({ baseUrl: config.baseUrl, stubUrl: config.stub.baseUrl, targetAdapter: new LegacyTargetAdapter() });
   const scenario = ScenarioDefinitionSchema.parse(scenarioJson);
 
   afterAll(async () => { await runner.close(); });
@@ -32,7 +33,7 @@ describe("Legacy internal action contract (#11)", () => {
     await resetEnvironment();
     expect((await runner.verify(scenario, first)).differences).toEqual([]);
 
-    const tampered: ActionFixture = structuredClone(first);
+    const tampered = ActionFixtureSchema.parse(structuredClone(first));
     tampered.layer2_dbState!.after.platform_game_type_map[0].active = 1;
     await resetEnvironment();
     const result = await runner.verify(scenario, tampered);

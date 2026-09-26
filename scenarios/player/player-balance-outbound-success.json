@@ -1,0 +1,78 @@
+{
+  "id": "player-balance-outbound-success",
+  "name": "Player Balance: Outbound call succeeds",
+  "description": "Issue #8: sbo's findAccount() outbound call succeeds (error.id == 0). Legacy known defect, StationHubNext 是否沿用待決: PlayBalanceResource::toArray() treats the float PlayerService::getPlayBalance() returns as an array, so even a successful outbound call yields a 200 with a PHP ErrorException message instead of a balance payload — see .legacy-src PlayBalanceResource/PlayerController.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/balance"
+  },
+  "tags": [
+    "player",
+    "balance",
+    "outbound",
+    "success",
+    "CAP-03",
+    "D-30",
+    "CAP-01",
+    "BR-01"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sbo_wallet",
+        "sql": "SELECT id, balance, freeze, player_id FROM wallets WHERE platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "sbo_player",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/get-player-balance.aspx",
+          "body": {
+            "Username": "synthetic_user_01DEMO_STATIONp3"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "error": {
+                "id": 0,
+                "msg": ""
+              },
+              "balance": 600.0,
+              "outstanding": 50.0
+            }
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

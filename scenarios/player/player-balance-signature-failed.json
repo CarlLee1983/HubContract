@@ -1,0 +1,36 @@
+{
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/balance"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0,
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "id": "player-balance-signature-failed",
+  "name": "Player Balance: Signature Validation Failed",
+  "description": "A syntactically valid request with an invalid sign is rejected by ValidSignature before the controller runs.",
+  "tags": [
+    "player",
+    "balance",
+    "error",
+    "CAP-03",
+    "CAP-01",
+    "BR-01"
+  ]
+}

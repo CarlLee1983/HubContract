@@ -1,0 +1,129 @@
+{
+  "scenarioId": "sms-send-without-currency",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Call to a member function countryRegion() on null",
+      "exception": "Error",
+      "file": "<MASKED_FILE_PATH>",
+      "line": 150,
+      "trace": "<MASKED_TRACE>"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 5,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic AboSend",
+          "supplier": "abo_send",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"orgCode\":\"synthetic_org_code\",\"MD5\":\"synthetic_md5_key\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    },
+    "after": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 5,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic AboSend",
+          "supplier": "abo_send",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"orgCode\":\"synthetic_org_code\",\"MD5\":\"synthetic_md5_key\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    }
+  }
+}

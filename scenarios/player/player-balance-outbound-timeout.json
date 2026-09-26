@@ -1,0 +1,83 @@
+{
+  "id": "player-balance-outbound-timeout",
+  "name": "Player Balance: Outbound call times out",
+  "description": "Issue #8: sbo's findAccount() outbound call never responds in time. Guzzle raises a ConnectException ('cURL error 28'), which Sbo doesn't catch, so it propagates to PlayerController::balance() and comes back as a 200 with the cURL error text as the body. GAMELOBBY_HTTP_PLATFORM_OVERRIDES=sbo:2 (docker-compose.yml) keeps this scenario fast — the stub's delayMs only needs to exceed 2s, not Legacy's default 8s.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/balance"
+  },
+  "tags": [
+    "player",
+    "balance",
+    "outbound",
+    "timeout",
+    "CAP-03",
+    "CAP-01",
+    "BR-01"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sbo_wallet",
+        "sql": "SELECT id, balance, freeze, player_id FROM wallets WHERE platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "sbo_player",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/get-player-balance.aspx",
+          "body": {
+            "Username": "synthetic_user_01DEMO_STATIONp3"
+          },
+          "response": {
+            "status": 200,
+            "body": {},
+            "delayMs": 3500
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.message",
+      "type": "regex_replace",
+      "pattern": "after \\d+ milliseconds",
+      "replacement": "after <MS> milliseconds"
+    },
+    {
+      "target": "response.body.message",
+      "type": "regex_replace",
+      "pattern": "for http://\\S+",
+      "replacement": "for <STUB_URL>"
+    }
+  ]
+}

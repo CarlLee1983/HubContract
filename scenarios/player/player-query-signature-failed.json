@@ -1,0 +1,55 @@
+{
+  "id": "player-query-signature-failed",
+  "name": "Player Query: signature failed",
+  "description": "Characterize the GET Player validation and error envelope before wallet synchronization.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/"
+  },
+  "tags": [
+    "player",
+    "query",
+    "error",
+    "CAP-03",
+    "CAP-01",
+    "BR-01"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0,
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "user_wallets",
+        "sql": "SELECT id, platform_id, balance, freeze, player_id FROM wallets WHERE user_id = 1 ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "sbo_player",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "user_transactions",
+        "sql": "SELECT id, wallet_id, balance_original, balance_variable, balance_complete, trade_type FROM transactions WHERE user_id = 1 ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

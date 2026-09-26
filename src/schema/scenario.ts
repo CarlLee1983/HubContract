@@ -47,33 +47,93 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+export const MongoCollectionNamePattern = /^httplog_[\w-]+$/;
+export const MongoCollectionGlobPattern = /^httplog_[\w*\-]+$/;
+
+export const MongoProbeSchema = z.object({
+  collections: z.array(z.string().regex(MongoCollectionNamePattern)).optional(),
+  pattern: z.string().regex(MongoCollectionGlobPattern).optional(),
+});
+
+export const QueueDrainSchema = z.object({
+  queues: z.array(z.string().min(1)).min(1),
+  timeoutMs: z.number().int().positive().default(150000),
+});
+
+/** Domain preconditions; each target adapter chooses its own storage details. */
+export const ScenarioPreconditionsSchema = z.object({
+  smsLock: z.object({
+    nationalNumber: z.string().regex(/^[0-9]+$/),
+  }).optional(),
+});
+
+export type ScenarioPreconditions = z.infer<typeof ScenarioPreconditionsSchema>;
+
+/**
+ * Provider stub schema (Issue #8): describes how the stub (compose service
+ * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
+ * by the target under test (e.g. Legacy calling out to a game platform).
+ * Matching order is method, then path, then the optional body condition
+ * (partial match: every key here must equal the corresponding key in the
+ * parsed request body) — see the Issue #8 exploration notes.
+ */
+export const StubResponseSchema = z.object({
+  status: z.number().default(200),
+  body: z.any().optional(),
+  headers: z.record(z.string(), z.string()).default({}),
+  delayMs: z
+    .number()
+    .default(0)
+    .describe(
+      "Simulated latency before responding. Set higher than the caller's own HTTP timeout to simulate a timeout instead of adding a separate 'hang forever' mode."
+    ),
+});
+
+export const StubMatcherSchema = z.object({
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+  path: z.string().startsWith("/"),
+  body: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      "Partial match against the parsed JSON/form request body — every key here must deep-equal the corresponding key in the request body, nested objects/arrays included."
+    ),
+  bodyMd5: z.object({
+    outputField: z.string().min(1),
+    inputFields: z.array(z.string().min(1)).min(1),
+    suffix: z.string(),
+    uppercase: z.boolean().default(true),
+  }).optional().describe("Validate a dynamic MD5 body field from ordered body fields and a synthetic suffix"),
+  response: StubResponseSchema,
+});
+
+export const StubScriptSchema = z.object({
+  matchers: z.array(StubMatcherSchema).default([]),
+});
+
+export type StubScript = z.infer<typeof StubScriptSchema>;
+export type StubMatcher = z.infer<typeof StubMatcherSchema>;
+export type StubResponse = z.infer<typeof StubResponseSchema>;
+
+/**
+ * A single request the stub received — the one source of truth for this
+ * shape (code review Standards #11), used by src/stub/store.ts (in-memory
+ * record), src/stub/client.ts (control API response), and
+ * FixtureSchema.layer3_outboundCalls (golden/comparison shape) alike.
+ */
+export const StubRequestRecordSchema = z.object({
+  method: z.string(),
+  path: z.string(),
+  query: z.record(z.string(), z.string()).default({}),
+  headers: z.record(z.string(), z.string()).default({}),
+  body: z.any().optional(),
+});
+
+export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
+
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const InboundScenarioSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  route: z.object({
-    method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
-    path: z.string().startsWith("/"),
-  }),
-  request: z.object({
-    headers: z.record(z.string(), z.string()).default({}),
-    query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
-    body: z.record(z.string(), z.any()).optional(),
-    signWith: z
-      .object({
-        secretKey: z.string().min(1),
-      })
-      .optional(),
-  }),
-  dbProbe: DbProbeSchema.optional(),
-  redisProbe: RedisProbeSchema.optional(),
-  normalizers: z.array(NormalizerRuleSchema).default([]),
-  action: z.never().optional(),
-});
-
 export const ScenarioActionSchema = z.object({
   name: z.literal("platformGameType.setActive"),
   parameters: z.object({
@@ -83,24 +143,76 @@ export const ScenarioActionSchema = z.object({
     active: z.boolean(),
   }),
 });
-
 export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
 
-export const ActionScenarioSchema = z.object({
+const ScenarioDefinitionBaseSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
-  action: ScenarioActionSchema,
-  dbProbe: DbProbeSchema.extend({ queries: z.array(DbProbeQuerySchema).min(1) }),
+  route: z.object({
+    method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+    path: z.string().startsWith("/"),
+  }).optional(),
+  trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
+  action: ScenarioActionSchema.optional(),
+  // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
+  // "deposit"). Optional so pre-existing scenario files without tags stay valid.
+  tags: z.array(z.string()).default([]),
+  request: z.object({
+    headers: z.record(z.string(), z.string()).default({}),
+    query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+    body: z.record(z.string(), z.any()).optional(),
+    signWith: z
+      .object({
+        secretKey: z.string().min(1),
+      })
+      .optional(),
+  }).optional(),
+  setup: z.object({ statements: z.array(DbProbeQuerySchema).min(1) }).optional(),
+  dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  mongoProbe: MongoProbeSchema.optional(),
+  queueDrain: QueueDrainSchema.optional(),
+  preconditions: ScenarioPreconditionsSchema.optional(),
+  // Issue #8: captureRun() *always* resets the stub and loads this script (or
+  // an empty one, if omitted) before executing the request — every scenario
+  // is checked for undefined outbound calls, not just ones that declare a
+  // stub. When present, the matched call(s) are read back into
+  // layer3_outboundCalls.
+  stub: z
+    .object({
+      script: StubScriptSchema,
+      // Code review Standards #3 (Story 26): which recorded headers are
+      // meaningful to a contract is scenario-specific (a platform that signs
+      // via a header needs it kept; most don't) — declared explicitly per
+      // scenario instead of a hardcoded global, same as normalizers/dbProbe.
+      outboundHeaderAllowlist: z.array(z.string()).default(["content-type", "authorization"]),
+    })
+    .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
-  route: z.never().optional(),
-  request: z.never().optional(),
 });
 
-export const ScenarioDefinitionSchema = z.union([InboundScenarioSchema, ActionScenarioSchema]);
+export const ScenarioDefinitionSchema = ScenarioDefinitionBaseSchema.refine((value) =>
+  [value.route, value.trigger, value.action].filter(Boolean).length === 1 &&
+  (!value.action || (Boolean(value.dbProbe?.queries.length) && !value.request && !value.setup)), {
+  message: "Declare exactly one of route, trigger or action",
+});
+export const InboundScenarioSchema = ScenarioDefinitionBaseSchema.extend({
+  route: z.object({ method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]), path: z.string().startsWith("/") }),
+  trigger: z.never().optional(),
+  action: z.never().optional(),
+  request: ScenarioDefinitionBaseSchema.shape.request.unwrap().default({ headers: {} }),
+});
+export const ActionScenarioSchema = ScenarioDefinitionBaseSchema.extend({
+  route: z.never().optional(),
+  trigger: z.never().optional(),
+  action: ScenarioActionSchema,
+  request: z.never().optional(),
+  dbProbe: DbProbeSchema.extend({ queries: z.array(DbProbeQuerySchema).min(1) }),
+});
 export type InboundScenario = z.infer<typeof InboundScenarioSchema>;
 export type ActionScenario = z.infer<typeof ActionScenarioSchema>;
+
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
 
 export const RedisKeyRecordSchema = z.object({
@@ -117,12 +229,23 @@ export type RedisKeyRecord = z.infer<typeof RedisKeyRecordSchema>;
 /**
  * Recorded Fixture schema (golden output of record)
  */
-const FixtureLayersSchema = z.object({
+export const FixtureSchema = z.object({
   scenarioId: z.string(),
+  layer1_inboundResponse: z.object({
+    statusCode: z.number(),
+    statusText: z.string(),
+    headers: z.record(z.string(), z.string()),
+    body: z.any(),
+  }).optional(),
   layer2_dbState: z
     .object({
       before: z.record(z.string(), z.any()),
       after: z.record(z.string(), z.any()),
+    })
+    .optional(),
+  layer3_outboundCalls: z
+    .object({
+      calls: z.array(StubRequestRecordSchema),
     })
     .optional(),
   layer4_sharedResources: z
@@ -133,28 +256,51 @@ const FixtureLayersSchema = z.object({
           after: z.record(z.string(), RedisKeyRecordSchema.nullable()),
         })
         .optional(),
+      mongo: z
+        .object({ newDocuments: z.record(z.string(), z.array(z.record(z.string(), z.any()))) })
+        .optional(),
     })
     .optional(),
 });
 
-export const InboundFixtureSchema = FixtureLayersSchema.extend({
+export type Fixture = z.infer<typeof FixtureSchema>;
+
+export const InboundFixtureSchema = FixtureSchema.extend({
   layer1_inboundResponse: z.object({
-    statusCode: z.number(),
-    statusText: z.string(),
-    headers: z.record(z.string(), z.string()),
-    body: z.any(),
+    statusCode: z.number(), statusText: z.string(),
+    headers: z.record(z.string(), z.string()), body: z.any(),
   }),
 });
-
-export const ActionFixtureSchema = FixtureLayersSchema.extend({
+export const ActionFixtureSchema = FixtureSchema.extend({
   layer1_inboundResponse: z.never().optional(),
   layer2_dbState: z.object({
     before: z.record(z.string(), z.any()),
     after: z.record(z.string(), z.any()),
   }),
 });
-
-export const FixtureSchema = z.union([InboundFixtureSchema, ActionFixtureSchema]);
 export type InboundFixture = z.infer<typeof InboundFixtureSchema>;
 export type ActionFixture = z.infer<typeof ActionFixtureSchema>;
-export type Fixture = z.infer<typeof FixtureSchema>;
+
+export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixture: Fixture): void {
+  if (fixture.scenarioId !== scenario.id) {
+    throw new Error(`Fixture scenarioId ${fixture.scenarioId} does not match ${scenario.id}`);
+  }
+  if (scenario.route && !fixture.layer1_inboundResponse) {
+    throw new Error(`HTTP scenario ${scenario.id} requires layer1_inboundResponse`);
+  }
+  if (scenario.trigger && fixture.layer1_inboundResponse) {
+    throw new Error(`Schedule scenario ${scenario.id} must not declare layer1_inboundResponse`);
+  }
+  if (scenario.trigger && !fixture.layer3_outboundCalls) {
+    throw new Error(`Schedule scenario ${scenario.id} requires layer3_outboundCalls`);
+  }
+  if (scenario.trigger && !fixture.layer2_dbState) {
+    throw new Error(`Schedule scenario ${scenario.id} requires layer2_dbState`);
+  }
+  if (scenario.action && fixture.layer1_inboundResponse) {
+    throw new Error(`Action scenario ${scenario.id} must not declare layer1_inboundResponse`);
+  }
+  if (scenario.action && !fixture.layer2_dbState) {
+    throw new Error(`Action scenario ${scenario.id} requires layer2_dbState`);
+  }
+}

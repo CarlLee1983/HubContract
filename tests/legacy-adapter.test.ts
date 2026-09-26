@@ -17,6 +17,10 @@ const adapter = () => new LegacyTargetAdapter({
 });
 
 describe("Legacy admin target adapter", () => {
+  it("refuses to send the Legacy admin action to another target", async () => {
+    await expect(adapter().executeAction(action, "http://next.example:9090", dbBefore))
+      .rejects.toThrow("requires the local recording target");
+  });
   it("logs in with a continuous CSRF-protected session and translates the abstract action", async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const replies = [

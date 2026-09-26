@@ -6,6 +6,7 @@
     "method": "POST",
     "path": "/v1/wallet/check-transaction"
   },
+  "tags": ["wallet", "pilot", "check-transaction", "error"],
   "request": {
     "headers": {
       "Host": "localhost:8080",

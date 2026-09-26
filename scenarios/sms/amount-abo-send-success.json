@@ -1,0 +1,93 @@
+{
+  "id": "sms-amount-abo-send-success",
+  "name": "SMS amount abo-send success",
+  "description": "Records abo-send live supplier amount response; smsCost=2, successful balance 19 converts to 9 messages. Supplier failure returns zero.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/amount"
+  },
+  "tags": [
+    "sms",
+    "amount",
+    "abo-send",
+    "success"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 5
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    },
+    {
+      "target": "outbound.0.body.rand",
+      "type": "regex_replace",
+      "pattern": "^\\d{6}$",
+      "replacement": "<SIX_DIGITS>"
+    },
+    {
+      "target": "outbound.0.body.sign",
+      "type": "regex_replace",
+      "pattern": "^[A-F0-9]{32}$",
+      "replacement": "<MD5_HEX>"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/api/viewOrgBalance",
+          "response": {
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "balance": 19
+              }
+            }
+          },
+          "body": {
+            "orgCode": "synthetic_org_code"
+          },
+          "bodyMd5": {
+            "outputField": "sign",
+            "inputFields": ["orgCode", "rand"],
+            "suffix": "synthetic_md5_key"
+          }
+        }
+      ]
+    }
+  }
+}

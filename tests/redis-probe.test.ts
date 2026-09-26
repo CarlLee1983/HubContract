@@ -3,8 +3,10 @@ import { RedisProbeService } from "../src/probe/redisProbe";
 import { compareRedisState } from "../src/comparator/comparator";
 import { config } from "../src/config";
 import Redis from "ioredis";
+import { LegacyPreconditionAdapter } from "../src/target/legacyPreconditions";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Comparator (Issue #7)", () => {
   const redisProbe = new RedisProbeService({
     host: config.redis.host,
     port: config.redis.port,
@@ -73,6 +75,22 @@ describe("RedisProbeService & Redis State Comparator (Issue #7)", () => {
     });
 
     expect(state["non:existent:key"]).toBeNull();
+  });
+
+  it("Legacy adapter sets only the synthetic SMS lock in DB1", async () => {
+    const key = "stationhublegacy_cache_:sms_639123456789";
+    const adapter = new LegacyPreconditionAdapter();
+    try {
+      await rawRedis.del(`${config.redis.prefix}${key}`);
+      await adapter.apply({ smsLock: { nationalNumber: "639123456789" } });
+      expect(await rawRedis.get(`${config.redis.prefix}${key}`)).toBe("synthetic_contract_lock_owner");
+      const ttl = await rawRedis.ttl(`${config.redis.prefix}${key}`);
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(10);
+    } finally {
+      await adapter.close();
+      await rawRedis.del(`${config.redis.prefix}${key}`);
+    }
   });
 
   it("Criterion 2: Value exact match passes; value mismatch produces diff with path", () => {

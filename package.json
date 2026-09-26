@@ -9,6 +9,7 @@
     "env:reset": "./scripts/env-reset.sh",
     "record": "bun run src/cli.ts -m record",
     "verify": "bun run src/cli.ts -m verify",
+    "seed:mask": "bun run scripts/mask-snapshot.ts",
     "test": "bun test"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "ioredis": "^6.0.0",
+    "mongodb": "^6",
     "mysql2": "^3.24.4",
     "zod": "^4.6.5"
   }

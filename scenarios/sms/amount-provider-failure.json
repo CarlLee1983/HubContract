@@ -1,0 +1,70 @@
+{
+  "id": "sms-amount-provider-failure",
+  "name": "SMS amount swallows supplier failure as zero",
+  "description": "Records known defect: a provider failure is indistinguishable from a zero balance in the response.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/amount"
+  },
+  "tags": [
+    "sms",
+    "amount",
+    "provider",
+    "failure"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/sms/balance/v1",
+          "response": {
+            "status": 500,
+            "body": {
+              "error": "synthetic provider failure"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

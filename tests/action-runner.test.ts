@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ContractRunner, type TargetAdapter } from "../src/runner";
+import { ContractRunner, type RunnerOptions, type TargetAdapter } from "../src/runner";
+import { outcomeContext } from "../src/report/runOne";
 import {
   ActionScenarioSchema, FixtureSchema, InboundScenarioSchema, ScenarioDefinitionSchema,
 } from "../src/schema/scenario";
@@ -16,12 +17,23 @@ function mockDb(runner: ContractRunner, states: unknown[]) {
   (runner as any).dbProbe.capture = async () => states[index++];
 }
 
+function createRunner(options: Omit<RunnerOptions, "stubUrl">): ContractRunner {
+  const runner = new ContractRunner({ ...options, stubUrl: "http://127.0.0.1:2" });
+  const internal = runner as any;
+  internal.stubClient.reset = async () => {};
+  internal.stubClient.loadScript = async () => {};
+  internal.stubClient.getRequests = async () => ({ requests: [], unmatchedCount: 0 });
+  internal.queueDrain.waitForIdle = async () => {};
+  return runner;
+}
+
 describe("internal action scenarios", () => {
   it("requires a DB probe and rejects HTTP fields", () => {
     expect(ScenarioDefinitionSchema.parse(actionScenario).action).toEqual(actionScenario.action);
     expect(ActionScenarioSchema.safeParse({ ...actionScenario, dbProbe: undefined }).success).toBe(false);
     expect(ActionScenarioSchema.safeParse({ ...actionScenario, dbProbe: { queries: [] } }).success).toBe(false);
     expect(ActionScenarioSchema.safeParse({ ...actionScenario, route: { method: "POST", path: "/x" } }).success).toBe(false);
+    expect(outcomeContext(actionScenario).route).toEqual({ method: "ACTION", path: "platformGameType.setActive" });
   });
 
   it("captures state around an injected action and omits the inbound response", async () => {
@@ -31,7 +43,7 @@ describe("internal action scenarios", () => {
         calls.push(`${action.name}:${action.parameters.platformId}:${baseUrl}:${dbConfig?.database}`);
       },
     };
-    const runner = new ContractRunner({ baseUrl: "http://target/", dbConfig: { database: "other_recording" }, targetAdapter: adapter });
+    const runner = createRunner({ baseUrl: "http://target/", dbConfig: { database: "other_recording" }, targetAdapter: adapter });
     mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
     try {
       const fixture = await runner.record(actionScenario);
@@ -53,7 +65,7 @@ describe("internal action scenarios", () => {
       ...actionScenario,
       redisProbe: { keys: [{ pattern: "platform:7" }] },
     });
-    const runner = new ContractRunner({
+    const runner = createRunner({
       baseUrl: "http://target",
       targetAdapter: { executeAction: async () => { calls.push("action"); } },
     });
@@ -74,7 +86,7 @@ describe("internal action scenarios", () => {
   });
 
   it("verifies only captured DB layers for actions", async () => {
-    const runner = new ContractRunner({
+    const runner = createRunner({
       baseUrl: "http://target",
       targetAdapter: { executeAction: async () => {} },
     });
@@ -95,7 +107,7 @@ describe("internal action scenarios", () => {
   });
 
   it("fails clearly without an adapter or when the action throws", async () => {
-    const withoutAdapter = new ContractRunner({ baseUrl: "http://target" });
+    const withoutAdapter = createRunner({ baseUrl: "http://target" });
     mockDb(withoutAdapter, [{}]);
     try {
       await expect(withoutAdapter.record(actionScenario)).rejects.toThrow("requires a target adapter");
@@ -103,7 +115,7 @@ describe("internal action scenarios", () => {
       await withoutAdapter.close();
     }
 
-    const failing = new ContractRunner({
+    const failing = createRunner({
       baseUrl: "http://target",
       targetAdapter: { executeAction: async () => { throw new Error("target unavailable"); } },
     });
@@ -119,15 +131,15 @@ describe("internal action scenarios", () => {
     const scenario = InboundScenarioSchema.parse({
       id: "inbound", name: "Inbound", route: { method: "GET", path: "/status" }, request: {},
     });
-    const runner = new ContractRunner({ baseUrl: "http://target" });
+    const runner = createRunner({ baseUrl: "http://target" });
     const previousFetch = globalThis.fetch;
     globalThis.fetch = Object.assign(async () => new Response(JSON.stringify({ ok: true }), {
       status: 200, headers: { "content-type": "application/json" },
     }), { preconnect: previousFetch.preconnect });
     try {
       const fixture = await runner.record(scenario);
-      expect(fixture.layer1_inboundResponse.statusCode).toBe(200);
-      expect(fixture.layer1_inboundResponse.body).toEqual({ ok: true });
+      expect(fixture.layer1_inboundResponse!.statusCode).toBe(200);
+      expect(fixture.layer1_inboundResponse!.body).toEqual({ ok: true });
     } finally {
       globalThis.fetch = previousFetch;
       await runner.close();

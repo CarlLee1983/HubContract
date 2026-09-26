@@ -1,0 +1,37 @@
+{
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/balance"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "id": "player-balance-validation-failed",
+  "name": "Player Balance: Validation Failed",
+  "description": "Missing account is rejected by ApiPlayerBalanceRequest before the controller runs.",
+  "tags": [
+    "player",
+    "balance",
+    "error",
+    "CAP-03",
+    "CAP-01",
+    "BR-01"
+  ]
+}

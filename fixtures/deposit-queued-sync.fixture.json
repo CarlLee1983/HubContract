@@ -1,0 +1,155 @@
+{
+  "scenarioId": "deposit-queued-sync",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "<MASKED>",
+        "trade_no": "TRADE_QUEUE_DEP_001",
+        "balance": 1025,
+        "amount": 25,
+        "currency": "TWD",
+        "datetime": "<MASKED>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallet": [
+        {
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "deposit_record": [],
+      "remittance": [],
+      "failed_jobs": [
+        {
+          "failed_count": 0
+        }
+      ]
+    },
+    "after": {
+      "main_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "1025.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "deposit_record": [
+        {
+          "trade_no": "TRADE_QUEUE_DEP_001",
+          "amount": "25.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "remittance": [
+        {
+          "amount": "1025.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "failed_jobs": [
+        {
+          "failed_count": 0
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/deposit.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "Username": "synthetic_user_01DEMO_STATIONp3",
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01",
+          "txnId": "<MASKED>",
+          "IsFullAmount": false,
+          "Amount": 1025
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {
+        "httplog_deposit": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-deposit:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<MASKED>",
+              "header": {
+                "Content-Length": [
+                  "182"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "Amount": 1025,
+                "CompanyKey": "synthetic_company_key",
+                "IsFullAmount": false,
+                "ServerId": "synthetic-server-01",
+                "Username": "synthetic_user_01DEMO_STATIONp3",
+                "txnId": "<MASKED>"
+              },
+              "response": {
+                "balance": 1025,
+                "error": {
+                  "id": 0,
+                  "msg": ""
+                },
+                "outstanding": 0
+              },
+              "uri": "http://mock-provider:8081/web-root/restricted/player/deposit.aspx"
+            },
+            "datetime": "<MASKED>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}
