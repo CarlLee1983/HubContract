@@ -12,7 +12,7 @@
  * MariaDB（見 `src/seed/dockerMariaDb.ts`），我們只在資料庫「裡面」用 SQL
  * 讀資料、算合成值、UPDATE 回去——不用自己維護一份 SQL 語法的子集合解析器。
  *
- * 這份設定對照 `seeds/mysql-schema.sql`（113 張表、1075 個欄位）逐欄整理，
+ * 這份設定對照 `seeds/mysql-schema.sql`（112 張表、1075 個欄位）逐欄整理，
  * 先用程式化規則打底（`id`/`*_id` 一律 `keep`；數值與時間型別一律 `keep`；欄名
  * 符合常見自由文字樣式──note/memo/remark/summary/content/body/description/
  * reason/message/comment/raw/response/request/payload/log/receipt/snapshot/

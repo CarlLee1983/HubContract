@@ -19,7 +19,15 @@ import { maskNumber, maskValue } from "./maskValue";
  *
  * 其餘規則沿用：陣列元素繼承父鍵名脈絡（白名單也是依父鍵名查）；字串值如果
  * 本身可以被解析成 JSON 物件/陣列（雙重編碼）就遞迴處理。
+ *
+ * 第五輪 code review 決議：字串值只要長得像 `http(s)://` URL，不管鍵名有沒有
+ * 在白名單裡、也不管白名單把它標成 `keep` 還是沒列，一律換成 stub 位址——
+ * 已用探針證實：`backoffice_api_url` 這類沒被個別列進白名單的端點鍵，原本會
+ * 被當成一般字串遮成不可用的亂碼，而不是換成 stub，導致情境/stub 撥不通。
+ * URL 的值本身沒有「原樣保留」的安全理由（一定是某個出站端點），偵測到就統一
+ * 導去 stub，比要求每個平台/供應商各自把端點鍵一一列進白名單更不容易漏。
  */
+const HTTP_URL_RE = /^https?:\/\//i;
 
 function tryParseJsonContainer(raw: string): unknown {
   const trimmed = raw.trim();
@@ -40,7 +48,8 @@ function maskJsonString(value: string, keyKind: JsonKeyKind | undefined): string
     // 巢狀結構都安全」。
     return JSON.stringify(maskJsonNode(nested, undefined));
   }
-  if (keyKind === "url") return STUB_BASE_URL;
+  if (HTTP_URL_RE.test(value)) return STUB_BASE_URL;
+  if (keyKind === "url") return STUB_BASE_URL; // 值本身沒有 http(s) 開頭（例如裸網域）但鍵名宣告是 URL
   if (keyKind === "keep") return value;
   return maskValue("secret_key", value);
 }

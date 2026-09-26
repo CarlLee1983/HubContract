@@ -70,6 +70,23 @@ describe("Issue #13：maskJsonValue（白名單）", () => {
     expect(output.extra).toBeNull();
   });
 
+  it("第五輪 code review 決議：值本身是 http(s) URL 時，不管鍵名有沒有在白名單裡，一律換成 stub（不會被遮成不可用的亂碼）", () => {
+    const output = JSON.parse(
+      maskJsonValue(
+        '{"backoffice_api_url":"https://real-backoffice.example/api","query_url":"http://real-query.example","secret_key":"real_secret_not_a_url"}'
+      )
+    );
+    expect(output.backoffice_api_url).toBe(STUB_BASE_URL);
+    expect(output.query_url).toBe(STUB_BASE_URL);
+    // 非 URL 形狀的值，沒被白名單列到還是照舊遮罩，不會因為新規則而放寬。
+    expect(output.secret_key).not.toBe("real_secret_not_a_url");
+  });
+
+  it("鍵名在白名單裡標記 keep，但值本身剛好是 URL 時，還是換成 stub（URL 判斷優先於 keep）", () => {
+    const output = JSON.parse(maskJsonValue('{"lang":"https://real-unexpected-url.example"}', { lang: "keep" }));
+    expect(output.lang).toBe(STUB_BASE_URL);
+  });
+
   it("非合法 JSON 字串輸入時 throw", () => {
     expect(() => maskJsonValue("not-json-at-all")).toThrow(/不是合法 JSON/);
   });

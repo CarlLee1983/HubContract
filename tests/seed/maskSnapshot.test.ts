@@ -246,4 +246,52 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #13：maskSnapshotFile（起
     },
     60000
   );
+
+  it(
+    "第五輪 code review regression：主鍵超出 JS number 安全整數範圍時，UPDATE 仍能命中正確的那一列（不會悄悄變成 no-op）",
+    async () => {
+      // 9007199254740993 = Number.MAX_SAFE_INTEGER + 2，剛好會被 JS number 捨入
+      // 成 9007199254740992（少 1），如果連線沒開 supportBigNumbers/
+      // bigNumberStrings，`WHERE id = ?` 會配不到任何一列。
+      const inPath = await writeTempSql(
+        "CREATE TABLE `users` (`id` bigint unsigned PRIMARY KEY, `account` varchar(255));\n" +
+          "INSERT INTO `users` (`id`,`account`) VALUES (9007199254740993,'REAL_LEAK_BIGINT_PRECISION');\n"
+      );
+      const outPath = path.join(os.tmpdir(), `hubcontract-mask-bigint-${Date.now()}.sql`);
+
+      try {
+        const maskedBytes = await maskSnapshotFile({ inputPath: inPath, outputPath: outPath });
+        const output = maskedBytes.toString("utf-8");
+        expect(output).not.toContain("REAL_LEAK_BIGINT_PRECISION");
+        expect(output).toContain("9007199254740993");
+      } finally {
+        await fs.unlink(inPath).catch(() => {});
+        await fs.unlink(outPath).catch(() => {});
+      }
+    },
+    60000
+  );
+
+  it(
+    "第五輪 code review regression：ON UPDATE CURRENT_TIMESTAMP 欄位在遮罩時維持原值，不會被 UPDATE 自動改成現在時間",
+    async () => {
+      const inPath = await writeTempSql(
+        "CREATE TABLE `users` (`id` int PRIMARY KEY, `account` varchar(255), " +
+          "`updated_at` timestamp NOT NULL DEFAULT '2020-01-01 00:00:00' ON UPDATE CURRENT_TIMESTAMP);\n" +
+          "INSERT INTO `users` (`id`,`account`,`updated_at`) VALUES (1,'real_account_should_be_masked','2020-01-01 00:00:00');\n"
+      );
+      const outPath = path.join(os.tmpdir(), `hubcontract-mask-onupdate-${Date.now()}.sql`);
+
+      try {
+        const maskedBytes = await maskSnapshotFile({ inputPath: inPath, outputPath: outPath });
+        const output = maskedBytes.toString("utf-8");
+        expect(output).not.toContain("real_account_should_be_masked"); // users.account 還是照樣被遮
+        expect(output).toContain("2020-01-01 00:00:00"); // 但 updated_at 沒有被 UPDATE 悄悄改掉
+      } finally {
+        await fs.unlink(inPath).catch(() => {});
+        await fs.unlink(outPath).catch(() => {});
+      }
+    },
+    60000
+  );
 });
