@@ -1,0 +1,350 @@
+{
+  "scenarioId": "deposit-provider-failure",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "<MASKED>",
+        "trade_no": "TRADE_DEPOSIT_PROVIDER_FAILURE",
+        "balance": 1025,
+        "amount": 25,
+        "currency": "TWD",
+        "datetime": "<MASKED>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallet": [
+        {
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "deposit_record": [],
+      "remittance": [],
+      "transactions": [],
+      "activity_log": [],
+      "failed_jobs": [
+        {
+          "failed_count": 0
+        }
+      ]
+    },
+    "after": {
+      "main_wallet": [
+        {
+          "balance": "1025.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "deposit_record": [
+        {
+          "trade_no": "TRADE_DEPOSIT_PROVIDER_FAILURE",
+          "amount": "25.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "remittance": [
+        {
+          "amount": "1025.0000",
+          "status": "failed",
+          "stage": "finished"
+        }
+      ],
+      "transactions": [
+        {
+          "model_type": "App\\Models\\DepositRecord",
+          "model_id": 6,
+          "wallet_id": 1,
+          "linked_trade_no": "TRADE_DEPOSIT_PROVIDER_FAILURE",
+          "model_no_matches_order": 1,
+          "wallet_id_matches_order": 1,
+          "platform_name": "main",
+          "type": "deposit",
+          "trade_type": "wallet_in",
+          "currency": "TWD",
+          "balance_original": "1000.0000",
+          "balance_variable": "25.0000",
+          "balance_complete": "1025.0000"
+        }
+      ],
+      "activity_log": [
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\DepositRecord",
+          "subject_id": 6,
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": "pending",
+          "old_stage": null,
+          "new_stage": "pending"
+        },
+        {
+          "log_name": "wallet",
+          "description": "status has be change.,stage has be change.,completed_at has be change.",
+          "subject_type": "App\\Models\\DepositRecord",
+          "subject_id": 6,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": "pending",
+          "new_status": "completed",
+          "old_stage": "pending",
+          "new_stage": "finished"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\Wallet",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": "1000",
+          "new_balance": "1025",
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\Transaction",
+          "subject_id": 1,
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": "wallet_in",
+          "balance_variable": "25",
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "subject_id": 1,
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": "pending",
+          "old_stage": null,
+          "new_stage": "pending"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": "pending",
+          "new_status": "processing",
+          "old_stage": "pending",
+          "new_stage": "processing"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\Wallet",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": "1025",
+          "new_balance": "0",
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": null,
+          "old_stage": "processing",
+          "new_stage": "checking"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\Wallet",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": "0",
+          "new_balance": "1025",
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "subject_id": 1,
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": "processing",
+          "new_status": "failed",
+          "old_stage": "checking",
+          "new_stage": "finished"
+        }
+      ],
+      "failed_jobs": [
+        {
+          "failed_count": 0
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/deposit.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "Username": "synthetic_user_01DEMO_STATIONp3",
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01",
+          "txnId": "<MASKED>",
+          "IsFullAmount": false,
+          "Amount": 1025
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {
+        "httplog_deposit": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-deposit:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<MASKED>",
+              "header": {
+                "Content-Length": [
+                  "182"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "Amount": 1025,
+                "CompanyKey": "synthetic_company_key",
+                "IsFullAmount": false,
+                "ServerId": "synthetic-server-01",
+                "Username": "synthetic_user_01DEMO_STATIONp3",
+                "txnId": "<MASKED>"
+              },
+              "response": {
+                "error": {
+                  "id": 9999,
+                  "msg": "Insufficient permission"
+                }
+              },
+              "uri": "http://mock-provider:8081/web-root/restricted/player/deposit.aspx"
+            },
+            "datetime": "<MASKED>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}

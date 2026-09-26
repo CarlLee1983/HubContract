@@ -1,0 +1,104 @@
+{
+  "id": "withdrawal-duplicate-trade-no",
+  "name": "Withdrawal: Duplicate Trade No",
+  "description": "Characterize Legacy withdrawal duplicate-trade-no including DB, outbound calls, and shared resources.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/withdraw"
+  },
+  "tags": [
+    "wallet",
+    "withdrawal",
+    "funds-write",
+    "duplicate-trade-no"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "trade_no": "TRADE_WITHDRAW_001",
+      "amount": 25,
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "main_wallets",
+        "sql": "SELECT w.id, w.balance, w.freeze FROM wallets w JOIN users u ON u.id=w.user_id JOIN stations s ON s.id=u.station_id WHERE u.account=? AND s.code=? AND w.platform_name='main' AND w.currency='TWD' ORDER BY w.id",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "game_wallet",
+        "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id=w.user_id WHERE u.account=? AND w.platform_name='sbo' AND w.currency='TWD'",
+        "params": [
+          "synthetic_user_01"
+        ]
+      },
+      {
+        "name": "order",
+        "sql": "SELECT trade_no, wallet_id, amount, status, stage, error_code, error_message FROM withdrawal_records WHERE trade_no=? ORDER BY id",
+        "params": [
+          "TRADE_WITHDRAW_001"
+        ]
+      },
+      {
+        "name": "transactions",
+        "sql": "SELECT t.model_type, t.model_id, t.wallet_id, COALESCE(d.trade_no, w.trade_no) AS linked_trade_no, CASE WHEN t.model_no = COALESCE(d.no, w.no) THEN 1 ELSE 0 END AS model_no_matches_order, CASE WHEN t.wallet_id = COALESCE(d.wallet_id, w.wallet_id) THEN 1 ELSE 0 END AS wallet_id_matches_order, t.platform_name, t.type, t.trade_type, t.currency, t.balance_original, t.balance_variable, t.balance_complete FROM transactions t JOIN users u ON u.id = t.user_id JOIN stations s ON s.id = u.station_id LEFT JOIN deposit_records d ON t.type = 'deposit' AND d.id = t.model_id AND d.user_id = t.user_id LEFT JOIN withdrawal_records w ON t.type = 'withdrawal' AND w.id = t.model_id AND w.user_id = t.user_id WHERE u.account = ? AND s.code = ? ORDER BY t.id",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event, JSON_VALUE(properties, '$.attributes.wallet_id') AS wallet_id, JSON_VALUE(properties, '$.attributes.trade_type') AS trade_type, JSON_VALUE(properties, '$.attributes.balance_variable') AS balance_variable, JSON_VALUE(properties, '$.old.balance') AS old_balance, JSON_VALUE(properties, '$.attributes.balance') AS new_balance, JSON_VALUE(properties, '$.old.status') AS old_status, JSON_VALUE(properties, '$.attributes.status') AS new_status, JSON_VALUE(properties, '$.old.stage') AS old_stage, JSON_VALUE(properties, '$.attributes.stage') AS new_stage FROM activity_log ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "remittance",
+        "sql": "SELECT type, amount, status, stage FROM remittance_records WHERE user_id=(SELECT id FROM users WHERE account=?) ORDER BY id",
+        "params": [
+          "synthetic_user_01"
+        ]
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1,
+        "ttlToleranceSeconds": 10
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.txn_no",
+      "type": "mask"
+    },
+    {
+      "target": "response.body.data.datetime",
+      "type": "mask"
+    }
+  ]
+}

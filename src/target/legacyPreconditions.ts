@@ -21,7 +21,7 @@ export class LegacyPreconditionAdapter implements PreconditionAdapter {
   private prefix: string;
 
   async apply(preconditions: ScenarioPreconditions): Promise<void> {
-    if (!preconditions.smsLock && !preconditions.platformMaintenance) return;
+    if (!preconditions.smsLock && !preconditions.platformMaintenance && !preconditions.walletLock) return;
     if (this.redis.status === "wait") await this.redis.connect();
 
     if (preconditions.smsLock) {
@@ -47,6 +47,30 @@ export class LegacyPreconditionAdapter implements PreconditionAdapter {
       };
       const result = await this.redis.set(key, JSON.stringify(value), "EX", 3600, "NX");
       if (result !== "OK") throw new Error(`Legacy platform maintenance precondition already exists for ${platform}`);
+    }
+
+    if (preconditions.walletLock) {
+      const { account, stationCode, currency } = preconditions.walletLock;
+      const key = `${this.prefix}game_to_main_wallet_sync:${await this.userId(account, stationCode)}_${currency}`;
+      const result = await this.redis.set(key, "synthetic_contract_lock_owner", "EX", 30, "NX");
+      if (result !== "OK") throw new Error(`Legacy wallet lock precondition already exists for ${account}/${currency}`);
+    }
+  }
+
+  private async userId(account: string, stationCode: string): Promise<number> {
+    // Resolve the synthetic fixture's user by domain identity so the scenario
+    // remains independent of the selected seed's numeric IDs.
+    const { createConnection } = await import("mysql2/promise");
+    const connection = await createConnection(config.db);
+    try {
+      const [rows] = await connection.query<import("mysql2").RowDataPacket[]>(
+        "SELECT u.id FROM users u JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? LIMIT 1",
+        [account, stationCode]
+      );
+      if (!rows[0]) throw new Error(`Wallet lock user not found: ${account}/${stationCode}`);
+      return Number(rows[0].id);
+    } finally {
+      await connection.end();
     }
   }
 
