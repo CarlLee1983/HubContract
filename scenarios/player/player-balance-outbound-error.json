@@ -1,0 +1,66 @@
+{
+  "id": "player-balance-outbound-error",
+  "name": "Player Balance: Outbound call returns a business error",
+  "description": "Issue #8: sbo's findAccount() outbound call responds with a non-zero error.id. Sbo::findAccount() throws Exception(error.msg), which PlayerController::balance() catches and turns into a 200 with that message as the body.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/player/balance"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sbo_wallet",
+        "sql": "SELECT id, balance, freeze, player_id FROM wallets WHERE platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "sbo_player",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3",
+        "params": []
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/web-root/restricted/player/get-player-balance.aspx",
+          "body": {
+            "Username": "synthetic_user_01DEMO_STATIONp3"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "error": {
+                "id": 9999,
+                "msg": "Insufficient permission"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}

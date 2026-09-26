@@ -78,7 +78,7 @@ async function main() {
     );
   }
 
-  const runner = new ContractRunner({ baseUrl: targetUrl });
+  const runner = new ContractRunner({ baseUrl: targetUrl, stubUrl: config.stub.baseUrl });
   const startedAt = new Date();
   let runOutcomes: Awaited<ReturnType<typeof runScenarios>> = [];
 

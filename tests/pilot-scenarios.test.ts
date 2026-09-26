@@ -10,6 +10,7 @@ import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #5: Pilot Scenarios Contract Suite", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

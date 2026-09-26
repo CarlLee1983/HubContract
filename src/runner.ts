@@ -3,10 +3,12 @@ import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signa
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
 import { RedisProbeService } from "./probe/redisProbe";
-import type { RedisKeyRecord } from "./schema/scenario";
+import type { RedisKeyRecord, StubRequestRecord } from "./schema/scenario";
+import { StubClient } from "./stub/client";
 import {
   compareInboundResponse,
   compareDbState,
+  compareOutboundCalls,
   compareRedisState,
   type Difference,
 } from "./comparator/comparator";
@@ -26,6 +28,14 @@ export interface RunnerOptions {
     password?: string;
     prefix?: string;
   };
+  /**
+   * Base URL of the provider stub's control API (Issue #8). Required, not
+   * optional — every scenario (not just ones with a `stub`) is checked for
+   * undefined outbound calls (code review Standards #1/#2 on PR #1), so the
+   * stub is a load-bearing dependency of the recording environment, not an
+   * opt-in one.
+   */
+  stubUrl: string;
   fixedTimestamp?: number;
 }
 
@@ -140,18 +150,49 @@ interface CapturedRun {
   };
   dbAfter: Record<string, unknown>;
   redisAfter: RedisCapture;
+  outboundCalls: StubRequestRecord[];
+  unmatchedOutboundCount: number;
+}
+
+// Fallback only — a scenario that declares `stub` states its own
+// outboundHeaderAllowlist explicitly (schema default: content-type,
+// authorization; code review Standards #3/Story 26). This constant only
+// applies to a scenario with no `stub` at all, which can still end up with
+// captured outbound calls (an undeclared call the stub had no script for).
+const DEFAULT_OUTBOUND_HEADER_ALLOWLIST = ["content-type", "authorization"];
+
+function filterOutboundHeaders(
+  headers: Record<string, string>,
+  allowlist: string[]
+): Record<string, string> {
+  const filtered: Record<string, string> = {};
+  for (const key of allowlist) {
+    if (headers[key] !== undefined) filtered[key] = headers[key];
+  }
+  return filtered;
 }
 
 export class ContractRunner {
   private baseUrl: string;
   private dbProbe: MariaDbProbe;
   private redisProbe: RedisProbeService;
+  private stubClient: StubClient;
   private fixedTimestamp?: number;
 
   constructor(options: RunnerOptions) {
+    if (!options.stubUrl) {
+      // Code review Standards #1/#2 on PR #1: the stub is a required
+      // dependency of every scenario now (undefined-outbound-call detection
+      // isn't opt-in), so a missing stubUrl must fail the runner outright
+      // instead of silently skipping that check.
+      throw new Error(
+        "ContractRunner requires options.stubUrl — the provider stub is a required dependency of the recording environment (Issue #8), not optional."
+      );
+    }
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.dbProbe = new MariaDbProbe(options.dbConfig);
     this.redisProbe = new RedisProbeService(options.redisConfig);
+    this.stubClient = new StubClient(options.stubUrl);
     this.fixedTimestamp = options.fixedTimestamp;
   }
 
@@ -235,8 +276,29 @@ export class ContractRunner {
     const redisBeforeRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisBefore = this.normalizeRedisCapture(redisBeforeRaw, scenario);
 
+    // Issue #8 / code review Standards #1: reset the stub and load this
+    // scenario's script (or an empty one) fresh before every run (record and
+    // verify alike, whether or not the scenario declares a `stub`) — every
+    // scenario is checked for undefined outbound calls, and a leftover
+    // recorded call or matcher from a previous scenario/run must never leak
+    // into this one.
+    await this.stubClient.reset();
+    await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
+
     // Layer 1: Execute inbound request
     const { response } = await this.executeRequest(scenario);
+
+    // Layer 3: read back what the target under test actually sent to the stub
+    const { requests, unmatchedCount } = await this.stubClient.getRequests();
+    const unmatchedOutboundCount = unmatchedCount;
+    const allowlist = scenario.stub?.outboundHeaderAllowlist ?? DEFAULT_OUTBOUND_HEADER_ALLOWLIST;
+    const normalized = applyNormalizers({ outbound: requests }, scenario.normalizers, {
+      fixedTimestamp: this.fixedTimestamp,
+    }).outbound as StubRequestRecord[];
+    const outboundCalls: StubRequestRecord[] = normalized.map((call) => ({
+      ...call,
+      headers: filterOutboundHeaders(call.headers, allowlist),
+    }));
 
     // Layer 2: DB Probe after
     const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
@@ -244,16 +306,25 @@ export class ContractRunner {
     const redisAfterRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisAfter = this.normalizeRedisCapture(redisAfterRaw, scenario);
 
-    return { dbBefore, redisBefore, response, dbAfter, redisAfter };
+    return { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };
   }
 
   /**
    * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
    */
   async record(scenario: ScenarioDefinition): Promise<Fixture> {
-    const { dbBefore, redisBefore, response, dbAfter, redisAfter } = await this.captureRun(
-      scenario
-    );
+    const { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+      await this.captureRun(scenario);
+
+    // Issue #8/Story 17: a golden fixture must never encode "Legacy hit an
+    // outbound call this scenario's stub script never defined a matcher
+    // for" as if it were the intended contract — fail loudly instead so the
+    // scenario author completes the script.
+    if (unmatchedOutboundCount) {
+      throw new Error(
+        `Scenario "${scenario.id}": ${unmatchedOutboundCount} outbound call(s) matched no stub script matcher. Add a matcher before recording.`
+      );
+    }
 
     const hasRedis = scenario.redisProbe && scenario.redisProbe.keys.length > 0;
 
@@ -271,6 +342,10 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
+      // Only recorded when there actually were outbound calls — a scenario
+      // with no `stub` (and no surprise undefined calls, or record() above
+      // would already have thrown) has nothing structural to compare here.
+      layer3_outboundCalls: outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
       layer4_sharedResources: hasRedis
         ? {
             redis: {
@@ -292,9 +367,27 @@ export class ContractRunner {
   async verify(scenario: ScenarioDefinition, golden: Fixture): Promise<VerifyResult> {
     const differences: Difference[] = [];
 
-    const { dbBefore, redisBefore, response, dbAfter, redisAfter } = await this.captureRun(
-      scenario
-    );
+    const { dbBefore, redisBefore, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+      await this.captureRun(scenario);
+
+    // Issue #8/Story 17: an outbound call the stub script doesn't define a
+    // matcher for fails the scenario outright, regardless of what the golden
+    // fixture says — this is a harness/script gap, not something a diff
+    // against a (necessarily incomplete) golden could ever catch.
+    if (unmatchedOutboundCount) {
+      differences.push({
+        layer: "outbound_calls",
+        path: "unmatched",
+        expected: 0,
+        actual: unmatchedOutboundCount,
+        message: `${unmatchedOutboundCount} outbound call(s) matched no stub script matcher`,
+      });
+    }
+
+    // Compare Layer 3: Outbound Calls
+    if (golden.layer3_outboundCalls) {
+      differences.push(...compareOutboundCalls(outboundCalls, golden.layer3_outboundCalls.calls));
+    }
 
     // Compare Layer 1: Inbound Response
     const responseDiffs = compareInboundResponse(

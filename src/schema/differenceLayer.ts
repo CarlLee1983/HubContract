@@ -6,6 +6,6 @@ import { z } from "zod";
  * and report.ts's ReportDifferenceSchema so the two can never drift apart
  * (code review #7 on Issue #12).
  */
-export const DifferenceLayerSchema = z.enum(["inbound_response", "db_state", "shared_resources"]);
+export const DifferenceLayerSchema = z.enum(["inbound_response", "db_state", "outbound_calls", "shared_resources"]);
 
 export type DifferenceLayer = z.infer<typeof DifferenceLayerSchema>;
