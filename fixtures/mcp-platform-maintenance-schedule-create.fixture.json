@@ -1,0 +1,95 @@
+{
+  "scenarioId": "mcp-platform-maintenance-schedule-create",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "ok": true,
+      "data": {
+        "timezone": "Asia/Taipei",
+        "schedule": {
+          "id": 900000020,
+          "platform": "cq9",
+          "weekday": 2,
+          "weekday_label": "週二",
+          "start_time": "11:30",
+          "duration_minutes": 90,
+          "lead_minutes": 5,
+          "trail_minutes": 10,
+          "reason": "Synthetic Tuesday maintenance",
+          "enabled": true,
+          "effective_from": "2025-01-01",
+          "effective_until": "2030-12-31",
+          "status": "ACTIVE"
+        }
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "schedules": [
+        {
+          "id": 900000019,
+          "platform": "cq9",
+          "weekday": 1,
+          "start_time": "10:00:00",
+          "duration_minutes": 60,
+          "lead_minutes": 0,
+          "trail_minutes": 0,
+          "reason": "Synthetic MCP recurring maintenance",
+          "enabled": 1,
+          "effective_from": null,
+          "effective_until": null,
+          "deleted": 0
+        }
+      ],
+      "activity_log": []
+    },
+    "after": {
+      "schedules": [
+        {
+          "id": 900000019,
+          "platform": "cq9",
+          "weekday": 1,
+          "start_time": "10:00:00",
+          "duration_minutes": 60,
+          "lead_minutes": 0,
+          "trail_minutes": 0,
+          "reason": "Synthetic MCP recurring maintenance",
+          "enabled": 1,
+          "effective_from": null,
+          "effective_until": null,
+          "deleted": 0
+        },
+        {
+          "id": 900000020,
+          "platform": "cq9",
+          "weekday": 2,
+          "start_time": "11:30:00",
+          "duration_minutes": 90,
+          "lead_minutes": 5,
+          "trail_minutes": 10,
+          "reason": "Synthetic Tuesday maintenance",
+          "enabled": 1,
+          "effective_from": "2025-01-01",
+          "effective_until": "2030-12-31",
+          "deleted": 0
+        }
+      ],
+      "activity_log": [
+        {
+          "log_name": "system",
+          "description": "created",
+          "subject_type": "App\\Models\\PlatformMaintenanceSchedule",
+          "event": "created",
+          "subject_id": 900000020,
+          "platform": "cq9",
+          "enabled": "1"
+        }
+      ]
+    }
+  }
+}

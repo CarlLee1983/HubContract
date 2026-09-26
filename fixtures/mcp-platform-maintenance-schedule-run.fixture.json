@@ -1,0 +1,63 @@
+{
+  "scenarioId": "mcp-platform-maintenance-schedule-run",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "ok": true,
+      "data": {
+        "at": "2026-09-28T10:30:00+08:00",
+        "dry_run": false,
+        "actions": [
+          {
+            "rule_id": 900000019,
+            "action": "set",
+            "ttl": 1800,
+            "reason": "Synthetic MCP recurring maintenance",
+            "platform": "cq9"
+          }
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:cq9": null,
+        "platform-maintenance:recurring-applied:v1:cq9:900000019:2026-09-28": null
+      },
+      "after": {
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Synthetic MCP recurring maintenance",
+            "source": "recurring",
+            "set_by": "schedule:900000019",
+            "set_at": "<ISO8601+08:00>",
+            "until": "<ISO8601+08:00>",
+            "estimated": true
+          },
+          "ttl": 1800,
+          "ttlTolerance": 30
+        },
+        "platform-maintenance:recurring-applied:v1:cq9:900000019:2026-09-28": {
+          "key": "platform-maintenance:recurring-applied:v1:cq9:900000019:2026-09-28",
+          "db": 1,
+          "type": "string",
+          "value": 1,
+          "ttl": 1800,
+          "ttlTolerance": 30
+        }
+      }
+    }
+  }
+}

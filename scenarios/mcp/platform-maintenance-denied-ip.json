@@ -1,0 +1,51 @@
+{
+  "id": "mcp-platform-maintenance-denied-ip",
+  "name": "MCP Platform Maintenance: Denied IP Rejected",
+  "description": "DELETE with a valid secret but synthetic unallowed CF-Connecting-IP 203.0.113.77 must return 403 and preserve the pre-existing Redis maintenance flag. This tests the IP perceived by Legacy behind its trusted proxy; it does not test the network source address.",
+  "route": {
+    "method": "DELETE",
+    "path": "/mcp/platform-maintenance/cq9"
+  },
+  "tags": [
+    "mcp",
+    "platform-maintenance",
+    "error"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json",
+      "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c",
+      "CF-Connecting-IP": "203.0.113.77"
+    }
+  },
+  "preconditions": {
+    "mcpMaintenance": {
+      "platform": "cq9",
+      "duration": "1h",
+      "reason": "Contract testing maintenance flag"
+    }
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    }
+  ]
+}

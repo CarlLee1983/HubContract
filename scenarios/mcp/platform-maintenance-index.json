@@ -1,12 +1,15 @@
 {
-  "id": "mcp-platform-maintenance-clear",
-  "name": "MCP Platform Maintenance: Clear",
-  "description": "Verify DELETE /mcp/platform-maintenance/{platform} clears platform maintenance flag from Redis. set_at/until (both in the response body and in the pre-clear Redis value) are only checked for +08:00 ISO8601 shape (via normalizer regex_replace), not checked against each other or against `duration` (e.g. until - set_at == duration is NOT verified here).",
+  "id": "mcp-platform-maintenance-index",
+  "name": "MCP Platform Maintenance: Index",
+  "description": "Verify authenticated GET /mcp/platform-maintenance lists the pre-existing cq9 maintenance flag, reports Redis availability, and leaves the flag unchanged.",
   "route": {
-    "method": "DELETE",
-    "path": "/mcp/platform-maintenance/cq9"
+    "method": "GET",
+    "path": "/mcp/platform-maintenance"
   },
-  "tags": ["mcp", "platform-maintenance"],
+  "tags": [
+    "mcp",
+    "platform-maintenance"
+  ],
   "request": {
     "headers": {
       "Host": "localhost:8080",
@@ -25,25 +28,26 @@
     "keys": [
       {
         "pattern": "platform-maintenance:v1:cq9",
-        "db": 1
+        "db": 1,
+        "ttlToleranceSeconds": 30
       }
     ]
   },
   "normalizers": [
     {
-      "target": "response.body.data.previous.set_at",
+      "target": "response.body.data.items.cq9.set_at",
       "type": "regex_replace",
       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
       "replacement": "<ISO8601+08:00>"
     },
     {
-      "target": "response.body.data.previous.until",
+      "target": "response.body.data.items.cq9.until",
       "type": "regex_replace",
       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
       "replacement": "<ISO8601+08:00>"
     },
     {
-      "target": "response.body.data.remaining_seconds",
+      "target": "response.body.data.items.cq9.remaining_seconds",
       "type": "regex_replace",
       "pattern": "^.*$",
       "replacement": "<NORMALIZED_SECONDS>"
