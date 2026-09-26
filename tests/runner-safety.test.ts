@@ -25,6 +25,37 @@ describe("ContractRunner batch safety", () => {
     }
   });
 
+  it("records an explicit Redis TTL anchor but verifies the observed TTL range", async () => {
+    const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
+    const internal = runner as any;
+    const key = "game_to_main_wallet_sync:42_TWD";
+    const record = (ttl: number) => ({ key, db: 1, type: "string", value: "lock-owner", ttl, ttlTolerance: 10 });
+    const capture = (ttl: number) => ({
+      dbBefore: {}, dbAfter: {}, redisBefore: { [key]: record(29) }, redisAfter: { [key]: record(ttl) },
+      mongoNewDocuments: {}, outboundCalls: [], unmatchedOutboundCount: 0,
+      response: { statusCode: 200, statusText: "OK", headers: { "content-type": "application/json" }, body: {} },
+    });
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "ttl-anchor", name: "TTL anchor", route: { method: "GET", path: "/status" }, request: {},
+      redisProbe: { keys: [{ pattern: "game_to_main_wallet_sync:*", db: 1, ttlExpectedSeconds: 30, ttlToleranceSeconds: 10 }] },
+    });
+    try {
+      internal.captureRun = async () => capture(24);
+      const fixture = await runner.record(scenario);
+      expect(fixture.layer4_sharedResources?.redis?.before[key]?.ttl).toBe(30);
+      expect(fixture.layer4_sharedResources?.redis?.after[key]?.ttl).toBe(30);
+      expect(fixture.layer4_sharedResources?.redis?.after[key]?.value).toBe("lock-owner");
+      internal.captureRun = async () => capture(25);
+      expect(await runner.record(scenario)).toEqual(fixture);
+      expect((await runner.verify(scenario, fixture)).passed).toBe(true);
+      internal.captureRun = async () => capture(19);
+      expect((await runner.verify(scenario, fixture)).differences.some((difference) => difference.path.endsWith(".ttl"))).toBe(true);
+      await expect(runner.record(scenario)).rejects.toThrow("outside the declared");
+    } finally {
+      await runner.close();
+    }
+  });
+
   it("passes the probe DB configuration to schedule setup", async () => {
     const dbConfig = { host: "127.0.0.1", port: 33067, database: "isolated" };
     let received: unknown;
