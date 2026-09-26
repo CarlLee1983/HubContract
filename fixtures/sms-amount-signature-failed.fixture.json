@@ -1,5 +1,5 @@
 {
-  "scenarioId": "sms-index-validation",
+  "scenarioId": "sms-amount-signature-failed",
   "layer1_inboundResponse": {
     "statusCode": 422,
     "statusText": "Unprocessable Content",
@@ -7,13 +7,10 @@
       "content-type": "application/json"
     },
     "body": {
-      "message": "站點代碼為必填項 (and 1 more error)",
+      "message": "sign 驗證失敗",
       "errors": {
-        "station_code": [
-          "站點代碼為必填項"
-        ],
         "sign": [
-          "缺少必要的 station_code 參數"
+          "sign 驗證失敗"
         ]
       }
     }

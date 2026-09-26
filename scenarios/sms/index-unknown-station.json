@@ -1,7 +1,7 @@
 {
-  "id": "sms-index-validation",
-  "name": "SMS list rejects missing station code",
-  "description": "A missing station_code skips provider boot and reaches FormRequest, recording the 422 validation envelope.",
+  "id": "sms-index-unknown-station",
+  "name": "SMS index unknown station",
+  "description": "Records provider-boot 500 for an unknown station, before signature validation.",
   "route": {
     "method": "GET",
     "path": "/v1/sms"
@@ -9,7 +9,7 @@
   "tags": [
     "sms",
     "index",
-    "validation"
+    "unknown-station"
   ],
   "request": {
     "headers": {
@@ -17,10 +17,9 @@
       "Accept": "application/json"
     },
     "query": {
-      "timestamp": 0
-    },
-    "signWith": {
-      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+      "station_code": "NON_EXISTENT_STATION",
+      "timestamp": 0,
+      "sign": "dummy_sign_for_unknown_station"
     }
   },
   "normalizers": [

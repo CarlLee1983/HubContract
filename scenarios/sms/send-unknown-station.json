@@ -1,0 +1,45 @@
+{
+  "id": "sms-send-unknown-station",
+  "name": "SMS send unknown station",
+  "description": "Records provider-boot 500 for an unknown station, before signature validation.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/send"
+  },
+  "tags": [
+    "sms",
+    "send",
+    "unknown-station"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "NON_EXISTENT_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1,
+      "phone": "+84901234567",
+      "body": "Synthetic code 1234",
+      "currency": "TWD",
+      "sign": "dummy_sign_for_unknown_station"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

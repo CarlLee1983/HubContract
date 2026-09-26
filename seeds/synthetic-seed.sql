@@ -93,6 +93,7 @@ INSERT INTO `sms` (`id`, `station_id`, `code`, `name`, `supplier`, `active`, `am
 (1, 1, '84', 'Synthetic Chuanx', 'chuanx', 1, 5, '{"url":"http://mock-provider:8081","appkey":"synthetic_appkey","appcode":"synthetic_appcode","appsecret":"synthetic_appsecret"}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
 (2, 1, '84', 'Synthetic Inactive Chuanx', 'chuanx', 0, 5, '{"url":"http://mock-provider:8081","appkey":"synthetic_appkey","appcode":"synthetic_appcode","appsecret":"synthetic_appsecret"}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
 (3, 1, '63', 'Synthetic Asmsc', 'asmsc', 1, 0, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
-(4, 1, '63', 'Synthetic Send Asmsc', 'asmsc', 1, 5, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
+(4, 1, '63', 'Synthetic Send Asmsc', 'asmsc', 1, 5, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
+(5, 1, '63', 'Synthetic AboSend', 'abo_send', 1, 5, '{"url":"http://mock-provider:8081","orgCode":"synthetic_org_code","MD5":"synthetic_md5_key","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
 
 SET FOREIGN_KEY_CHECKS = 1;

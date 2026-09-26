@@ -2,27 +2,43 @@ import { afterAll, beforeEach, describe, expect, it } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
 import { ContractRunner } from "../src/runner";
+import { LegacyPreconditionAdapter } from "../src/target/legacyPreconditions";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
 import { FixtureSchema, ScenarioDefinitionSchema } from "../src/schema/scenario";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
 const names = [
+  "amount-abo-send-provider-failure",
+  "amount-abo-send-success",
+  "amount-asmsc-provider-failure",
+  "amount-asmsc-success",
   "amount-provider-failure",
+  "amount-signature-failed",
   "amount-success",
-  "index-validation",
+  "amount-unknown-station",
+  "amount-validation",
   "index",
+  "index-signature-failed",
+  "index-unknown-station",
+  "index-validation",
   "send-asmsc-sender-id",
   "send-empty-balance",
   "send-inactive",
   "send-locked",
+  "send-signature-failed",
+  "send-unknown-station",
+  "send-validation",
   "send-without-currency",
   "update-invalid-settings",
   "update-mass-assignment",
+  "update-signature-failed",
+  "update-unknown-station",
+  "update-validation",
 ];
 
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #18: SMS Legacy contract", () => {
-  const runner = new ContractRunner({ baseUrl: config.baseUrl, stubUrl: config.stub.baseUrl });
+  const runner = new ContractRunner({ baseUrl: config.baseUrl, stubUrl: config.stub.baseUrl, preconditionAdapter: new LegacyPreconditionAdapter() });
   beforeEach(resetEnvironment, config.resetTimeoutMs + 10000);
   afterAll(() => runner.close());
 
@@ -53,8 +69,17 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #18: SMS Legacy contract", (
         expect(fixture.layer1_inboundResponse.body.message).toContain("Unable to resend SMS");
         expect(fixture.layer3_outboundCalls?.calls ?? []).toEqual([]);
       }
-      if (name === "amount-provider-failure") {
+      if (name.endsWith("validation") || name.endsWith("signature-failed")) {
+        expect(fixture.layer1_inboundResponse.statusCode).toBe(422);
+      }
+      if (name.endsWith("unknown-station")) {
+        expect(fixture.layer1_inboundResponse.statusCode).toBe(500);
+      }
+      if (name === "amount-provider-failure" || name.endsWith("provider-failure")) {
         expect(fixture.layer1_inboundResponse.body.data.amount).toBe(0);
+      }
+      if (name === "amount-asmsc-success" || name === "amount-abo-send-success") {
+        expect(fixture.layer1_inboundResponse.body.data.amount).toBe(9);
       }
       if (name === "amount-success") {
         expect(fixture.layer1_inboundResponse.body.data.amount).toBe(17);

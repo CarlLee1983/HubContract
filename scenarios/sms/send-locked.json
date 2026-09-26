@@ -32,18 +32,18 @@
     {
       "target": "request.body.timestamp",
       "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
     }
   ],
-  "redisSetup": {
-    "keys": [
-      {
-        "key": "stationhublegacy_cache_:sms_901234567",
-        "db": 1,
-        "value": "synthetic_other_lock_owner",
-        "ttlSeconds": 10
-      }
-    ]
-  },
   "dbProbe": {
     "queries": [
       {
@@ -57,5 +57,10 @@
         "params": []
       }
     ]
+  },
+  "preconditions": {
+    "smsLock": {
+      "nationalNumber": "901234567"
+    }
   }
 }

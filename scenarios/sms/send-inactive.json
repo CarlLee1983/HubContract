@@ -32,6 +32,16 @@
     {
       "target": "request.body.timestamp",
       "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
     }
   ],
   "dbProbe": {

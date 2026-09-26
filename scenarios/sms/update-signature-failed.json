@@ -1,7 +1,7 @@
 {
-  "id": "sms-update-invalid-settings",
-  "name": "SMS update rejects non-JSON settings",
-  "description": "Records settings.json validation error.",
+  "id": "sms-update-signature-failed",
+  "name": "SMS update signature failed",
+  "description": "Records the 422 signature validation error for a known station.",
   "route": {
     "method": "POST",
     "path": "/v1/sms"
@@ -9,8 +9,7 @@
   "tags": [
     "sms",
     "update",
-    "invalid",
-    "settings"
+    "signature-failed"
   ],
   "request": {
     "headers": {
@@ -21,10 +20,8 @@
       "station_code": "DEMO_STATION",
       "timestamp": 0,
       "hub_sms_id": 1,
-      "settings": "not-json"
-    },
-    "signWith": {
-      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+      "settings": "{\"url\":\"http://mock-provider:8081\"}",
+      "sign": "invalid_signature_hex_value_12345"
     }
   },
   "normalizers": [
@@ -42,14 +39,5 @@
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
     }
-  ],
-  "dbProbe": {
-    "queries": [
-      {
-        "name": "sms",
-        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
-        "params": []
-      }
-    ]
-  }
+  ]
 }

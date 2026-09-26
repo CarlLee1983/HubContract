@@ -1,7 +1,7 @@
 {
-  "id": "sms-amount-success",
-  "name": "SMS amount reads live Chuanx supplier balance",
-  "description": "The amount response comes from the stub, not sms.amount.",
+  "id": "sms-amount-asmsc-success",
+  "name": "SMS amount asmsc success",
+  "description": "Records asmsc live supplier amount response; smsCost=2, successful balance 19 converts to 9 messages. Supplier failure returns zero.",
   "route": {
     "method": "POST",
     "path": "/v1/sms/amount"
@@ -9,6 +9,7 @@
   "tags": [
     "sms",
     "amount",
+    "asmsc",
     "success"
   ],
   "request": {
@@ -19,7 +20,7 @@
     "body": {
       "station_code": "DEMO_STATION",
       "timestamp": 0,
-      "hub_sms_id": 1
+      "hub_sms_id": 4
     },
     "signWith": {
       "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
@@ -54,12 +55,13 @@
     "script": {
       "matchers": [
         {
-          "method": "POST",
-          "path": "/sms/balance/v1",
+          "method": "GET",
+          "path": "/api/CheckBalance",
           "response": {
             "status": 200,
             "body": {
-              "balance": 17
+              "Message": "OK",
+              "BalanceAmount": 19
             }
           }
         }

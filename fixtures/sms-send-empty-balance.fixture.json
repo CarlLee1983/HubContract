@@ -52,6 +52,16 @@
           "active": 1,
           "amount": 5,
           "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 5,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic AboSend",
+          "supplier": "abo_send",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"orgCode\":\"synthetic_org_code\",\"MD5\":\"synthetic_md5_key\",\"smsCost\":2}"
         }
       ],
       "sms_logs": []
@@ -97,6 +107,16 @@
           "active": 1,
           "amount": 5,
           "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 5,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic AboSend",
+          "supplier": "abo_send",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"orgCode\":\"synthetic_org_code\",\"MD5\":\"synthetic_md5_key\",\"smsCost\":2}"
         }
       ],
       "sms_logs": []

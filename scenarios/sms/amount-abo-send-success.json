@@ -1,7 +1,7 @@
 {
-  "id": "sms-amount-success",
-  "name": "SMS amount reads live Chuanx supplier balance",
-  "description": "The amount response comes from the stub, not sms.amount.",
+  "id": "sms-amount-abo-send-success",
+  "name": "SMS amount abo-send success",
+  "description": "Records abo-send live supplier amount response; smsCost=2, successful balance 19 converts to 9 messages. Supplier failure returns zero.",
   "route": {
     "method": "POST",
     "path": "/v1/sms/amount"
@@ -9,6 +9,7 @@
   "tags": [
     "sms",
     "amount",
+    "abo-send",
     "success"
   ],
   "request": {
@@ -19,7 +20,7 @@
     "body": {
       "station_code": "DEMO_STATION",
       "timestamp": 0,
-      "hub_sms_id": 1
+      "hub_sms_id": 5
     },
     "signWith": {
       "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
@@ -39,6 +40,18 @@
       "target": "response.body.trace",
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
+    },
+    {
+      "target": "outbound.0.body.rand",
+      "type": "regex_replace",
+      "pattern": "^\\d{6}$",
+      "replacement": "<SIX_DIGITS>"
+    },
+    {
+      "target": "outbound.0.body.sign",
+      "type": "regex_replace",
+      "pattern": "^[A-F0-9]{32}$",
+      "replacement": "<MD5_HEX>"
     }
   ],
   "dbProbe": {
@@ -55,12 +68,18 @@
       "matchers": [
         {
           "method": "POST",
-          "path": "/sms/balance/v1",
+          "path": "/api/viewOrgBalance",
           "response": {
             "status": 200,
             "body": {
-              "balance": 17
+              "code": 200,
+              "data": {
+                "balance": 19
+              }
             }
+          },
+          "body": {
+            "orgCode": "synthetic_org_code"
           }
         }
       ]

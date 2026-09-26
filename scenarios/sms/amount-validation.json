@@ -1,7 +1,7 @@
 {
-  "id": "sms-amount-success",
-  "name": "SMS amount reads live Chuanx supplier balance",
-  "description": "The amount response comes from the stub, not sms.amount.",
+  "id": "sms-amount-validation",
+  "name": "SMS amount validation",
+  "description": "Records route-specific FormRequest 422 validation envelope with a valid station and generated signature.",
   "route": {
     "method": "POST",
     "path": "/v1/sms/amount"
@@ -9,7 +9,7 @@
   "tags": [
     "sms",
     "amount",
-    "success"
+    "validation"
   ],
   "request": {
     "headers": {
@@ -18,8 +18,7 @@
     },
     "body": {
       "station_code": "DEMO_STATION",
-      "timestamp": 0,
-      "hub_sms_id": 1
+      "timestamp": 0
     },
     "signWith": {
       "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
@@ -40,30 +39,5 @@
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
     }
-  ],
-  "dbProbe": {
-    "queries": [
-      {
-        "name": "sms",
-        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
-        "params": []
-      }
-    ]
-  },
-  "stub": {
-    "script": {
-      "matchers": [
-        {
-          "method": "POST",
-          "path": "/sms/balance/v1",
-          "response": {
-            "status": 200,
-            "body": {
-              "balance": 17
-            }
-          }
-        }
-      ]
-    }
-  }
+  ]
 }
