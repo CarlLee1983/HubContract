@@ -94,6 +94,9 @@ async function main() {
   if (scenariosToRun.some((scenario) => scenario.trigger) && !targetAdapter) {
     throw new Error(`Target ${targetUrl} needs a schedule target adapter`);
   }
+  if (scenariosToRun.some((scenario) => scenario.action) && values.adapter !== "legacy") {
+    throw new Error("Internal action scenarios require --adapter legacy for the local Legacy target");
+  }
 
   const localLegacyUrl = `http://localhost:${process.env.LEGACY_PORT || 8080}`;
   const isLocalLegacy = targetUrl.replace(/\/$/, "") === localLegacyUrl;

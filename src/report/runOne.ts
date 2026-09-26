@@ -32,7 +32,9 @@ export interface OutcomeContext {
 export function outcomeContext(scenario: ScenarioDefinition): OutcomeContext {
   return {
     id: scenario.id,
-    route: scenario.route ?? { method: "SCHEDULE", path: scenario.trigger!.name },
+    route: scenario.route ?? (scenario.trigger
+      ? { method: "SCHEDULE", path: scenario.trigger.name }
+      : { method: "ACTION", path: scenario.action!.name }),
     tags: scenario.tags,
   };
 }

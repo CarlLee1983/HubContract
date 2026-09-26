@@ -58,6 +58,10 @@ bun run record scenarios/wallet/check-transaction-deposit-hit.json
 # 驗證單一情境是否符合契約（可對 Legacy 或 StationHubNext 執行）
 bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 
+# 內部動作：情境只寫 Platform／Game Type 與目標 active；Legacy adapter 負責後台登入
+bun run verify scenarios/internal/platform-game-type-deactivate.json --adapter legacy
+bun run record scenarios/internal/platform-game-type-deactivate.json --adapter legacy
+
 # 入金後等待 wallet sync／HTTP logging，並比對新增的 httplog_deposit
 bun run verify scenarios/wallet/deposit-queued-sync.json
 
@@ -71,6 +75,8 @@ bun run verify --route /v1/wallet/check-transaction --tag deposit --tag withdraw
 # 額外輸出機器可讀的 JSON 報告（見下方「JSON 報告格式」），可接進 StationHubNext CI 當上線閘門
 bun run verify --report-json report.json
 ```
+
+內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 
 每個情境執行前都會重置一次錄製環境（`--skip-reset` 可關閉），符合「情境彼此獨立、結果可重現」的規格；重置或情境本身丟出的任何錯誤，都只會讓那一個情境變成 `errored`，不會中斷其餘情境。情境檔本身若無法通過 schema 驗證，也不會讓整個 process 中止——會以該檔案的路徑當作 `id`，變成一筆 `errored` 報告紀錄。篩選後若沒有任何情境符合條件，CLI 會印出錯誤訊息，仍然照常輸出（空的）報告，並以非 0 結束；只要有任何情境 `failed` 或 `errored`，或整批一個情境都沒跑到，process 就以非 0 結束。
 
@@ -167,6 +173,8 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 ### 已知限制：`vendor/` 與 pinned commit 的 composer.lock 可能對不上
 
 `legacy-app` 掛載的 `vendor/`（唯讀）來自 `STATIONHUB_REPO`（預設 `../StationHub`）工作區當下 `composer install` 產生的內容，**不是**從 `docker/legacy.commit` 記錄的 `LEGACY_COMMIT` 重新裝出來的。`scripts/env-up.sh` 只驗證「工作區已提交狀態（`HEAD`）的 `composer.lock`」與「pinned commit 的 `composer.lock`」是否一致（且要求工作區沒有未提交的 `composer.lock` 修改）；如果兩者不一致，`env-up.sh` 會大聲失敗並中止。
+
+後台登入頁需要 Vite manifest；錄製環境唯讀掛載 `docker/admin-build/manifest.json` 供 Laravel 渲染登入頁。adapter 不載入前端資產，內部動作的前端畫面與 HTTP 回應不在契約內。
 
 但即使這個檢查通過，也只保證「composer.lock 內容一致」，不保證 `vendor/` 目錄本身確實是依照那份 `composer.lock` 重新 `composer install` 出來的（例如工作區手動改過 `vendor/` 裡的檔案、或裝的時候用了不同的 composer 版本／平台）。這是已知限制：目前沒有自動化機制驗證 `vendor/` 本身的內容雜湊，只驗證了它「應該」對應的 lock 檔一致。若懷疑 `vendor/` 與 pinned commit 不符，最保險的做法是在 `STATIONHUB_REPO` 對著 pinned commit 的 `composer.lock` 重新執行一次 `composer install`。
 

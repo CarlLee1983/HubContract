@@ -1,0 +1,61 @@
+{
+  "scenarioId": "platform-game-type-deactivate",
+  "layer2_dbState": {
+    "before": {
+      "platforms": [
+        {
+          "id": 2,
+          "active": 1
+        }
+      ],
+      "platform_game_type_map": [
+        {
+          "platform_id": 2,
+          "game_type_id": 1,
+          "active": 1,
+          "cost_percent": 1
+        },
+        {
+          "platform_id": 2,
+          "game_type_id": 2,
+          "active": 1,
+          "cost_percent": 2
+        }
+      ],
+      "activity_log": []
+    },
+    "after": {
+      "platforms": [
+        {
+          "id": 2,
+          "active": 1
+        }
+      ],
+      "platform_game_type_map": [
+        {
+          "platform_id": 2,
+          "game_type_id": 1,
+          "active": 0,
+          "cost_percent": 1
+        },
+        {
+          "platform_id": 2,
+          "game_type_id": 2,
+          "active": 1,
+          "cost_percent": 2
+        }
+      ],
+      "activity_log": []
+    }
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:cq9": null
+      },
+      "after": {
+        "platform-maintenance:v1:cq9": null
+      }
+    }
+  }
+}

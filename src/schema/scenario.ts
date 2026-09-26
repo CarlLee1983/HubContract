@@ -134,7 +134,18 @@ export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const ScenarioDefinitionSchema = z.object({
+export const ScenarioActionSchema = z.object({
+  name: z.literal("platformGameType.setActive"),
+  parameters: z.object({
+    platformId: z.number(),
+    platformActive: z.boolean(),
+    gameTypeId: z.number(),
+    active: z.boolean(),
+  }),
+});
+export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
+
+const ScenarioDefinitionBaseSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
@@ -143,6 +154,7 @@ export const ScenarioDefinitionSchema = z.object({
     path: z.string().startsWith("/"),
   }).optional(),
   trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
+  action: ScenarioActionSchema.optional(),
   // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
   // "deposit"). Optional so pre-existing scenario files without tags stay valid.
   tags: z.array(z.string()).default([]),
@@ -155,7 +167,7 @@ export const ScenarioDefinitionSchema = z.object({
         secretKey: z.string().min(1),
       })
       .optional(),
-  }).default({ headers: {} }),
+  }).optional(),
   setup: z.object({ statements: z.array(DbProbeQuerySchema).min(1) }).optional(),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
@@ -178,9 +190,28 @@ export const ScenarioDefinitionSchema = z.object({
     })
     .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
-}).refine((value) => Boolean(value.route) !== Boolean(value.trigger), {
-  message: "Declare exactly one of route or trigger",
 });
+
+export const ScenarioDefinitionSchema = ScenarioDefinitionBaseSchema.refine((value) =>
+  [value.route, value.trigger, value.action].filter(Boolean).length === 1 &&
+  (!value.action || (Boolean(value.dbProbe?.queries.length) && !value.request && !value.setup)), {
+  message: "Declare exactly one of route, trigger or action",
+});
+export const InboundScenarioSchema = ScenarioDefinitionBaseSchema.extend({
+  route: z.object({ method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]), path: z.string().startsWith("/") }),
+  trigger: z.never().optional(),
+  action: z.never().optional(),
+  request: ScenarioDefinitionBaseSchema.shape.request.unwrap().default({ headers: {} }),
+});
+export const ActionScenarioSchema = ScenarioDefinitionBaseSchema.extend({
+  route: z.never().optional(),
+  trigger: z.never().optional(),
+  action: ScenarioActionSchema,
+  request: z.never().optional(),
+  dbProbe: DbProbeSchema.extend({ queries: z.array(DbProbeQuerySchema).min(1) }),
+});
+export type InboundScenario = z.infer<typeof InboundScenarioSchema>;
+export type ActionScenario = z.infer<typeof ActionScenarioSchema>;
 
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
 
@@ -234,6 +265,22 @@ export const FixtureSchema = z.object({
 
 export type Fixture = z.infer<typeof FixtureSchema>;
 
+export const InboundFixtureSchema = FixtureSchema.extend({
+  layer1_inboundResponse: z.object({
+    statusCode: z.number(), statusText: z.string(),
+    headers: z.record(z.string(), z.string()), body: z.any(),
+  }),
+});
+export const ActionFixtureSchema = FixtureSchema.extend({
+  layer1_inboundResponse: z.never().optional(),
+  layer2_dbState: z.object({
+    before: z.record(z.string(), z.any()),
+    after: z.record(z.string(), z.any()),
+  }),
+});
+export type InboundFixture = z.infer<typeof InboundFixtureSchema>;
+export type ActionFixture = z.infer<typeof ActionFixtureSchema>;
+
 export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixture: Fixture): void {
   if (fixture.scenarioId !== scenario.id) {
     throw new Error(`Fixture scenarioId ${fixture.scenarioId} does not match ${scenario.id}`);
@@ -249,5 +296,11 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   }
   if (scenario.trigger && !fixture.layer2_dbState) {
     throw new Error(`Schedule scenario ${scenario.id} requires layer2_dbState`);
+  }
+  if (scenario.action && fixture.layer1_inboundResponse) {
+    throw new Error(`Action scenario ${scenario.id} must not declare layer1_inboundResponse`);
+  }
+  if (scenario.action && !fixture.layer2_dbState) {
+    throw new Error(`Action scenario ${scenario.id} requires layer2_dbState`);
   }
 }

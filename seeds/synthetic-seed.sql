@@ -31,6 +31,16 @@ INSERT INTO `platforms` (`id`, `name`, `is_original`, `api_settings`, `active`, 
 -- a real vendor.
 (3, 'sbo', 1, '{"api_url":"http://mock-provider:8081","company_key":"synthetic_company_key","server_id":"synthetic-server-01","agent_id":"synthetic_agent","portfolio":"SportsBook","lang":"en"}', 1, 0, 1, 0, 1, 2, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL);
 
+TRUNCATE TABLE `game_types`;
+INSERT INTO `game_types` (`id`, `name`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'slots', 1, NOW(), NOW(), NULL),
+(2, 'live', 1, NOW(), NOW(), NULL);
+
+TRUNCATE TABLE `platform_game_type_map`;
+INSERT INTO `platform_game_type_map` (`platform_id`, `game_type_id`, `active`, `cost_percent`) VALUES
+(2, 1, 1, 1.0),
+(2, 2, 1, 2.0);
+
 -- 4. Platform Currencies
 TRUNCATE TABLE `platform_currencies`;
 INSERT INTO `platform_currencies` (`id`, `platform_id`, `currency`, `vendor_currency_code`, `source`, `remark`, `created_at`, `updated_at`) VALUES
@@ -101,7 +111,14 @@ INSERT INTO `withdrawal_records` (`id`, `no`, `trade_no`, `user_id`, `wallet_id`
 -- 9. Administers & Roles
 TRUNCATE TABLE `administers`;
 INSERT INTO `administers` (`id`, `name`, `account`, `email`, `active`, `password`, `language`, `remember_token`, `last_login_ip`, `last_login_at`, `last_login_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, '合成管理員', 'super', 'synthetic_admin@cmg.test', 1, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'en', NULL, '127.0.0.1', NOW(), NULL, NOW(), NOW(), NULL);
+(1, '合成管理員', 'super', 'synthetic_admin@cmg.test', 1, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'en_us', NULL, '127.0.0.1', NOW(), NULL, NOW(), NOW(), NULL);
+
+TRUNCATE TABLE `model_has_roles`;
+TRUNCATE TABLE `roles`;
+INSERT INTO `roles` (`id`, `name`, `guard_name`, `hierarchy`, `created_at`, `updated_at`) VALUES
+(1, 'super', 'admin', 0, NOW(), NOW());
+INSERT INTO `model_has_roles` (`role_id`, `model_type`, `model_id`) VALUES
+(1, 'App\\Models\\Administer', 1);
 
 -- 10. SMS suppliers. Every URL is the local mock-provider; credentials and
 -- phone numbers used by SMS scenarios are synthetic.

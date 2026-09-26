@@ -2,7 +2,7 @@ import { describe, expect, it, afterAll, beforeEach } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
 import { ContractRunner } from "../src/runner";
-import { ScenarioDefinitionSchema, FixtureSchema } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, InboundFixtureSchema } from "../src/schema/scenario";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
@@ -54,7 +54,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #7: MCP Platform Maintenance
       "../fixtures/mcp-platform-maintenance-set.fixture.json"
     );
     const rawFixture = JSON.parse(await fs.readFile(fixturePath, "utf-8"));
-    const golden = FixtureSchema.parse(rawFixture);
+    const golden = InboundFixtureSchema.parse(rawFixture);
 
     const result = await runner.verify(scenario, golden);
     if (!result.passed) {
@@ -78,7 +78,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #7: MCP Platform Maintenance
       "../fixtures/mcp-platform-maintenance-clear.fixture.json"
     );
     const rawFixture = JSON.parse(await fs.readFile(fixturePath, "utf-8"));
-    const golden = FixtureSchema.parse(rawFixture);
+    const golden = InboundFixtureSchema.parse(rawFixture);
 
     const result = await runner.verify(scenario, golden);
     if (!result.passed) {
@@ -107,7 +107,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #7: MCP Platform Maintenance
       "../fixtures/mcp-platform-maintenance-unauthorized.fixture.json"
     );
     const rawFixture = JSON.parse(await fs.readFile(fixturePath, "utf-8"));
-    const golden = FixtureSchema.parse(rawFixture);
+    const golden = InboundFixtureSchema.parse(rawFixture);
 
     expect(golden.layer1_inboundResponse!.statusCode).toBe(403);
     // The golden fixture itself must prove no side effect: before == after,

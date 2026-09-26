@@ -8,6 +8,7 @@ import { RedisQueueDrain, type QueueDrain } from "./probe/queueDrain";
 import type { RedisKeyRecord, StubRequestRecord } from "./schema/scenario";
 import { StubClient } from "./stub/client";
 import type { TargetAdapter } from "./target/legacyAdapter";
+export type { TargetAdapter } from "./target/legacyAdapter";
 import {
   compareInboundResponse,
   compareDbState,
@@ -75,7 +76,7 @@ export function buildHttpRequest(
   if (!scenario.route) throw new Error("HTTP request requires a route");
   // 1. Apply normalizers to request (e.g. current_timestamp)
   let rawReq = applyNormalizers(
-    { request: scenario.request },
+    { request: scenario.request ?? { headers: {} } },
     scenario.normalizers,
     normalizerOptions
   ).request;
@@ -298,7 +299,10 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
-    if (scenario.trigger && !this.targetAdapter) {
+    if (scenario.action && !this.targetAdapter?.executeAction) {
+      throw new Error(`Scenario "${scenario.id}" requires a target adapter for action "${scenario.action.name}"`);
+    }
+    if (scenario.trigger && !this.targetAdapter?.triggerSchedule) {
       throw new Error("Schedule trigger requires a target adapter");
     }
     if (scenario.setup) {
@@ -334,8 +338,10 @@ export class ContractRunner {
     // The trigger is target-neutral; the adapter owns the concrete dispatch.
     let response: CapturedRun["response"];
     try {
-      if (scenario.trigger) {
-        await this.targetAdapter!.triggerSchedule(scenario.trigger.name);
+      if (scenario.action) {
+        await this.targetAdapter!.executeAction!(scenario.action, this.baseUrl, dbBefore, this.dbConfig);
+      } else if (scenario.trigger) {
+        await this.targetAdapter!.triggerSchedule!(scenario.trigger.name);
       } else {
         response = (await this.executeRequest(scenario)).response;
       }
@@ -343,6 +349,9 @@ export class ContractRunner {
       // The target may have queued work before the connection failed. Do not
       // reset this environment for another scenario until workers are stopped.
       this.environmentSafe = false;
+      if (scenario.action) {
+        throw new Error(`Action "${scenario.action.name}" failed in scenario "${scenario.id}"`, { cause: error });
+      }
       throw error;
     }
 

@@ -75,7 +75,7 @@ services:
   legacy-app:
     image: stationhub-legacy:recording
     ports:
-      - "${LEGACY_PORT:-8080}:8080"
+      - "127.0.0.1:${LEGACY_PORT:-8080}:8080"
     volumes:
       # ./.legacy-src is a git worktree pinned to docker/legacy.commit's LEGACY_COMMIT,
       # created by scripts/env-up.sh (Issue #3). STATIONHUB_VENDOR_DIR is exported by
@@ -83,6 +83,8 @@ services:
       # env-down.sh too) since StationHub's vendor/ isn't committed to git.
       - ./.legacy-src:/var/www/html
       - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/vendor:ro
+      # Laravel's login view needs a Vite manifest; the contract does not load its UI assets.
+      - ./docker/admin-build:/var/www/html/public/build:ro
       - ./docker/.env.recording:/var/www/html/.env:ro
     environment:
       APP_TIMEZONE: Asia/Taipei
