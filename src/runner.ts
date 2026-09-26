@@ -306,10 +306,14 @@ export class ContractRunner {
       throw new Error("Schedule trigger requires a target adapter");
     }
     if (scenario.setup) {
-      if (!this.targetAdapter?.setupSchedule) {
-        throw new Error("Scenario setup requires a target adapter with setupSchedule()");
+      if (scenario.trigger) {
+        if (!this.targetAdapter?.setupSchedule) {
+          throw new Error("Schedule setup requires a target adapter with setupSchedule()");
+        }
+        await this.targetAdapter.setupSchedule(scenario.setup.statements, this.dbConfig);
+      } else {
+        await this.dbProbe.setup(scenario.setup.statements);
       }
-      await this.targetAdapter.setupSchedule(scenario.setup.statements, this.dbConfig);
     }
     // The target owns how a domain precondition is created. Apply it before
     // probes so both record and verify see the same initial state.

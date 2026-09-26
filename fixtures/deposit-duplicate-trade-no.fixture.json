@@ -37,11 +37,7 @@
         }
       ],
       "transactions": [],
-      "activity_log": [
-        {
-          "count": 0
-        }
-      ],
+      "activity_log": [],
       "remittance": []
     },
     "after": {
@@ -70,11 +66,7 @@
         }
       ],
       "transactions": [],
-      "activity_log": [
-        {
-          "count": 0
-        }
-      ],
+      "activity_log": [],
       "remittance": []
     }
   },

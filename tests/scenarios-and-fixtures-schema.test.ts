@@ -45,11 +45,18 @@ describe("Offline: scenarios/ and fixtures/ schema validation", () => {
       if (!scenario.tags.includes("funds-write")) continue;
       writing.push(scenario.id);
       expect(scenario.dbProbe?.queries.length).toBeGreaterThan(0);
+      const transactions = scenario.dbProbe?.queries.find((query) => query.name === "transactions");
+      const activityLog = scenario.dbProbe?.queries.find((query) => query.name === "activity_log");
+      expect(transactions?.sql).toContain("balance_variable");
+      expect(activityLog?.sql).toContain("event");
+      expect(activityLog?.sql).not.toContain("COUNT(");
       expect(scenario.redisProbe?.keys.length).toBeGreaterThan(0);
       expect(scenario.mongoProbe).toBeDefined();
       const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(path.join(repoRoot, "fixtures", `${scenario.id}.fixture.json`), "utf-8")));
       expect(fixture.layer1_inboundResponse).toBeDefined();
       expect(fixture.layer2_dbState).toBeDefined();
+      expect(Array.isArray(fixture.layer2_dbState?.after.transactions)).toBe(true);
+      expect(Array.isArray(fixture.layer2_dbState?.after.activity_log)).toBe(true);
       expect(fixture.layer3_outboundCalls).toBeDefined();
       expect(fixture.layer4_sharedResources?.redis).toBeDefined();
       expect(fixture.layer4_sharedResources?.mongo).toBeDefined();
