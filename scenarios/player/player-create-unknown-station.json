@@ -10,7 +10,9 @@
     "player",
     "create",
     "unknown-station",
-    "CAP-02"
+    "CAP-02",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {
