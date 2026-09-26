@@ -9,7 +9,8 @@
   "tags": [
     "player",
     "query",
-    "error"
+    "error",
+    "CAP-03"
   ],
   "request": {
     "headers": {

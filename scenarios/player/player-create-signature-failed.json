@@ -9,7 +9,8 @@
   "tags": [
     "player",
     "create",
-    "signature-failed"
+    "signature-failed",
+    "CAP-02"
   ],
   "request": {
     "headers": {

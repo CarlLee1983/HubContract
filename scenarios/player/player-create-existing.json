@@ -9,7 +9,10 @@
   "tags": [
     "player",
     "create",
-    "existing"
+    "existing",
+    "CAP-02",
+    "BR-02",
+    "BR-03"
   ],
   "request": {
     "headers": {

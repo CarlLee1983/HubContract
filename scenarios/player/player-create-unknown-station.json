@@ -9,7 +9,8 @@
   "tags": [
     "player",
     "create",
-    "unknown-station"
+    "unknown-station",
+    "CAP-02"
   ],
   "request": {
     "headers": {

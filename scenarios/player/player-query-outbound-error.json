@@ -10,7 +10,10 @@
     "player",
     "query",
     "outbound",
-    "error"
+    "error",
+    "CAP-03",
+    "BR-13",
+    "BR-42"
   ],
   "request": {
     "headers": {

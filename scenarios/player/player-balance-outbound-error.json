@@ -6,6 +6,13 @@
     "method": "GET",
     "path": "/v1/player/balance"
   },
+  "tags": [
+    "player",
+    "balance",
+    "outbound",
+    "error",
+    "CAP-03"
+  ],
   "request": {
     "headers": {
       "Host": "localhost:8080",
