@@ -29,10 +29,15 @@
       },
       {
         "name": "activity_log",
-        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE NOT (subject_type <=> ? AND COALESCE(description, '') LIKE ?) ORDER BY id",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE NOT (log_name <=> ? AND subject_type <=> ? AND subject_id <=> ? AND event <=> ? AND description IN (?, ?, ?)) ORDER BY id",
         "params": [
+          "admin",
           "App\\Models\\Administer",
-          "%last_login%"
+          1,
+          "updated",
+          "last_login_ip has be change.,last_login_at has be change.",
+          "last_login_at has be change.",
+          "last_login_ip has be change."
         ]
       }
     ]

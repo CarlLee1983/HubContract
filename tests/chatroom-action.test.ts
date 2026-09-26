@@ -26,8 +26,13 @@ describe("Chatroom action scenario declarations (#24)", () => {
     it(`${testCase.json.id} scopes activity and declares only relevant shared probes`, () => {
       const scenario = ScenarioDefinitionSchema.parse(testCase.json);
       const activity = scenario.dbProbe?.queries.find((query) => query.name === "activity_log");
-      expect(activity?.sql).toContain("WHERE subject_type IN (?, ?)");
-      expect(activity?.params).toEqual(["App\\Models\\ServiceIssue", "App\\Models\\ChatRoomMessage"]);
+      expect(activity?.sql).toContain("WHERE NOT (log_name <=> ? AND subject_type <=> ? AND subject_id <=> ? AND event <=> ? AND description IN (?, ?, ?))");
+      expect(activity?.params).toEqual([
+        "admin", "App\\Models\\Administer", 1, "updated",
+        "last_login_ip has be change.,last_login_at has be change.",
+        "last_login_at has be change.",
+        "last_login_ip has be change.",
+      ]);
       expect(scenario.redisProbe?.keys).toEqual([]);
       expect(scenario.mongoProbe?.pattern).toBe("httplog_*");
       expect(scenario.dbProbe?.queries.find((query) => query.name === "service_issues")?.sql)
