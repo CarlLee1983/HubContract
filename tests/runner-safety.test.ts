@@ -3,6 +3,30 @@ import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema } from "../src/schema/scenario";
 
 describe("ContractRunner batch safety", () => {
+  it("runs inbound setup before the baseline probe and fails closed", async () => {
+    const events: string[] = [];
+    const runner = new ContractRunner({
+      baseUrl: "http://127.0.0.1:1",
+      stubUrl: "http://127.0.0.1:2",
+      targetAdapter: {
+        setupSchedule: async () => { events.push("setup"); },
+      },
+    });
+    const internal = runner as any;
+    internal.dbProbe.capture = async () => { events.push("probe"); throw new Error("stop after probe"); };
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "deposit-setup", name: "Deposit setup",
+      route: { method: "POST", path: "/v1/wallet/deposit" }, request: {},
+      setup: { statements: [{ name: "second-wallet", sql: "SELECT 1", params: [] }] },
+    });
+    try {
+      await expect(runner.record(scenario)).rejects.toThrow("stop after probe");
+      expect(events).toEqual(["setup", "probe"]);
+    } finally {
+      await runner.close();
+    }
+  });
+
   it("passes the probe DB configuration to schedule setup", async () => {
     const dbConfig = { host: "127.0.0.1", port: 33067, database: "isolated" };
     let received: unknown;

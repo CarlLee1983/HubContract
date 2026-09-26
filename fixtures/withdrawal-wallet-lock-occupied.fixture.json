@@ -1,0 +1,101 @@
+{
+  "scenarioId": "withdrawal-wallet-lock-occupied",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Request has been submitted, please wait."
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [],
+      "transactions": [],
+      "activity_log": [
+        {
+          "count": 0
+        }
+      ],
+      "remittance": []
+    },
+    "after": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [
+        {
+          "trade_no": "TRADE_WITHDRAWAL_WALLET_LOCK_OCCUPIED",
+          "wallet_id": 1,
+          "amount": "25.0000",
+          "status": "failed",
+          "stage": "finished",
+          "error_code": "LockUnavailableException",
+          "error_message": "Request has been submitted, please wait."
+        }
+      ],
+      "transactions": [],
+      "activity_log": [
+        {
+          "count": 2
+        }
+      ],
+      "remittance": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "game_to_main_wallet_sync:1_TWD": {
+          "key": "game_to_main_wallet_sync:1_TWD",
+          "db": 1,
+          "type": "string",
+          "value": "synthetic_contract_lock_owner",
+          "ttl": 30,
+          "ttlTolerance": 10
+        }
+      },
+      "after": {
+        "game_to_main_wallet_sync:1_TWD": {
+          "key": "game_to_main_wallet_sync:1_TWD",
+          "db": 1,
+          "type": "string",
+          "value": "synthetic_contract_lock_owner",
+          "ttl": 25,
+          "ttlTolerance": 10
+        }
+      }
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

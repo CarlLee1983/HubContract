@@ -1,0 +1,77 @@
+{
+  "scenarioId": "deposit-unknown-station",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Station not found",
+      "exception": "App\\Support\\Generator\\Exceptions\\RuntimeException",
+      "file": "<MASKED_FILE_PATH>",
+      "line": 27,
+      "trace": "<MASKED_TRACE>"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [],
+      "transactions": [],
+      "activity_log": [
+        {
+          "count": 0
+        }
+      ],
+      "remittance": []
+    },
+    "after": {
+      "main_wallets": [
+        {
+          "id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "game_wallet": [
+        {
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ],
+      "order": [],
+      "transactions": [],
+      "activity_log": [
+        {
+          "count": 0
+        }
+      ],
+      "remittance": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

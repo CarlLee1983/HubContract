@@ -1,0 +1,104 @@
+{
+  "id": "deposit-success",
+  "name": "Deposit: Success",
+  "description": "Characterize Legacy deposit success including DB, outbound calls, and shared resources.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/deposit"
+  },
+  "tags": [
+    "wallet",
+    "deposit",
+    "funds-write",
+    "success"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "TWD",
+      "trade_no": "TRADE_DEPOSIT_SUCCESS",
+      "amount": 25,
+      "timestamp": 0,
+      "auto_sync": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "main_wallets",
+        "sql": "SELECT w.id, w.balance, w.freeze FROM wallets w JOIN users u ON u.id=w.user_id JOIN stations s ON s.id=u.station_id WHERE u.account=? AND s.code=? AND w.platform_name='main' AND w.currency='TWD' ORDER BY w.id",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "game_wallet",
+        "sql": "SELECT w.balance, w.freeze FROM wallets w JOIN users u ON u.id=w.user_id WHERE u.account=? AND w.platform_name='sbo' AND w.currency='TWD'",
+        "params": [
+          "synthetic_user_01"
+        ]
+      },
+      {
+        "name": "order",
+        "sql": "SELECT trade_no, wallet_id, amount, status, stage, error_code, error_message FROM deposit_records WHERE trade_no=? ORDER BY id",
+        "params": [
+          "TRADE_DEPOSIT_SUCCESS"
+        ]
+      },
+      {
+        "name": "transactions",
+        "sql": "SELECT t.model_type, t.type, t.trade_type, t.balance_original, t.balance_variable, t.balance_complete FROM transactions t JOIN users u ON u.id=t.user_id WHERE u.account=? AND t.model_type='App\\\\Models\\\\DepositRecord' ORDER BY t.id",
+        "params": [
+          "synthetic_user_01"
+        ]
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT COUNT(*) AS count FROM activity_log",
+        "params": []
+      },
+      {
+        "name": "remittance",
+        "sql": "SELECT type, amount, status, stage FROM remittance_records WHERE user_id=(SELECT id FROM users WHERE account=?) ORDER BY id",
+        "params": [
+          "synthetic_user_01"
+        ]
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1,
+        "ttlToleranceSeconds": 10
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.txn_no",
+      "type": "mask"
+    },
+    {
+      "target": "response.body.data.datetime",
+      "type": "mask"
+    }
+  ]
+}

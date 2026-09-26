@@ -306,14 +306,14 @@ export class ContractRunner {
       throw new Error("Schedule trigger requires a target adapter");
     }
     if (scenario.setup) {
-      if (!scenario.trigger || !this.targetAdapter?.setupSchedule) {
-        throw new Error("Schedule setup requires a target adapter with setupSchedule()");
+      if (!this.targetAdapter?.setupSchedule) {
+        throw new Error("Scenario setup requires a target adapter with setupSchedule()");
       }
       await this.targetAdapter.setupSchedule(scenario.setup.statements, this.dbConfig);
     }
     // The target owns how a domain precondition is created. Apply it before
     // probes so both record and verify see the same initial state.
-    if (scenario.preconditions?.smsLock) {
+    if (scenario.preconditions?.smsLock || scenario.preconditions?.walletLock) {
       if (!this.preconditionAdapter) {
         throw new Error(`Scenario "${scenario.id}" requires a precondition adapter`);
       }
@@ -424,9 +424,9 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
-      // Schedules declare the outbound layer even when it is empty, so a
-      // later provider call is a contract difference rather than omitted.
-      layer3_outboundCalls: scenario.trigger || outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
+      // An empty call list is still a contract: future provider calls must
+      // differ from a route that made none during recording.
+      layer3_outboundCalls: { calls: outboundCalls },
       layer4_sharedResources: hasRedis || hasMongo
         ? {
             redis: hasRedis ? {

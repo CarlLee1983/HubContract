@@ -93,6 +93,20 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Co
     }
   });
 
+  it("Legacy adapter occupies the wallet sync lock for a domain user", async () => {
+    const key = `${config.redis.prefix}game_to_main_wallet_sync:1_TWD`;
+    const adapter = new LegacyPreconditionAdapter();
+    try {
+      await rawRedis.del(key);
+      await adapter.apply({ walletLock: { account: "synthetic_user_01", stationCode: "DEMO_STATION", currency: "TWD" } });
+      expect(await rawRedis.get(key)).toBe("synthetic_contract_lock_owner");
+      expect(await rawRedis.ttl(key)).toBeGreaterThan(5);
+    } finally {
+      await adapter.close();
+      await rawRedis.del(key);
+    }
+  });
+
   it("Criterion 2: Value exact match passes; value mismatch produces diff with path", () => {
     const actual = {
       "platform-maintenance:v1:cq9": {
