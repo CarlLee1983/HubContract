@@ -1,0 +1,35 @@
+{
+  "scenarioId": "player-create-account-suffix-error",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "App\\Services\\PlayerService::firstOrCreate(): Argument #4 ($playerAccount) must be of type string, null given, called in /var/www/html/app/Http/Controllers/Api/V1/PlayerController.php on line 91",
+      "exception": "TypeError",
+      "file": "<MASKED_FILE_PATH>",
+      "line": 36,
+      "trace": "<MASKED_TRACE>"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "member": [],
+      "main_players": [],
+      "main_wallets": []
+    },
+    "after": {
+      "member": [
+        {
+          "id": 4,
+          "station_id": 1,
+          "account": "synthetic_new_DEMO_STATION"
+        }
+      ],
+      "main_players": [],
+      "main_wallets": []
+    }
+  }
+}

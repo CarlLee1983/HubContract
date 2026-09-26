@@ -1,0 +1,95 @@
+{
+  "scenarioId": "player-create-duplicate-player",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "account": "synthetic_user_03",
+        "created_at": "<MASKED_TIMESTAMP>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "member": [
+        {
+          "id": 3,
+          "station_id": 1,
+          "account": "synthetic_user_03"
+        }
+      ],
+      "main_players": [
+        {
+          "id": 3,
+          "user_id": 3,
+          "platform_id": 1,
+          "account": "synthetic_user_03DEMO_STATION"
+        },
+        {
+          "id": 4,
+          "user_id": 3,
+          "platform_id": 1,
+          "account": "synthetic_user_03DEMO_STATION_duplicate"
+        }
+      ],
+      "main_wallets": []
+    },
+    "after": {
+      "member": [
+        {
+          "id": 3,
+          "station_id": 1,
+          "account": "synthetic_user_03"
+        }
+      ],
+      "main_players": [
+        {
+          "id": 3,
+          "user_id": 3,
+          "platform_id": 1,
+          "account": "synthetic_user_03DEMO_STATION"
+        },
+        {
+          "id": 4,
+          "user_id": 3,
+          "platform_id": 1,
+          "account": "synthetic_user_03DEMO_STATION_duplicate"
+        }
+      ],
+      "main_wallets": [
+        {
+          "id": 6,
+          "user_id": 3,
+          "platform_id": 1,
+          "player_id": 3,
+          "currency": "TWD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 7,
+          "user_id": 3,
+          "platform_id": 1,
+          "player_id": 3,
+          "currency": "USD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 8,
+          "user_id": 3,
+          "platform_id": 1,
+          "player_id": 3,
+          "currency": "PHP",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ]
+    }
+  }
+}

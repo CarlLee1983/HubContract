@@ -1,0 +1,65 @@
+{
+  "id": "player-create-fresh",
+  "name": "Player Create: fresh member",
+  "description": "CAP-02 / BR-02 / BR-03 / P-02: New member, main Player, and TWD/USD/PHP wallets are created.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/player"
+  },
+  "tags": [
+    "player",
+    "create",
+    "fresh"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "currency": "TWD",
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "account": "synthetic_user_04"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "member",
+        "sql": "SELECT id, station_id, account FROM users WHERE station_id = 1 AND account = ?",
+        "params": [
+          "synthetic_user_04"
+        ]
+      },
+      {
+        "name": "main_players",
+        "sql": "SELECT id, user_id, platform_id, account FROM players WHERE platform_id = 1 AND user_id IN (SELECT id FROM users WHERE station_id = 1 AND account = ?) ORDER BY id",
+        "params": [
+          "synthetic_user_04"
+        ]
+      },
+      {
+        "name": "main_wallets",
+        "sql": "SELECT id, user_id, platform_id, player_id, currency, balance, freeze FROM wallets WHERE platform_id = 1 AND user_id IN (SELECT id FROM users WHERE station_id = 1 AND account = ?) ORDER BY id",
+        "params": [
+          "synthetic_user_04"
+        ]
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.created_at",
+      "type": "mask",
+      "replacement": "<MASKED_TIMESTAMP>"
+    }
+  ]
+}
