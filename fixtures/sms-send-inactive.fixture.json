@@ -1,0 +1,460 @@
+{
+  "scenarioId": "sms-send-inactive",
+  "layer1_inboundResponse": {
+    "statusCode": 500,
+    "statusText": "Internal Server Error",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Typed property App\\Support\\SMS\\SupplierAbstract::$smsLogsRepository must not be accessed before initialization",
+      "exception": "Error",
+      "file": "/var/www/html/app/Support/SMS/Core/SMSLoggerTrait.php",
+      "line": 28,
+      "trace": [
+        {
+          "file": "/var/www/html/app/Support/SMS/Suppliers/Chuanx.php",
+          "line": 68,
+          "function": "createSmsLog",
+          "class": "App\\Support\\SMS\\SupplierAbstract",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Support/SMS/SMS.php",
+          "line": 77,
+          "function": "send",
+          "class": "App\\Support\\SMS\\Suppliers\\Chuanx",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php",
+          "line": 355,
+          "function": "send",
+          "class": "App\\Support\\SMS\\SMS",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Services/SmsService.php",
+          "line": 68,
+          "function": "__callStatic",
+          "class": "Illuminate\\Support\\Facades\\Facade",
+          "type": "::"
+        },
+        {
+          "file": "/var/www/html/app/Http/Controllers/Api/V1/SmsController.php",
+          "line": 73,
+          "function": "send",
+          "class": "App\\Services\\SmsService",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Controller.php",
+          "line": 54,
+          "function": "send",
+          "class": "App\\Http\\Controllers\\Api\\V1\\SmsController",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php",
+          "line": 43,
+          "function": "callAction",
+          "class": "Illuminate\\Routing\\Controller",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+          "line": 259,
+          "function": "dispatch",
+          "class": "Illuminate\\Routing\\ControllerDispatcher",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+          "line": 205,
+          "function": "runController",
+          "class": "Illuminate\\Routing\\Route",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+          "line": 806,
+          "function": "run",
+          "class": "Illuminate\\Routing\\Route",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 144,
+          "function": "Illuminate\\Routing\\{closure}",
+          "class": "Illuminate\\Routing\\Router",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Http/Middleware/JsonResponseMiddleware.php",
+          "line": 25,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "App\\Http\\Middleware\\JsonResponseMiddleware",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Http/Middleware/DebugbarDisableMiddleware.php",
+          "line": 22,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "App\\Http\\Middleware\\DebugbarDisableMiddleware",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php",
+          "line": 50,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 119,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+          "line": 805,
+          "function": "then",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+          "line": 784,
+          "function": "runRouteWithinStack",
+          "class": "Illuminate\\Routing\\Router",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+          "line": 748,
+          "function": "runRoute",
+          "class": "Illuminate\\Routing\\Router",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+          "line": 737,
+          "function": "dispatchToRoute",
+          "class": "Illuminate\\Routing\\Router",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 200,
+          "function": "dispatch",
+          "class": "Illuminate\\Routing\\Router",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 144,
+          "function": "Illuminate\\Foundation\\Http\\{closure}",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php",
+          "line": 19,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Livewire\\Features\\SupportDisablingBackButtonCache\\DisableBackButtonCacheMiddleware",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/barryvdh/laravel-debugbar/src/Middleware/InjectDebugbar.php",
+          "line": 66,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Barryvdh\\Debugbar\\Middleware\\InjectDebugbar",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Http/Middleware/RouteHandlerMiddleware.php",
+          "line": 39,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "App\\Http\\Middleware\\RouteHandlerMiddleware",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+          "line": 21,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php",
+          "line": 31,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+          "line": 21,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php",
+          "line": 40,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\TrimStrings",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php",
+          "line": 27,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php",
+          "line": 99,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php",
+          "line": 49,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Http\\Middleware\\HandleCors",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/app/Http/Middleware/TrustCloudflare.php",
+          "line": 25,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "App\\Http\\Middleware\\TrustCloudflare",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php",
+          "line": 39,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 183,
+          "function": "handle",
+          "class": "Illuminate\\Http\\Middleware\\TrustProxies",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+          "line": 119,
+          "function": "Illuminate\\Pipeline\\{closure}",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 175,
+          "function": "then",
+          "class": "Illuminate\\Pipeline\\Pipeline",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+          "line": 144,
+          "function": "sendRequestThroughRouter",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        },
+        {
+          "file": "/var/www/html/public/index.php",
+          "line": 51,
+          "function": "handle",
+          "class": "Illuminate\\Foundation\\Http\\Kernel",
+          "type": "->"
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    },
+    "after": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    }
+  }
+}

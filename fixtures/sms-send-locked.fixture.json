@@ -1,0 +1,105 @@
+{
+  "scenarioId": "sms-send-locked",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Unable to resend SMS. If you don't receive the text message, please try again in five minutes."
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    },
+    "after": {
+      "sms": [
+        {
+          "id": 1,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Chuanx",
+          "supplier": "chuanx",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 2,
+          "station_id": 1,
+          "code": "84",
+          "name": "Synthetic Inactive Chuanx",
+          "supplier": "chuanx",
+          "active": 0,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}"
+        },
+        {
+          "id": 3,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 0,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        },
+        {
+          "id": 4,
+          "station_id": 1,
+          "code": "63",
+          "name": "Synthetic Send Asmsc",
+          "supplier": "asmsc",
+          "active": 1,
+          "amount": 5,
+          "settings": "{\"url\":\"http://mock-provider:8081\",\"api_id\":\"synthetic_api_id\",\"api_password\":\"synthetic_api_password\",\"smsCost\":2}"
+        }
+      ],
+      "sms_logs": []
+    }
+  }
+}

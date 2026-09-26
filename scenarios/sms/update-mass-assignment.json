@@ -1,0 +1,53 @@
+{
+  "id": "sms-update-mass-assignment",
+  "name": "SMS update accepts extra fillable fields",
+  "description": "Records whole settings replacement and the known mass-assignment defect: active, amount and name change with a signed request.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms"
+  },
+  "tags": [
+    "sms",
+    "update",
+    "mass",
+    "assignment"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1,
+      "settings": "{\"url\":\"http://mock-provider:8081\",\"appkey\":\"synthetic_changed_appkey\",\"appcode\":\"synthetic_appcode\",\"appsecret\":\"synthetic_appsecret\"}",
+      "active": 0,
+      "amount": 42,
+      "name": "Synthetic Updated Chuanx"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT id, log_name, description, subject_type, subject_id, event, properties FROM activity_log ORDER BY id",
+        "params": []
+      }
+    ]
+  }
+}

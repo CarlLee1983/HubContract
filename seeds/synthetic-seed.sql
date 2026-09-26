@@ -85,4 +85,14 @@ TRUNCATE TABLE `administers`;
 INSERT INTO `administers` (`id`, `name`, `account`, `email`, `active`, `password`, `language`, `remember_token`, `last_login_ip`, `last_login_at`, `last_login_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, '合成管理員', 'super', 'synthetic_admin@cmg.test', 1, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'en', NULL, '127.0.0.1', NOW(), NULL, NOW(), NOW(), NULL);
 
+-- 10. SMS suppliers. Every URL is the local mock-provider; credentials and
+-- phone numbers used by SMS scenarios are synthetic.
+TRUNCATE TABLE `sms_logs`;
+TRUNCATE TABLE `sms`;
+INSERT INTO `sms` (`id`, `station_id`, `code`, `name`, `supplier`, `active`, `amount`, `settings`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, '84', 'Synthetic Chuanx', 'chuanx', 1, 5, '{"url":"http://mock-provider:8081","appkey":"synthetic_appkey","appcode":"synthetic_appcode","appsecret":"synthetic_appsecret"}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
+(2, 1, '84', 'Synthetic Inactive Chuanx', 'chuanx', 0, 5, '{"url":"http://mock-provider:8081","appkey":"synthetic_appkey","appcode":"synthetic_appcode","appsecret":"synthetic_appsecret"}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
+(3, 1, '63', 'Synthetic Asmsc', 'asmsc', 1, 0, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
+(4, 1, '63', 'Synthetic Send Asmsc', 'asmsc', 1, 5, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
+
 SET FOREIGN_KEY_CHECKS = 1;

@@ -1,0 +1,51 @@
+{
+  "id": "sms-send-inactive",
+  "name": "SMS send accepts inactive supplier then fails at log creation",
+  "description": "Records known defects: active=0 does not gate send; uninitialized SMSLoggerTrait repository causes a 500 before any provider call.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/send"
+  },
+  "tags": [
+    "sms",
+    "send",
+    "inactive"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 2,
+      "phone": "+84901234567",
+      "body": "Synthetic code 1234",
+      "currency": "TWD"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "sms_logs",
+        "sql": "SELECT id, sms_id, phone, status FROM sms_logs ORDER BY id",
+        "params": []
+      }
+    ]
+  }
+}

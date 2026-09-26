@@ -1,0 +1,41 @@
+{
+  "id": "sms-index",
+  "name": "SMS list includes inactive rows and synthetic supplier settings",
+  "description": "Records full settings, including synthetic credentials, and the inactive supplier.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/sms"
+  },
+  "tags": [
+    "sms",
+    "index"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      }
+    ]
+  }
+}

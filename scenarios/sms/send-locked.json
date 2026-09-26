@@ -1,0 +1,61 @@
+{
+  "id": "sms-send-locked",
+  "name": "SMS resend lock blocks before provider call",
+  "description": "Preloads Legacy cache lock in Redis DB1; records the one-second lock timeout response and absence of a supplier call.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/send"
+  },
+  "tags": [
+    "sms",
+    "send",
+    "locked"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1,
+      "phone": "+84901234567",
+      "body": "Synthetic code 1234",
+      "currency": "TWD"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    }
+  ],
+  "redisSetup": {
+    "keys": [
+      {
+        "key": "stationhublegacy_cache_:sms_901234567",
+        "db": 1,
+        "value": "synthetic_other_lock_owner",
+        "ttlSeconds": 10
+      }
+    ]
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "sms",
+        "sql": "SELECT id, station_id, code, name, supplier, active, amount, settings FROM sms ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "sms_logs",
+        "sql": "SELECT id, sms_id, phone, status FROM sms_logs ORDER BY id",
+        "params": []
+      }
+    ]
+  }
+}

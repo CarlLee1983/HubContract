@@ -1,0 +1,33 @@
+{
+  "id": "sms-index-validation",
+  "name": "SMS list rejects missing station code",
+  "description": "Records FormRequest 422 validation envelope.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/sms"
+  },
+  "tags": [
+    "sms",
+    "index",
+    "validation"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    }
+  ]
+}
