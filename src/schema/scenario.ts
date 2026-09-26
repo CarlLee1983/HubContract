@@ -148,7 +148,7 @@ export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const ScenarioActionSchema = z.object({
+const PlatformGameTypeActionSchema = z.object({
   name: z.literal("platformGameType.setActive"),
   parameters: z.object({
     platformId: z.number(),
@@ -157,6 +157,21 @@ export const ScenarioActionSchema = z.object({
     active: z.boolean(),
   }),
 });
+const ChatroomIssueActionSchema = z.object({
+  name: z.enum(["chatroom.join", "chatroom.close"]),
+  parameters: z.object({ issueId: z.number().int().positive() }),
+});
+const ChatroomMessageActionSchema = z.object({
+  name: z.enum(["chatroom.messageFromAdmin", "chatroom.messageFromService"]),
+  parameters: z.object({ issueId: z.number().int().positive(), body: z.string().min(1) }),
+});
+export const ScenarioActionSchema = z.discriminatedUnion("name", [
+  PlatformGameTypeActionSchema,
+  ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.join") }),
+  ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.close") }),
+  ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromAdmin") }),
+  ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromService") }),
+]);
 export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
 
 const ScenarioDefinitionBaseSchema = z.object({
