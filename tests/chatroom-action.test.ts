@@ -21,6 +21,21 @@ const cases = [
   { json: serviceMessage, fixture: serviceMessageFixture, table: "service_issues", field: "last_message_id", value: 1 },
 ] as const;
 
+describe("Chatroom action scenario declarations (#24)", () => {
+  for (const testCase of cases) {
+    it(`${testCase.json.id} scopes activity and declares only relevant shared probes`, () => {
+      const scenario = ScenarioDefinitionSchema.parse(testCase.json);
+      const activity = scenario.dbProbe?.queries.find((query) => query.name === "activity_log");
+      expect(activity?.sql).toContain("WHERE subject_type IN (?, ?)");
+      expect(activity?.params).toEqual(["App\\Models\\ServiceIssue", "App\\Models\\ChatRoomMessage"]);
+      expect(scenario.redisProbe?.keys).toEqual([]);
+      expect(scenario.mongoProbe?.pattern).toBe("httplog_*");
+      expect(scenario.dbProbe?.queries.find((query) => query.name === "service_issues")?.sql)
+        .toContain("last_message_id, closed_at FROM service_issues");
+    });
+  }
+});
+
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy chatroom action contract (#24)", () => {
   const runner = new ContractRunner({ baseUrl: config.baseUrl, stubUrl: config.stub.baseUrl, targetAdapter: new LegacyTargetAdapter() });
   afterAll(async () => { await runner.close(); });
@@ -32,10 +47,15 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy chatroom action contract (#
       const first = await runner.record(scenario);
       expect(first).toEqual(ActionFixtureSchema.parse(testCase.fixture));
       expect(first.layer1_inboundResponse).toBeUndefined();
+      expect(first.layer3_outboundCalls).toBeUndefined();
       expect(first.layer2_dbState?.before.activity_log).toEqual([]);
+      expect(first.layer2_dbState?.after.activity_log).toEqual([]);
       expect(first.layer2_dbState?.after[testCase.table][0][testCase.field]).toBe(testCase.value);
-      expect(first.layer4_sharedResources?.redis).toBeDefined();
+      expect(first.layer4_sharedResources?.redis).toBeUndefined();
       expect(first.layer4_sharedResources?.mongo).toBeDefined();
+      if (scenario.action?.name === "chatroom.close") {
+        expect(first.layer2_dbState?.after.service_issues[0].closed_at).toBe("<RECENT_SQL_DATETIME>");
+      }
 
       await resetEnvironment();
       expect(await runner.record(scenario)).toEqual(first);

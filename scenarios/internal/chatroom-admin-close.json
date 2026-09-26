@@ -24,7 +24,7 @@
       },
       {
         "name": "service_issues",
-        "sql": "SELECT id, issueable_type, issueable_id, service_issue_category_id, closed_by_administer_id, last_message_id, CASE WHEN closed_at IS NULL THEN NULL ELSE '<SET>' END AS closed_at FROM service_issues WHERE id = ? ORDER BY id",
+        "sql": "SELECT id, issueable_type, issueable_id, service_issue_category_id, closed_by_administer_id, last_message_id, closed_at FROM service_issues WHERE id = ? ORDER BY id",
         "params": [
           1
         ]
@@ -38,22 +38,27 @@
       },
       {
         "name": "activity_log",
-        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log ORDER BY id",
-        "params": []
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE subject_type IN (?, ?) ORDER BY id",
+        "params": [
+          "App\\Models\\ServiceIssue",
+          "App\\Models\\ChatRoomMessage"
+        ]
       }
     ]
   },
   "redisProbe": {
-    "keys": [
-      {
-        "pattern": "platform-maintenance:v1:cq9",
-        "db": 1,
-        "ttlToleranceSeconds": 30
-      }
-    ]
+    "keys": []
   },
   "mongoProbe": {
     "pattern": "httplog_*"
   },
-  "normalizers": []
+  "normalizers": [
+    {
+      "target": "db.after.service_issues.0.closed_at",
+      "type": "recent_sql_datetime",
+      "timezoneOffsetMinutes": 480,
+      "maxSkewSeconds": 30,
+      "replacement": "<RECENT_SQL_DATETIME>"
+    }
+  ]
 }
