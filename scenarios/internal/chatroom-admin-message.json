@@ -1,0 +1,62 @@
+{
+  "id": "chatroom-admin-message",
+  "name": "Add an administrator message",
+  "description": "Legacy customer-service write contract (HubRefactoring #24).",
+  "tags": [
+    "internal",
+    "chatroom",
+    "support"
+  ],
+  "action": {
+    "name": "chatroom.messageFromAdmin",
+    "parameters": {
+      "issueId": 1,
+      "body": "Synthetic administrator reply"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "service_issues_administer_map",
+        "sql": "SELECT service_issue_id, administer_id FROM service_issues_administer_map WHERE service_issue_id = ? ORDER BY service_issue_id, administer_id",
+        "params": [
+          1
+        ]
+      },
+      {
+        "name": "service_issues",
+        "sql": "SELECT id, issueable_type, issueable_id, service_issue_category_id, closed_by_administer_id, last_message_id, closed_at FROM service_issues WHERE id = ? ORDER BY id",
+        "params": [
+          1
+        ]
+      },
+      {
+        "name": "chat_room_messages",
+        "sql": "SELECT id, room_code, room_type, chattable_id, chattable_type, body FROM chat_room_messages WHERE room_code = ? ORDER BY id",
+        "params": [
+          "issue#1,1"
+        ]
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE NOT (log_name <=> ? AND subject_type <=> ? AND subject_id <=> ? AND event <=> ? AND description IN (?, ?, ?)) ORDER BY id",
+        "params": [
+          "admin",
+          "App\\Models\\Administer",
+          1,
+          "updated",
+          "last_login_ip has be change.,last_login_at has be change.",
+          "last_login_at has be change.",
+          "last_login_ip has be change."
+        ]
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": []
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "normalizers": []
+}

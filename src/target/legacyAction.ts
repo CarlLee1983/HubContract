@@ -2,6 +2,9 @@ import type { ScenarioAction } from "../schema/scenario";
 import mysql from "mysql2/promise";
 import { config } from "../config";
 import type { DbConfig } from "../probe/dbProbe";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join as joinPath } from "node:path";
 
 interface GameTypeMapping {
   platform_id: number;
@@ -14,6 +17,10 @@ export interface LegacyAdminOptions {
   account?: string;
   password?: string;
   readMappings?: (platformId: number, dbConfig?: DbConfig) => Promise<GameTypeMapping[]>;
+  /** Recording runtime supplies a real GatewayWorker client ID. */
+  getGatewayClientId?: () => Promise<string>;
+  /** Recording runtime supplies a Laravel guest session created from synthetic seed. */
+  prepareServiceSession?: (issueId: number) => Promise<{ cookie: string; xsrfToken: string }>;
 }
 
 /** Translates neutral internal actions into the pinned Legacy admin flow. */
@@ -22,6 +29,8 @@ export class LegacyActionAdapter {
   private readonly account: string;
   private readonly password: string;
   private readonly readMappings: (platformId: number, dbConfig?: DbConfig) => Promise<GameTypeMapping[]>;
+  private readonly getGatewayClientId?: LegacyAdminOptions["getGatewayClientId"];
+  private readonly prepareServiceSession?: LegacyAdminOptions["prepareServiceSession"];
 
   constructor(options: LegacyAdminOptions = {}) {
     this.host = options.host ?? "cmghubadmin.test";
@@ -29,6 +38,8 @@ export class LegacyActionAdapter {
     // Matches the public Laravel demo bcrypt hash in synthetic-seed.sql.
     this.password = options.password ?? "password";
     this.readMappings = options.readMappings ?? readLegacyMappings;
+    this.getGatewayClientId = options.getGatewayClientId;
+    this.prepareServiceSession = options.prepareServiceSession;
   }
 
   async executeAction(action: ScenarioAction, baseUrl: string, dbBefore: Readonly<Record<string, unknown>>, dbConfig?: DbConfig): Promise<void> {
@@ -37,7 +48,8 @@ export class LegacyActionAdapter {
       throw new Error(`Legacy action requires the local recording target ${localLegacyUrl}; got ${baseUrl}`);
     }
     if (action.name !== "platformGameType.setActive") {
-      throw new Error(`Legacy target does not support action ${action.name}`);
+      await this.executeChatroomAction(action, baseUrl, dbBefore);
+      return;
     }
 
     const platforms = dbBefore.platforms;
@@ -63,46 +75,9 @@ export class LegacyActionAdapter {
       active: String(row.game_type_id === action.parameters.gameTypeId ? action.parameters.active : row.active === 1),
     }));
 
-    const cookies = new Map<string, string>();
-    const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
-      const headers = new Headers(init.headers);
-      headers.set("Host", this.host);
-      headers.set("Accept", "text/html,application/xhtml+xml");
-      if (cookies.size > 0) {
-        headers.set("Cookie", [...cookies].map(([key, value]) => `${key}=${value}`).join("; "));
-      }
-      const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), {
-        ...init,
-        headers,
-        redirect: "manual",
-      });
-      for (const header of response.headers.getSetCookie()) {
-        const pair = header.split(";", 1)[0];
-        const equals = pair.indexOf("=");
-        if (equals > 0) cookies.set(pair.slice(0, equals), pair.slice(equals + 1));
-      }
-      return response;
-    };
-
-    const loginPage = await request("/login");
-    if (loginPage.status !== 200) {
-      throw new Error(`Legacy admin login page failed with HTTP ${loginPage.status}`);
-    }
-    const xsrf = cookies.get("XSRF-TOKEN");
-    if (!xsrf) throw new Error("Legacy admin login did not provide a CSRF cookie");
-
-    const formHeaders = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "X-XSRF-TOKEN": decodeURIComponent(xsrf),
-    };
-    const login = await request("/login", {
-      method: "POST",
-      headers: formHeaders,
-      body: new URLSearchParams({ account: this.account, password: this.password }).toString(),
-    });
-    if (!isSuccessfulRedirect(login) || pointsToLogin(login.headers.get("location"))) {
-      throw new Error(`Legacy admin login failed with HTTP ${login.status}`);
-    }
+    const { request, cookies } = this.createRequest(baseUrl, this.host);
+    await this.loginAdmin(request, cookies);
+    const xsrf = cookies.get("XSRF-TOKEN")!;
 
     const actionResponse = await request("/games/platform-and-gametype", {
       method: "POST",
@@ -119,6 +94,110 @@ export class LegacyActionAdapter {
     });
     if (!isSuccessfulRedirect(actionResponse) || pointsToLogin(actionResponse.headers.get("location"))) {
       throw new Error(`Legacy internal action failed with HTTP ${actionResponse.status}`);
+    }
+  }
+
+  private createRequest(baseUrl: string, host: string, initialCookie?: string) {
+    const cookies = new Map<string, string>();
+    if (initialCookie) {
+      for (const pair of initialCookie.split(";")) {
+        const equals = pair.indexOf("=");
+        if (equals > 0) cookies.set(pair.slice(0, equals).trim(), pair.slice(equals + 1).trim());
+      }
+    }
+    const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
+      const headers = new Headers(init.headers);
+      headers.set("Host", host);
+      headers.set("Accept", headers.get("Accept") ?? "text/html,application/xhtml+xml");
+      if (cookies.size > 0) headers.set("Cookie", [...cookies].map(([key, value]) => `${key}=${value}`).join("; "));
+      const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), { ...init, headers, redirect: "manual" });
+      for (const header of response.headers.getSetCookie()) {
+        const pair = header.split(";", 1)[0];
+        const equals = pair.indexOf("=");
+        if (equals > 0) cookies.set(pair.slice(0, equals), pair.slice(equals + 1));
+      }
+      return response;
+    };
+    return { request, cookies };
+  }
+
+  private async loginAdmin(request: (path: string, init?: RequestInit) => Promise<Response>, cookies: Map<string, string>) {
+    const loginPage = await request("/login");
+    if (loginPage.status !== 200) throw new Error(`Legacy admin login page failed with HTTP ${loginPage.status}`);
+    const xsrf = cookies.get("XSRF-TOKEN");
+    if (!xsrf) throw new Error("Legacy admin login did not provide a CSRF cookie");
+    const login = await request("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-XSRF-TOKEN": decodeURIComponent(xsrf) },
+      body: new URLSearchParams({ account: this.account, password: this.password }).toString(),
+    });
+    if (!isSuccessfulRedirect(login) || pointsToLogin(login.headers.get("location"))) {
+      throw new Error(`Legacy admin login failed with HTTP ${login.status}`);
+    }
+  }
+
+  private async executeChatroomAction(action: Exclude<ScenarioAction, { name: "platformGameType.setActive" }>, baseUrl: string, dbBefore: Readonly<Record<string, unknown>>) {
+    const issues = dbBefore.service_issues;
+    if (!Array.isArray(issues) || issues.length !== 1 || issues[0]?.id !== action.parameters.issueId) {
+      throw new Error("Chatroom action requires a matching service_issues before probe");
+    }
+    const service = action.name === "chatroom.messageFromService";
+    let session: { cookie: string; xsrfToken: string } | undefined;
+    if (service) {
+      if (!this.prepareServiceSession) throw new Error("Legacy service action requires a prepared synthetic guest session");
+      session = await this.prepareServiceSession(action.parameters.issueId);
+      if (!session.cookie || !session.xsrfToken) throw new Error("Legacy service session is missing cookie or CSRF token");
+    }
+    const host = service ? "cmghub.test" : this.host;
+    const { request, cookies } = this.createRequest(baseUrl, host, session?.cookie);
+    if (!service) await this.loginAdmin(request, cookies);
+    const xsrf = service ? session!.xsrfToken : decodeURIComponent(cookies.get("XSRF-TOKEN")!);
+    const page = service ? "/service/chatroom" : "/chatrooms";
+    let path: string;
+    let body: Record<string, string> = {};
+    switch (action.name) {
+      case "chatroom.join": {
+        if (!this.getGatewayClientId) throw new Error("Legacy chatroom join requires a real GatewayWorker client ID");
+        const clientId = await this.getGatewayClientId();
+        if (!clientId) throw new Error("Legacy chatroom join received an empty GatewayWorker client ID");
+        path = `/chatrooms/${action.parameters.issueId}`;
+        body = { client_id: clientId };
+        break;
+      }
+      case "chatroom.close":
+        path = `/chatrooms/${action.parameters.issueId}/closed`;
+        break;
+      case "chatroom.messageFromAdmin":
+        path = `/chatrooms/${action.parameters.issueId}/messages`;
+        body = { body: action.parameters.body };
+        break;
+      case "chatroom.messageFromService":
+        path = "/service/chatroom/messages";
+        body = { body: action.parameters.body };
+        break;
+    }
+    const response = await request(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-XSRF-TOKEN": xsrf, Referer: new URL(page, `${baseUrl}/`).toString() },
+      body: new URLSearchParams(body).toString(),
+    });
+    if (!isSuccessfulRedirect(response) || new URL(response.headers.get("location") ?? "", `${baseUrl}/`).pathname !== page) {
+      throw new Error(`Legacy chatroom action ${action.name} failed with HTTP ${response.status}`);
+    }
+    // Legacy catches domain errors and redirects back with a flashed error.
+    const manifest = readFileSync(joinPath(import.meta.dir, "../../docker/admin-build/manifest.json"));
+    const version = createHash("md5").update(manifest).digest("hex");
+    const followUp = await request(page, { headers: { "X-Inertia": "true", "X-Inertia-Version": version, Accept: "application/json" } });
+    if (followUp.status !== 200) throw new Error(`Legacy chatroom action ${action.name} confirmation failed with HTTP ${followUp.status}`);
+    let props: Record<string, unknown>;
+    try { props = (await followUp.json() as { props: Record<string, unknown> }).props; }
+    catch { throw new Error(`Legacy chatroom action ${action.name} confirmation was not an Inertia page`); }
+    if (!props || typeof props !== "object") throw new Error(`Legacy chatroom action ${action.name} confirmation was not an Inertia page`);
+    const flash = props.flash as { alert?: { error?: unknown; errorReload?: unknown }; notify?: { error?: unknown } } | undefined;
+    const errors = props.errors as Record<string, unknown> | undefined;
+    if (flash?.alert?.error || flash?.alert?.errorReload || flash?.notify?.error ||
+      (errors && Object.keys(errors).length > 0)) {
+      throw new Error(`Legacy chatroom action ${action.name} reported a flashed error`);
     }
   }
 }

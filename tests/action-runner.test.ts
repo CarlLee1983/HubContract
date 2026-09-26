@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { ContractRunner, type RunnerOptions, type TargetAdapter } from "../src/runner";
 import { outcomeContext } from "../src/report/runOne";
 import {
-  ActionScenarioSchema, FixtureSchema, InboundScenarioSchema, ScenarioDefinitionSchema,
+  ActionScenarioSchema, ActionFixtureSchema, FixtureSchema, InboundScenarioSchema, ScenarioDefinitionSchema,
+  assertFixtureMatchesScenario,
 } from "../src/schema/scenario";
 
 const actionScenario = ActionScenarioSchema.parse({
@@ -40,6 +41,7 @@ describe("internal action scenarios", () => {
     const calls: string[] = [];
     const adapter: TargetAdapter = {
       executeAction: async (action, baseUrl, _dbBefore, dbConfig) => {
+        if (action.name !== "platformGameType.setActive") throw new Error("Unexpected action");
         calls.push(`${action.name}:${action.parameters.platformId}:${baseUrl}:${dbConfig?.database}`);
       },
     };
@@ -49,11 +51,35 @@ describe("internal action scenarios", () => {
       const fixture = await runner.record(actionScenario);
       expect(calls).toEqual(["platformGameType.setActive:7:http://target:other_recording"]);
       expect(fixture.layer1_inboundResponse).toBeUndefined();
+      expect(fixture.layer3_outboundCalls).toBeUndefined();
       expect(fixture.layer2_dbState).toEqual({
         before: { platform: [{ active: 0 }] },
         after: { platform: [{ active: 1 }] },
       });
       expect(FixtureSchema.parse(fixture)).toEqual(fixture);
+    } finally {
+      await runner.close();
+    }
+  });
+
+  it("does not read or enforce outbound calls for an action", async () => {
+    const runner = createRunner({
+      baseUrl: "http://target",
+      targetAdapter: { executeAction: async () => {} },
+    });
+    mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
+    (runner as any).stubClient.getRequests = async () => {
+      throw new Error("Action must not inspect outbound calls");
+    };
+    try {
+      const fixture = await runner.record(actionScenario);
+      expect(fixture.layer3_outboundCalls).toBeUndefined();
+      expect(ActionFixtureSchema.parse(fixture).layer3_outboundCalls).toBeUndefined();
+      expect(ActionFixtureSchema.safeParse({ ...fixture, layer3_outboundCalls: { calls: [] } }).success).toBe(false);
+      expect(() => assertFixtureMatchesScenario(actionScenario, { ...fixture, layer3_outboundCalls: { calls: [] } }))
+        .toThrow("must not declare layer3_outboundCalls");
+      mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
+      expect((await runner.verify(actionScenario, fixture)).differences).toEqual([]);
     } finally {
       await runner.close();
     }

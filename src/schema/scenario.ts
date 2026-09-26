@@ -6,9 +6,14 @@ import { z } from "zod";
  */
 export const NormalizerRuleSchema = z.object({
   target: z.string().describe("JSON dot path of target field (e.g. response.headers.date, request.body.timestamp)"),
-  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace"]),
+  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace", "recent_sql_datetime"]),
   pattern: z.string().optional(),
   replacement: z.string().optional(),
+  timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
+  maxSkewSeconds: z.number().int().nonnegative().optional(),
+}).refine((rule) => rule.type !== "recent_sql_datetime" ||
+  (rule.timezoneOffsetMinutes !== undefined && rule.maxSkewSeconds !== undefined), {
+  message: "recent_sql_datetime requires timezoneOffsetMinutes and maxSkewSeconds",
 });
 
 /**
@@ -148,7 +153,7 @@ export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const ScenarioActionSchema = z.object({
+const PlatformGameTypeActionSchema = z.object({
   name: z.literal("platformGameType.setActive"),
   parameters: z.object({
     platformId: z.number(),
@@ -157,6 +162,21 @@ export const ScenarioActionSchema = z.object({
     active: z.boolean(),
   }),
 });
+const ChatroomIssueActionSchema = z.object({
+  name: z.enum(["chatroom.join", "chatroom.close"]),
+  parameters: z.object({ issueId: z.number().int().positive() }),
+});
+const ChatroomMessageActionSchema = z.object({
+  name: z.enum(["chatroom.messageFromAdmin", "chatroom.messageFromService"]),
+  parameters: z.object({ issueId: z.number().int().positive(), body: z.string().min(1) }),
+});
+export const ScenarioActionSchema = z.discriminatedUnion("name", [
+  PlatformGameTypeActionSchema,
+  ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.join") }),
+  ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.close") }),
+  ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromAdmin") }),
+  ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromService") }),
+]);
 export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
 
 const ScenarioDefinitionBaseSchema = z.object({
@@ -188,11 +208,10 @@ const ScenarioDefinitionBaseSchema = z.object({
   mongoProbe: MongoProbeSchema.optional(),
   queueDrain: QueueDrainSchema.optional(),
   preconditions: ScenarioPreconditionsSchema.optional(),
-  // Issue #8: captureRun() *always* resets the stub and loads this script (or
-  // an empty one, if omitted) before executing the request — every scenario
-  // is checked for undefined outbound calls, not just ones that declare a
-  // stub. When present, the matched call(s) are read back into
-  // layer3_outboundCalls.
+  // Issue #8: captureRun() resets the stub and loads this script (or an empty
+  // one, if omitted) before execution. HTTP and schedule scenarios check
+  // undefined outbound calls even without a declared stub; internal actions
+  // contract only DB and shared resources.
   stub: z
     .object({
       script: StubScriptSchema,
@@ -287,6 +306,7 @@ export const InboundFixtureSchema = FixtureSchema.extend({
 });
 export const ActionFixtureSchema = FixtureSchema.extend({
   layer1_inboundResponse: z.never().optional(),
+  layer3_outboundCalls: z.never().optional(),
   layer2_dbState: z.object({
     before: z.record(z.string(), z.any()),
     after: z.record(z.string(), z.any()),
@@ -313,6 +333,9 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   }
   if (scenario.action && fixture.layer1_inboundResponse) {
     throw new Error(`Action scenario ${scenario.id} must not declare layer1_inboundResponse`);
+  }
+  if (scenario.action && fixture.layer3_outboundCalls) {
+    throw new Error(`Action scenario ${scenario.id} must not declare layer3_outboundCalls`);
   }
   if (scenario.action && !fixture.layer2_dbState) {
     throw new Error(`Action scenario ${scenario.id} requires layer2_dbState`);

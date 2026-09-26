@@ -16,17 +16,29 @@
       {
         "name": "platforms",
         "sql": "SELECT id, active FROM platforms WHERE id = ? ORDER BY id",
-        "params": [2]
+        "params": [
+          2
+        ]
       },
       {
         "name": "platform_game_type_map",
         "sql": "SELECT platform_id, game_type_id, active, cost_percent FROM platform_game_type_map WHERE platform_id = ? ORDER BY platform_id, game_type_id",
-        "params": [2]
+        "params": [
+          2
+        ]
       },
       {
         "name": "activity_log",
-        "sql": "SELECT log_name, subject_type, subject_id, description FROM activity_log ORDER BY id",
-        "params": []
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log WHERE NOT (log_name <=> ? AND subject_type <=> ? AND subject_id <=> ? AND event <=> ? AND description IN (?, ?, ?)) ORDER BY id",
+        "params": [
+          "admin",
+          "App\\Models\\Administer",
+          1,
+          "updated",
+          "last_login_ip has be change.,last_login_at has be change.",
+          "last_login_at has be change.",
+          "last_login_ip has be change."
+        ]
       }
     ]
   },

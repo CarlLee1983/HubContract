@@ -1,0 +1,51 @@
+{
+  "scenarioId": "chatroom-admin-message",
+  "layer2_dbState": {
+    "before": {
+      "service_issues_administer_map": [],
+      "service_issues": [
+        {
+          "id": 1,
+          "issueable_type": "App\\Models\\User",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": null,
+          "closed_at": null
+        }
+      ],
+      "chat_room_messages": [],
+      "activity_log": []
+    },
+    "after": {
+      "service_issues_administer_map": [],
+      "service_issues": [
+        {
+          "id": 1,
+          "issueable_type": "App\\Models\\User",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": 1,
+          "closed_at": null
+        }
+      ],
+      "chat_room_messages": [
+        {
+          "id": 1,
+          "room_code": "issue#1,1",
+          "room_type": "service",
+          "chattable_id": 1,
+          "chattable_type": "App\\Models\\Administer",
+          "body": "Synthetic administrator reply"
+        }
+      ],
+      "activity_log": []
+    }
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}
