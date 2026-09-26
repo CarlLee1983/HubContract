@@ -1,0 +1,226 @@
+{
+  "id": "pg-launch-provider-failure",
+  "name": "PG launcher provider failure",
+  "description": "Provider failure after injection is retryable, with no play log; outbound funds remain observable.",
+  "tags": [
+    "game",
+    "launch",
+    "pg",
+    "callback",
+    "CAP-03",
+    "provider-failure"
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "hub_member",
+        "sql": "SELECT account FROM users WHERE account = 'synthetic_pg_user'"
+      },
+      {
+        "name": "pg_players",
+        "sql": "SELECT platform_id, user_id, account FROM players WHERE user_id = 4 AND platform_id = 5"
+      },
+      {
+        "name": "php_wallets",
+        "sql": "SELECT platform_id, currency, balance, in_use FROM wallets WHERE user_id = 4 AND currency = 'PHP' ORDER BY platform_id"
+      },
+      {
+        "name": "pg_play_logs",
+        "sql": "SELECT platform_id, user_id, game_id FROM play_logs WHERE user_id = 4 AND platform_id = 5"
+      },
+      {
+        "name": "pg_remittances",
+        "sql": "SELECT type, amount, status, stage FROM remittance_records WHERE user_id = 4 ORDER BY id"
+      }
+    ]
+  },
+  "stub": {
+    "script": {
+      "matchers": [
+        {
+          "method": "POST",
+          "path": "/pg/v3/Player/Create",
+          "response": {
+            "body": {
+              "data": {
+                "action_result": 1
+              },
+              "error": null
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/pg/Cash/v3/TransferIn",
+          "response": {
+            "body": {
+              "data": {
+                "balanceAmount": 100
+              },
+              "error": null
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/external-game-launcher/api/v1/GetLaunchURLHTML",
+          "response": {
+            "status": 503,
+            "body": {
+              "error": "synthetic provider unavailable"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "outbound.0.query.trace_id",
+      "type": "mask",
+      "replacement": "<UUID>"
+    },
+    {
+      "target": "outbound.1.query.trace_id",
+      "type": "mask",
+      "replacement": "<UUID>"
+    },
+    {
+      "target": "outbound.2.query.trace_id",
+      "type": "mask",
+      "replacement": "<UUID>"
+    },
+    {
+      "target": "outbound.3.query.trace_id",
+      "type": "mask",
+      "replacement": "<UUID>"
+    },
+    {
+      "target": "outbound.0.body.extra_args",
+      "type": "regex_replace",
+      "pattern": "ops=[a-f0-9-]+",
+      "replacement": "ops=<PG_OPS>"
+    },
+    {
+      "target": "outbound.1.body.extra_args",
+      "type": "regex_replace",
+      "pattern": "ops=[a-f0-9-]+",
+      "replacement": "ops=<PG_OPS>"
+    },
+    {
+      "target": "outbound.2.body.extra_args",
+      "type": "regex_replace",
+      "pattern": "ops=[a-f0-9-]+",
+      "replacement": "ops=<PG_OPS>"
+    },
+    {
+      "target": "outbound.3.body.extra_args",
+      "type": "regex_replace",
+      "pattern": "ops=[a-f0-9-]+",
+      "replacement": "ops=<PG_OPS>"
+    },
+    {
+      "target": "outbound.0.body.transfer_reference",
+      "type": "mask"
+    },
+    {
+      "target": "outbound.1.body.transfer_reference",
+      "type": "mask"
+    },
+    {
+      "target": "outbound.2.body.transfer_reference",
+      "type": "mask"
+    },
+    {
+      "target": "outbound.3.body.transfer_reference",
+      "type": "mask"
+    },
+    {
+      "target": "outbound.0.body.client_ip",
+      "type": "mask",
+      "replacement": "<CLIENT_IP>"
+    },
+    {
+      "target": "outbound.1.body.client_ip",
+      "type": "mask",
+      "replacement": "<CLIENT_IP>"
+    },
+    {
+      "target": "outbound.2.body.client_ip",
+      "type": "mask",
+      "replacement": "<CLIENT_IP>"
+    },
+    {
+      "target": "outbound.3.body.client_ip",
+      "type": "mask",
+      "replacement": "<CLIENT_IP>"
+    }
+  ],
+  "route": {
+    "method": "POST",
+    "path": "/v1/games/launch"
+  },
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "station_home_url": "https://synthetic.example.test",
+      "game_code": "PG_SYNTHETIC",
+      "account": "synthetic_pg_user",
+      "currency": "PHP",
+      "station_lang": "en_us",
+      "station_screen": "H",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "setup": {
+    "statements": [
+      {
+        "name": "pg_platform",
+        "sql": "INSERT INTO platforms (id, name, is_original, api_settings, active, maintain, authorized, is_main, raw_log_sync, sort, currencies, regions, game_types, created_at, updated_at) VALUES (5, 'pg', 1, '{\"api_url\":\"http://mock-provider:8081\",\"dir\":\"pg\",\"data_dir\":\"pg\",\"operator_token\":\"synthetic_pg_operator_token\",\"secret_key\":\"synthetic_pg_secret_key\",\"currency\":\"PHP\"}', 1, 0, 1, 0, 1, 4, '[\"PHP\"]', '[]', '[]', NOW(), NOW())"
+      },
+      {
+        "name": "pg_platform_currency",
+        "sql": "INSERT INTO platform_currencies (id, platform_id, currency, vendor_currency_code, source, remark, created_at, updated_at) VALUES (3, 5, 'PHP', 'PHP', 'declared', 'Synthetic', NOW(), NOW())"
+      },
+      {
+        "name": "pg_member",
+        "sql": "INSERT INTO users (id, station_id, account, last_deposit_at, created_at, updated_at) VALUES (4, 1, 'synthetic_pg_user', NOW(), NOW(), NOW())"
+      },
+      {
+        "name": "pg_main_player",
+        "sql": "INSERT INTO players (id, station_id, platform_id, user_id, account, vendor_player_id, playing, created_at, updated_at) VALUES (5, 1, 1, 4, 'synthetic_pg_userDEMO_STATION', NULL, 0, NOW(), NOW())"
+      },
+      {
+        "name": "pg_main_wallet",
+        "sql": "INSERT INTO wallets (id, user_id, platform_id, platform_name, player_id, in_use, currency, balance, freeze, check_at, created_at, updated_at) VALUES (6, 4, 1, 'main', 5, 1, 'PHP', 100.0000, 0.0000, NOW(), NOW(), NOW())"
+      },
+      {
+        "name": "pg_game",
+        "sql": "INSERT INTO games (id, code, signature, name, type, platform_name, game_company_name, active, maintain, created_at, updated_at) VALUES (4, 'PG_SYNTHETIC', 'pg_synthetic_game', 'Synthetic PG Game', 'slots', 'pg', 'pg', 1, 0, NOW(), NOW())"
+      },
+      {
+        "name": "pg_game_currency",
+        "sql": "INSERT INTO game_currencies (id, game_id, currency, status, created_at, updated_at) VALUES (4, 4, 'PHP', 1, NOW(), NOW())"
+      },
+      {
+        "name": "pg_game_company",
+        "sql": "INSERT INTO game_companies (id, name, platform_id, platform_name, currency, created_at, updated_at) VALUES (4, 'pg', 5, 'pg', 'PHP', NOW(), NOW())"
+      },
+      {
+        "name": "pg_station_game_company",
+        "sql": "INSERT INTO station_game_companies (id, station_id, game_company_id, game_company_name, currency, active, created_at, updated_at) VALUES (6, 1, 4, 'pg', 'PHP', 1, NOW(), NOW())"
+      }
+    ]
+  }
+}

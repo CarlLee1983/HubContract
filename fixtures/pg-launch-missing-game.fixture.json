@@ -1,0 +1,55 @@
+{
+  "scenarioId": "pg-launch-missing-game",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "GAME NOT FOUND",
+      "retryable": false
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "hub_member": [
+        {
+          "account": "synthetic_pg_user"
+        }
+      ],
+      "pg_players": [],
+      "php_wallets": [
+        {
+          "platform_id": 1,
+          "currency": "PHP",
+          "balance": "100.0000",
+          "in_use": 1
+        }
+      ],
+      "pg_play_logs": [],
+      "pg_remittances": []
+    },
+    "after": {
+      "hub_member": [
+        {
+          "account": "synthetic_pg_user"
+        }
+      ],
+      "pg_players": [],
+      "php_wallets": [
+        {
+          "platform_id": 1,
+          "currency": "PHP",
+          "balance": "100.0000",
+          "in_use": 1
+        }
+      ],
+      "pg_play_logs": [],
+      "pg_remittances": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  }
+}
