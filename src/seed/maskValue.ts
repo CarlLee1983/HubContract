@@ -57,6 +57,15 @@ function maskWalletAddress(value: string): string {
   return `synthetic_wallet_${digestHex(value).slice(0, 34)}`;
 }
 
+/**
+ * 把一個數字換成決定性的合成數字，型別保持是數字（JSON 裡數字型的敏感值，
+ * 例如 PIN 碼，遮罩後不該變成字串，見 `jsonValueMasker.ts`）。取雜湊值前 12
+ * 個十六進位字元轉成整數即可，不需要保留原始數值的量級或正負號。
+ */
+export function maskNumber(value: number): number {
+  return parseInt(digestHex(String(value)).slice(0, 12), 16);
+}
+
 /** 依欄位類別把單一原始值換成決定性的合成值。 */
 export function maskValue(category: MaskCategory, value: string): string {
   switch (category) {

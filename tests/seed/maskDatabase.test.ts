@@ -27,6 +27,15 @@ describe("Issue #13：findUnclassifiedEntries（白名單完整性檢查的純�
     expect(entries.columns).toEqual(["stations.new_column"]);
   });
 
+  it("第四輪 code review 決議：欄位剛好叫 constructor/toString 時，不會被 `in` 的原型鏈誤判成已分類", () => {
+    const columnsByTable = new Map([["stations", ["id", "constructor", "toString"]]]);
+    const config = {
+      stations: { columns: { id: { kind: "keep" } as const } }, // 故意不分類 constructor/toString
+    };
+    const entries = findUnclassifiedEntries(columnsByTable, config);
+    expect([...entries.columns].sort()).toEqual(["stations.constructor", "stations.toString"]);
+  });
+
   it("表設成 truncate 時，不需要逐欄位分類", () => {
     const columnsByTable = new Map([["sessions", ["id", "payload"]]]);
     const entries = findUnclassifiedEntries(columnsByTable, { sessions: { truncate: true } });

@@ -44,10 +44,11 @@ INSERT INTO `station_currencies` (`id`, `station_id`, `currency`, `status`, `cre
 (900000003, 900000001, 'PHP', 1, NOW(), NOW(), NULL)
 ON DUPLICATE KEY UPDATE `status` = VALUES(`status`), `updated_at` = NOW(), `deleted_at` = NULL;
 
--- 3. Platforms
+-- 3. Platforms（含 Issue #8 的 sbo：GET /v1/player/balance 的 outbound 平台）
 INSERT INTO `platforms` (`id`, `name`, `is_original`, `api_settings`, `active`, `maintain`, `authorized`, `is_main`, `raw_log_sync`, `sort`, `currencies`, `regions`, `game_types`, `raw_index`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (900000001, 'main', 1, NULL, 1, 0, 1, 1, 1, 0, '[]', '[]', '[]', NULL, NOW(), NOW(), NULL),
-(900000002, 'cq9', 1, '{"url":"http://mock-provider:8081"}', 1, 0, 1, 0, 1, 1, '["TWD","USD"]', '[]', '[]', NULL, NOW(), NOW(), NULL)
+(900000002, 'cq9', 1, '{"url":"http://mock-provider:8081"}', 1, 0, 1, 0, 1, 1, '["TWD","USD"]', '[]', '[]', NULL, NOW(), NOW(), NULL),
+(900000003, 'sbo', 1, '{"api_url":"http://mock-provider:8081","company_key":"synthetic_company_key","server_id":"synthetic-server-01","agent_id":"synthetic_agent","portfolio":"SportsBook","lang":"en"}', 1, 0, 1, 0, 1, 2, '["TWD"]', '[]', '[]', NULL, NOW(), NOW(), NULL)
 ON DUPLICATE KEY UPDATE `api_settings` = VALUES(`api_settings`), `active` = VALUES(`active`), `updated_at` = NOW(), `deleted_at` = NULL;
 
 -- 4. Platform Currencies
@@ -62,11 +63,29 @@ INSERT INTO `users` (`id`, `station_id`, `account`, `last_deposit_at`, `last_bet
 (900000002, 900000001, 'synthetic_user_02', NOW(), NULL, NOW(), NOW(), NULL)
 ON DUPLICATE KEY UPDATE `last_deposit_at` = VALUES(`last_deposit_at`), `updated_at` = NOW(), `deleted_at` = NULL;
 
--- 6. Wallets (Main Wallet for user 1 & 2)
+-- 5b. Players（Issue #8：sbo 的 findAccount() 需要事先建好的 player，見
+-- synthetic-seed.sql 對應的註解）。account 值照 LobbyAbstract::getFormattedPlayerAccount()
+-- 的公式組出來：{user.account}{station.code}p{platform.id}，這裡的 platform.id
+-- 用的是這份 overlay 自己的 900000003，跟 synthetic 模式的 3 不同——這是
+-- overlay 命名空間內部自洽的值，不代表 scenarios/player/*.json 的 dbProbe
+-- （寫死 platform_id = 3、user_id = 1）能在 snapshot 模式下對得上，那兩個
+-- 情境本來就還不能在 snapshot 模式下用，見 README「snapshot 模式的已知限制」。
+INSERT INTO `players` (`id`, `station_id`, `platform_id`, `user_id`, `account`, `vendor_player_id`, `playing`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000001, 900000001, 900000003, 900000001, 'synthetic_user_01DEMO_STATIONp900000003', NULL, 0, NOW(), NOW(), NULL)
+ON DUPLICATE KEY UPDATE `account` = VALUES(`account`), `updated_at` = NOW(), `deleted_at` = NULL;
+
+-- 6. Wallets (Main Wallet for user 1 & 2，加上 Issue #8 的 sbo 錢包)
 INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_id`, `in_use`, `currency`, `balance`, `freeze`, `check_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (900000001, 900000001, 900000001, 'main', 0, 1, 'TWD', 1000.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
-(900000002, 900000002, 900000001, 'main', 0, 1, 'TWD', 500.0000, 0.0000, NOW(), NOW(), NOW(), NULL)
+(900000002, 900000002, 900000001, 'main', 0, 1, 'TWD', 500.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
+(900000003, 900000001, 900000003, 'sbo', 900000001, 0, 'TWD', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL)
 ON DUPLICATE KEY UPDATE `balance` = VALUES(`balance`), `freeze` = VALUES(`freeze`), `check_at` = NOW(), `updated_at` = NOW(), `deleted_at` = NULL;
+
+-- 6b. Play logs（Issue #8：PlayerService::getPlayBalance() 挑使用者最新一筆
+-- play_log 的平台，不是從 request 挑）。
+INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000001, 900000001, 900000003, 900000001, 900000001, NULL, NOW(), NOW(), NULL)
+ON DUPLICATE KEY UPDATE `updated_at` = NOW(), `deleted_at` = NULL;
 
 -- 7. Deposit Records
 INSERT INTO `deposit_records` (`id`, `no`, `trade_no`, `user_id`, `wallet_id`, `currency`, `amount`, `status`, `stage`, `note`, `expired_at`, `error_code`, `error_message`, `completed_at`, `created_at`, `updated_at`, `deleted_at`) VALUES

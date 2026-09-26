@@ -19,12 +19,21 @@
  * reply/answer──一律 `null`），再用這三輪 review 找到的具體項目手動覆蓋（見
  * `OVERRIDES`）。跑在真的資料庫上時，`information_schema` 找到的每一個表/欄位
  * 都必須能在這份設定裡查到分類，查不到就列出全部後 throw（見
- * `src/seed/maskSnapshot.ts` 的 `assertFullyClassified`）——不管是這份手動
+ * `maskDatabase()` 開頭的分類完整性檢查）——不管是這份手動
  * 整理漏掉的欄位，還是測試站 schema 比 `seeds/mysql-schema.sql` 多出來的欄位，
  * 都會在跑遮罩腳本的當下被擋下來，而不是悄悄外洩。
  */
 
 export type MaskCategory = "secret_key" | "account" | "name" | "email" | "wallet_address";
+
+/**
+ * `mask_json` 欄位裡，一個鍵名可以原樣保留（`keep`），或者是要換成 stub 位址的
+ * URL（`url`）。沒列在 `safeKeys` 裡的鍵，不管值是字串還是數字，一律遮罩——
+ * 白名單，不是「看鍵名像不像敏感字」的黑名單（第四輪 code review 決議：
+ * `appkey`/`md5key`/`mch_id` 這類鍵名黑名單永遠列不完，唯一安全的預設是
+ * 「預設遮，明確列出來的才留」）。
+ */
+export type JsonKeyKind = "keep" | "url";
 
 export type ColumnAction =
   /** 欄位原樣保留：已確認不是敏感資料（業務代碼、狀態、金額、時間戳記……）。 */
@@ -35,8 +44,8 @@ export type ColumnAction =
   | { readonly kind: "null" }
   /** 換成同一個固定值，不管原值是什麼（例如統一密碼雜湊、stub URL）。 */
   | { readonly kind: "fixed"; readonly value: string }
-  /** 欄位存的是 JSON 字串，依鍵名/值形狀遞迴遮罩（見 `jsonValueMasker.ts`）。 */
-  | { readonly kind: "mask_json" }
+  /** 欄位存的是 JSON 字串，依 `safeKeys` 白名單遞迴遮罩（見 `jsonValueMasker.ts`）。 */
+  | { readonly kind: "mask_json"; readonly safeKeys: Readonly<Record<string, JsonKeyKind>> }
   /** `players.account` 專用：保留「使用者帳號 + 站台代碼 + p + 平台 id」的推導關係。 */
   | { readonly kind: "derive_player_account" };
 
@@ -59,10 +68,13 @@ export const STUB_BASE_URL = "http://mock-provider:8081";
 
 const keep: ColumnAction = { kind: "keep" };
 const nul: ColumnAction = { kind: "null" };
-const maskJson: ColumnAction = { kind: "mask_json" };
 const derivePlayerAccount: ColumnAction = { kind: "derive_player_account" };
 const mask = (category: MaskCategory): ColumnAction => ({ kind: "mask", category });
 const fixed = (value: string): ColumnAction => ({ kind: "fixed", value });
+const maskJson = (safeKeys: Readonly<Record<string, JsonKeyKind>> = {}): ColumnAction => ({
+  kind: "mask_json",
+  safeKeys,
+});
 
 /**
  * 整張表都是「情境用不到、只裝敏感內容或內部遙測」的資料，見下方 `TABLE_CONFIG`
@@ -532,10 +544,13 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
   guilds: {
     columns: {
       id: keep,
-      name: keep,
+      // name／intro 是會員自己創立公會時填的顯示名稱/簡介，不是業務代碼或
+      // enum；name 是 NOT NULL 所以用 mask（合成名稱字串），intro 可為 NULL
+      // 直接清空（第四輪 code review 決議）。
+      name: mask("name"),
       creator_id: keep,
       level: keep,
-      intro: keep,
+      intro: nul,
       description: nul,
       balance: keep,
       settings: keep,
@@ -604,13 +619,12 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
       deleted_at: keep,
     },
   },
-  migrations: {
-    columns: {
-      id: keep,
-      migration: keep,
-      batch: keep,
-    },
-  },
+  // 第四輪 code review 決議：migrations 改整表清空。凍結的 seeds/mysql-schema.sql
+  // 本身已經內建一份完整的 migrations 資料列（載入 env-reset.sh 的第一步），
+  // 遮罩後的種子如果還帶自己的 128 列 migrations，載入時會撞主鍵/唯一鍵
+  // duplicate entry；這張表的內容（Laravel 內部的遷移執行紀錄）本來就跟任何
+  // 情境無關，用 truncate 最單純。
+  migrations: { truncate: true },
   model_has_permissions: {
     columns: {
       permission_id: keep,
@@ -748,7 +762,9 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
       current_trades: keep,
       period: keep,
       api_url: fixed(STUB_BASE_URL),
-      api_tokens: maskJson,
+      // payments.api_tokens 整欄就是金流 API 的憑證集合（md5key、merchant_id
+      // 之類），沒有已知的非敏感鍵值得留白名單，安全值就是全遮。
+      api_tokens: maskJson({}),
       created_at: keep,
       updated_at: keep,
       deleted_at: keep,
@@ -807,7 +823,12 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
       id: keep,
       name: keep,
       is_original: keep,
-      api_settings: maskJson,
+      // 白名單依 .legacy-src 各 GameLobby Platform 類別實際讀取的鍵：`lang`
+      // （語系）、`dc`（資料中心/地區代碼）是結構性描述，不是機密；`api_url`/
+      // `url` 是打給線路的端點，換成 stub。其餘鍵（key/iv/private_key/
+      // company_key/server_id/agent_id/agent/aud/portfolio……）都是各廠商自訂
+      // 的憑證或識別碼，沒有全廠商通用的安全保證，一律遮。
+      api_settings: maskJson({ lang: "keep", dc: "keep", api_url: "url", url: "url" }),
       active: keep,
       maintain: keep,
       authorized: keep,
@@ -1115,7 +1136,10 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
     columns: {
       id: keep,
       name: keep,
-      val: maskJson,
+      // val 的內容依 name 而定、沒有固定 schema（site_google_recaptcha 的
+      // server_token、site_contact 的 email/tel……），無法針對個別 name 設定
+      // 白名單，安全值就是全遮。
+      val: maskJson({}),
       group: keep,
       created_at: keep,
       updated_at: keep,
@@ -1175,7 +1199,11 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
       supplier: keep,
       active: keep,
       amount: keep,
-      settings: maskJson,
+      // 白名單依 .legacy-src 各 SMS Supplier 類別實際讀取的鍵：`url` 是打給
+      // 簡訊供應商的端點，換成 stub；`smsCost` 是純業務設定（每則簡訊成本），
+      // 不是憑證。其餘鍵（appkey/appcode/appsecret/api_id/api_password/
+      // orgCode/MD5……）都是各供應商自訂的憑證，一律遮。
+      settings: maskJson({ url: "url", smsCost: "keep" }),
       created_at: keep,
       updated_at: keep,
       deleted_at: keep,
@@ -1295,7 +1323,9 @@ export const TABLE_CONFIG: Readonly<Record<string, TableConfig>> = {
       uuid: keep,
       user_id: keep,
       option_type: keep,
-      name: keep,
+      // 使用者自己取的錢包暱稱（不像 site/user_bank_cards.name 是從固定的銀行
+      // 清單選的），可能夾帶個人資訊，第四輪 code review 決議清空。
+      name: nul,
       address: mask("wallet_address"),
       public_chain: keep,
       active: keep,

@@ -42,13 +42,16 @@ export async function maskSnapshotFile(options: MaskSnapshotOptions): Promise<Bu
   const maskedBytes = await withDisposableMariaDb(async (db) => {
     await loadSqlBytes(db, inputBytes);
 
+    // `loadSqlBytes` 把整份快照丟給 `mariadb` CLI 處理，這個 pool 只執行單一
+    // 語句的 SELECT/UPDATE/TRUNCATE（見 maskDatabase.ts），不需要
+    // `multipleStatements: true`——開著反而是不必要的攻擊面（第四輪 code
+    // review 決議）。
     const pool = mysql.createPool({
       host: db.host,
       port: db.port,
       user: db.user,
       password: db.password,
       database: db.database,
-      multipleStatements: true,
     });
     try {
       await maskDatabase(pool, db.database);

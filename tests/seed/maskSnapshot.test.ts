@@ -176,4 +176,74 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #13：maskSnapshotFile（起
     },
     60000
   );
+
+  it(
+    "第四輪 code review regression：快照帶 trigger 時直接 throw，不會讓遮罩用的 UPDATE 觸發它把原始值寫進別的表外洩",
+    async () => {
+      const inPath = await writeTempSql(
+        "CREATE TABLE `currencies` (`id` int PRIMARY KEY, `name` varchar(255));\n" +
+          "CREATE TABLE `players` (`id` int PRIMARY KEY, `station_id` int, `platform_id` int, `user_id` int, `account` varchar(255));\n" +
+          "INSERT INTO `players` (`id`,`station_id`,`platform_id`,`user_id`,`account`) VALUES (1,1,1,1,'REAL_ACCOUNT_LEAK_VIA_TRIGGER');\n" +
+          "CREATE TRIGGER t AFTER UPDATE ON players FOR EACH ROW INSERT INTO currencies VALUES (NEW.id+100, OLD.account);\n"
+      );
+      const outPath = path.join(os.tmpdir(), `hubcontract-mask-trigger-${Date.now()}.sql`);
+
+      try {
+        await expect(maskSnapshotFile({ inputPath: inPath, outputPath: outPath })).rejects.toThrow(
+          /使用者定義的資料庫物件.*trigger `t`/s
+        );
+      } finally {
+        await fs.unlink(inPath).catch(() => {});
+        await fs.unlink(outPath).catch(() => {});
+      }
+    },
+    60000
+  );
+
+  it(
+    "第四輪 code review regression：快照帶 CREATE DATABASE/USE 切到別的 schema 時直接 throw，不會默默產出空種子",
+    async () => {
+      const inPath = await writeTempSql(
+        "CREATE DATABASE realdb;\nUSE realdb;\n" +
+          "CREATE TABLE `currencies` (`id` int PRIMARY KEY, `name` varchar(255));\n" +
+          "INSERT INTO `currencies` (`id`,`name`) VALUES (1,'REAL_DATA_IN_WRONG_SCHEMA');\n"
+      );
+      const outPath = path.join(os.tmpdir(), `hubcontract-mask-otherdb-${Date.now()}.sql`);
+
+      try {
+        await expect(maskSnapshotFile({ inputPath: inPath, outputPath: outPath })).rejects.toThrow(
+          /非預期的資料庫.*realdb/s
+        );
+      } finally {
+        await fs.unlink(inPath).catch(() => {});
+        await fs.unlink(outPath).catch(() => {});
+      }
+    },
+    60000
+  );
+
+  it(
+    "第四輪 code review regression：migrations 整表清空，凍結 schema 自帶的 migrations 資料列不會跟遮罩後的種子衝突",
+    async () => {
+      // 模擬 seeds/mysql-schema.sql 本身就帶一批 migrations 資料列的情況：
+      // 快照如果也帶了自己的 migrations 資料列，遮罩後的輸出必須是空的（整表
+      // 清空），這樣 env-reset.sh 依序載入「凍結 schema（含 migrations 資料）
+      // -> 遮罩後的快照」才不會撞主鍵重複。
+      const inPath = await writeTempSql(
+        "CREATE TABLE `migrations` (`id` int PRIMARY KEY, `migration` varchar(255), `batch` int);\n" +
+          "INSERT INTO `migrations` (`id`,`migration`,`batch`) VALUES (1,'2024_01_01_000000_create_x_table',1),(2,'2024_01_02_000000_create_y_table',1);\n"
+      );
+      const outPath = path.join(os.tmpdir(), `hubcontract-mask-migrations-${Date.now()}.sql`);
+
+      try {
+        const maskedBytes = await maskSnapshotFile({ inputPath: inPath, outputPath: outPath });
+        const output = maskedBytes.toString("utf-8");
+        expect(output).not.toMatch(/INSERT[^;]*INTO `migrations`/i);
+      } finally {
+        await fs.unlink(inPath).catch(() => {});
+        await fs.unlink(outPath).catch(() => {});
+      }
+    },
+    60000
+  );
 });
