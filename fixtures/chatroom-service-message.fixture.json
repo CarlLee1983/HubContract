@@ -1,0 +1,62 @@
+{
+  "scenarioId": "chatroom-service-message",
+  "layer2_dbState": {
+    "before": {
+      "service_issues_administer_map": [],
+      "service_issues": [
+        {
+          "id": 2,
+          "issueable_type": "App\\Models\\UserGuest",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": null,
+          "closed_at": null
+        }
+      ],
+      "chat_room_messages": [],
+      "activity_log": []
+    },
+    "after": {
+      "service_issues_administer_map": [],
+      "service_issues": [
+        {
+          "id": 2,
+          "issueable_type": "App\\Models\\UserGuest",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": 1,
+          "closed_at": null
+        }
+      ],
+      "chat_room_messages": [
+        {
+          "id": 1,
+          "room_code": "issue#2,guest:1",
+          "room_type": "service",
+          "chattable_id": 1,
+          "chattable_type": "App\\Models\\UserGuest",
+          "body": "Synthetic guest reply"
+        }
+      ],
+      "activity_log": []
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:cq9": null
+      },
+      "after": {
+        "platform-maintenance:v1:cq9": null
+      }
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

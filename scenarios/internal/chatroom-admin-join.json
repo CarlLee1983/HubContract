@@ -1,0 +1,59 @@
+{
+  "id": "chatroom-admin-join",
+  "name": "Join a customer-service room as administrator",
+  "description": "Legacy customer-service write contract (HubRefactoring #24).",
+  "tags": [
+    "internal",
+    "chatroom",
+    "support"
+  ],
+  "action": {
+    "name": "chatroom.join",
+    "parameters": {
+      "issueId": 1
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "service_issues_administer_map",
+        "sql": "SELECT service_issue_id, administer_id FROM service_issues_administer_map WHERE service_issue_id = ? ORDER BY service_issue_id, administer_id",
+        "params": [
+          1
+        ]
+      },
+      {
+        "name": "service_issues",
+        "sql": "SELECT id, issueable_type, issueable_id, service_issue_category_id, closed_by_administer_id, last_message_id, CASE WHEN closed_at IS NULL THEN NULL ELSE '<SET>' END AS closed_at FROM service_issues WHERE id = ? ORDER BY id",
+        "params": [
+          1
+        ]
+      },
+      {
+        "name": "chat_room_messages",
+        "sql": "SELECT id, room_code, room_type, chattable_id, chattable_type, body FROM chat_room_messages WHERE room_code = ? ORDER BY id",
+        "params": [
+          "issue#1,1"
+        ]
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "normalizers": []
+}

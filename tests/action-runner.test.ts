@@ -40,6 +40,7 @@ describe("internal action scenarios", () => {
     const calls: string[] = [];
     const adapter: TargetAdapter = {
       executeAction: async (action, baseUrl, _dbBefore, dbConfig) => {
+        if (action.name !== "platformGameType.setActive") throw new Error("Unexpected action");
         calls.push(`${action.name}:${action.parameters.platformId}:${baseUrl}:${dbConfig?.database}`);
       },
     };

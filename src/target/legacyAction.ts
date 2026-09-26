@@ -2,6 +2,9 @@ import type { ScenarioAction } from "../schema/scenario";
 import mysql from "mysql2/promise";
 import { config } from "../config";
 import type { DbConfig } from "../probe/dbProbe";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join as joinPath } from "node:path";
 
 interface GameTypeMapping {
   platform_id: number;
@@ -182,7 +185,9 @@ export class LegacyActionAdapter {
       throw new Error(`Legacy chatroom action ${action.name} failed with HTTP ${response.status}`);
     }
     // Legacy catches domain errors and redirects back with a flashed error.
-    const followUp = await request(page, { headers: { "X-Inertia": "true", Accept: "application/json" } });
+    const manifest = readFileSync(joinPath(import.meta.dir, "../../docker/admin-build/manifest.json"));
+    const version = createHash("md5").update(manifest).digest("hex");
+    const followUp = await request(page, { headers: { "X-Inertia": "true", "X-Inertia-Version": version, Accept: "application/json" } });
     if (followUp.status !== 200) throw new Error(`Legacy chatroom action ${action.name} confirmation failed with HTTP ${followUp.status}`);
     let props: Record<string, unknown>;
     try { props = (await followUp.json() as { props: Record<string, unknown> }).props; }

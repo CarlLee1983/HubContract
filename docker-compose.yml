@@ -12,6 +12,9 @@ networks:
         - subnet: ${SUBNET:-172.29.0.0/24}
           gateway: ${GATEWAY:-172.29.0.1}
 
+volumes:
+  gateway-vendor:
+
 services:
   mariadb:
     image: mariadb:10.11.6
@@ -72,6 +75,38 @@ services:
       timeout: 2s
       retries: 20
 
+  # The pinned Legacy chatroom handlers call GatewayWorker before/after DB
+  # writes. Run the same installed package so those calls complete normally.
+  gateway-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    image: stationhub-gateway:recording
+    working_dir: /var/www/html
+    volumes:
+      - ./.legacy-src:/var/www/html
+      # Workerman writes pid/log under vendor. Copy the pinned dependencies to
+      # a Compose-owned volume so the source vendor remains untouched.
+      - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/opt/legacy-vendor:ro
+      - gateway-vendor:/var/www/html/vendor
+      - ./docker/.env.recording:/var/www/html/.env:ro
+      - ./docker/start-gateway.sh:/opt/hubcontract/start-gateway.sh:ro
+    command: ["sh", "/opt/hubcontract/start-gateway.sh"]
+    environment:
+      WS_LAN_IP: gateway-worker
+      WS_REGISTER: text://0.0.0.0:6000
+      WS_REGISTER_ADDRESS: gateway-worker:6000
+      WS_GATEWAY: websocket://0.0.0.0:6001
+      VITE_WEB_SOCKET_SSL_CRT_PATH: /tmp/hubcontract-gateway.crt
+      VITE_WEB_SOCKET_SSL_KEY_PATH: /tmp/hubcontract-gateway.key
+    ports:
+      - "127.0.0.1:${GATEWAY_WEBSOCKET_PORT:-6001}:6001"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit((@fsockopen('127.0.0.1', 6000) && @fsockopen('127.0.0.1', 6001)) ? 0 : 1);"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   legacy-app:
     image: stationhub-legacy:recording
     ports:
@@ -86,6 +121,7 @@ services:
       # Laravel's login view needs a Vite manifest; the contract does not load its UI assets.
       - ./docker/admin-build:/var/www/html/public/build:ro
       - ./docker/.env.recording:/var/www/html/.env:ro
+      - ./docker/prepare-guest-session.php:/opt/hubcontract/prepare-guest-session.php:ro
     environment:
       APP_TIMEZONE: Asia/Taipei
       # Host::is('api') matches this list exactly, including port. Scenario
@@ -114,6 +150,7 @@ services:
       # var name/default, and tests/outbound-stub.test.ts asserts
       # player-balance-outbound-timeout.json's delayMs actually exceeds it.
       GAMELOBBY_HTTP_PLATFORM_OVERRIDES: "sbo:${GAMELOBBY_SBO_TIMEOUT_SECONDS:-2}"
+      WS_REGISTER_ADDRESS: gateway-worker:6000
     depends_on:
       mariadb:
         condition: service_healthy
@@ -122,6 +159,8 @@ services:
       mongo:
         condition: service_healthy
       mock-provider:
+        condition: service_healthy
+      gateway-worker:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/v1/server/status"]

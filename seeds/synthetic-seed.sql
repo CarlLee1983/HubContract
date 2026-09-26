@@ -155,6 +155,20 @@ INSERT INTO `roles` (`id`, `name`, `guard_name`, `hierarchy`, `created_at`, `upd
 INSERT INTO `model_has_roles` (`role_id`, `model_type`, `model_id`) VALUES
 (1, 'App\\Models\\Administer', 1);
 
+-- 9a. Customer-service chatroom baseline (HubRefactoring #24).
+TRUNCATE TABLE `service_issues_administer_map`;
+TRUNCATE TABLE `chat_room_messages`;
+TRUNCATE TABLE `service_issues`;
+TRUNCATE TABLE `service_issue_categories`;
+TRUNCATE TABLE `user_guests`;
+INSERT INTO `service_issue_categories` (`id`, `name`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Synthetic support', 'Contract-only category', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+INSERT INTO `user_guests` (`id`, `account`, `created_at`, `updated_at`) VALUES
+(1, 'synthetic_guest_01', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+INSERT INTO `service_issues` (`id`, `issueable_type`, `service_issue_category_id`, `issueable_id`, `closed_by_administer_id`, `last_message_id`, `created_at`, `updated_at`) VALUES
+(1, 'App\\Models\\User', 1, 1, NULL, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+(2, 'App\\Models\\UserGuest', 1, 1, NULL, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+
 -- 10. SMS suppliers. Every URL is the local mock-provider; credentials and
 -- phone numbers used by SMS scenarios are synthetic.
 TRUNCATE TABLE `sms_logs`;
