@@ -1,7 +1,9 @@
 import path from "path";
+import { MariaDbProbe, type DbConfig, type DbProbe } from "../probe/dbProbe";
 
 export interface TargetAdapter {
   triggerSchedule(name: string): Promise<void>;
+  setupSchedule?(statements: DbProbe["queries"], dbConfig?: DbConfig): Promise<void>;
 }
 
 // Scenario names are target-neutral. Only this adapter knows the Legacy CLI.
@@ -9,6 +11,15 @@ const COMMANDS: Record<string, string> = { "remittance.retry": "remittance:retry
 
 export class LegacyTargetAdapter implements TargetAdapter {
   constructor(private readonly run: (argv: string[]) => Promise<void> = runCommand) {}
+
+  async setupSchedule(statements: DbProbe["queries"], dbConfig?: DbConfig): Promise<void> {
+    const probe = new MariaDbProbe(dbConfig);
+    try {
+      await probe.setup(statements);
+    } finally {
+      await probe.close();
+    }
+  }
 
   async triggerSchedule(name: string): Promise<void> {
     const command = COMMANDS[name];

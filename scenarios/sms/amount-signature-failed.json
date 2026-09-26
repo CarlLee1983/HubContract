@@ -1,0 +1,42 @@
+{
+  "id": "sms-amount-signature-failed",
+  "name": "SMS amount signature failed",
+  "description": "Records the 422 signature validation error for a known station.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/amount"
+  },
+  "tags": [
+    "sms",
+    "amount",
+    "signature-failed"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1,
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

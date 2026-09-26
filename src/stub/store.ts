@@ -1,4 +1,5 @@
 import type { StubMatcher, StubRequestRecord, StubScript } from "../schema/scenario";
+import { createHash } from "node:crypto";
 
 export type { StubRequestRecord };
 
@@ -81,6 +82,17 @@ export class StubStore {
         // structure, not object identity.
         if (!Bun.deepEquals(body[key], expected, true)) return false;
       }
+    }
+
+    if (matcher.bodyMd5) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const { outputField, inputFields, suffix, uppercase } = matcher.bodyMd5;
+      const inputs = inputFields.map((field) => body[field]);
+      if (inputs.some((value) => typeof value !== "string" && typeof value !== "number")) return false;
+      const digest = createHash("md5")
+        .update(inputs.map(String).join("") + suffix)
+        .digest("hex");
+      if (body[outputField] !== (uppercase ? digest.toUpperCase() : digest)) return false;
     }
 
     return true;

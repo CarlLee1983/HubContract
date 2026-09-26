@@ -126,3 +126,27 @@ services:
       interval: 2s
       timeout: 2s
       retries: 20
+
+  hub-wallet-sync-worker:
+    image: stationhub-legacy:recording
+    working_dir: /var/www/html
+    volumes:
+      - ./.legacy-src:/var/www/html
+      - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/vendor:ro
+      - ./docker/.env.recording:/var/www/html/.env:ro
+    command: ["php", "artisan", "queue:work", "redis", "--queue=HubWalletSync", "--sleep=1", "--tries=3"]
+    depends_on:
+      legacy-app:
+        condition: service_healthy
+
+  http-logging-worker:
+    image: stationhub-legacy:recording
+    working_dir: /var/www/html
+    volumes:
+      - ./.legacy-src:/var/www/html
+      - ${STATIONHUB_VENDOR_DIR:?請透過 scripts/env-up.sh 啟動}:/var/www/html/vendor:ro
+      - ./docker/.env.recording:/var/www/html/.env:ro
+    command: ["php", "artisan", "queue:work", "redis", "--queue=HttpLogging", "--sleep=1", "--tries=3"]
+    depends_on:
+      legacy-app:
+        condition: service_healthy

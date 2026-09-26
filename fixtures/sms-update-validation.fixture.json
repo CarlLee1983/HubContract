@@ -1,0 +1,22 @@
+{
+  "scenarioId": "sms-update-validation",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "設定為必填項",
+      "errors": {
+        "settings": [
+          "設定為必填項"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

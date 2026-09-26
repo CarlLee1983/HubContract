@@ -59,6 +59,33 @@ describe("StubStore (Issue #8)", () => {
     expect(rightUser.matched).toBe(true);
   });
 
+  it("rejects an AboSend body with a well-formed but incorrect dynamic MD5", () => {
+    const store = new StubStore();
+    store.loadScript({ matchers: [{
+      method: "POST",
+      path: "/api/viewOrgBalance",
+      body: { orgCode: "synthetic_org_code" },
+      bodyMd5: {
+        outputField: "sign",
+        inputFields: ["orgCode", "rand"],
+        suffix: "synthetic_md5_key",
+        uppercase: true,
+      },
+      response: { status: 200, body: {}, headers: {}, delayMs: 0 },
+    }] });
+    const request = {
+      method: "POST",
+      path: "/api/viewOrgBalance",
+      query: {},
+      headers: {},
+      body: { orgCode: "synthetic_org_code", rand: "000123", sign: "BDAB8F275B9F3D7492D95ED52E5CA026" },
+    };
+
+    expect(store.handle(request).matched).toBe(true);
+    expect(store.handle({ ...request, body: { ...request.body, sign: "A".repeat(32) } }).matched).toBe(false);
+    expect(store.getRequests().unmatchedCount).toBe(1);
+  });
+
   it("deep-equals nested object/array body condition values, not just top-level primitives", () => {
     const store = new StubStore();
     store.loadScript({

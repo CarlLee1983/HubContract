@@ -30,6 +30,16 @@ it("bounds failed and stuck target commands", async () => {
   await expect(runCommand([process.execPath, "-e", "await new Promise(() => {})"], 100)).rejects.toThrow("timed out");
 });
 
+it("rejects a schedule without an adapter before setup or probes", async () => {
+  const scenario = ScenarioDefinitionSchema.parse(rawScenario);
+  const runner = new ContractRunner({ baseUrl: "http://next.example:9090", stubUrl: "http://127.0.0.1:2" });
+  try {
+    await expect(runner.record(scenario)).rejects.toThrow("Schedule trigger requires a target adapter");
+  } finally {
+    await runner.close();
+  }
+});
+
 it("requires HTTP response fixtures and forbids them for schedules", () => {
   const schedule = ScenarioDefinitionSchema.parse(rawScenario);
   const http = ScenarioDefinitionSchema.parse({
@@ -45,6 +55,11 @@ it("requires HTTP response fixtures and forbids them for schedules", () => {
   expect(() => assertFixtureMatchesScenario(schedule, {
     scenarioId: schedule.id,
     layer3_outboundCalls: { calls: [] },
+  })).toThrow("requires layer2_dbState");
+  expect(() => assertFixtureMatchesScenario(schedule, {
+    scenarioId: schedule.id,
+    layer3_outboundCalls: { calls: [] },
+    layer2_dbState: { before: {}, after: {} },
   })).not.toThrow();
 });
 

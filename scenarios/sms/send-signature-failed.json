@@ -1,0 +1,45 @@
+{
+  "id": "sms-send-signature-failed",
+  "name": "SMS send signature failed",
+  "description": "Records the 422 signature validation error for a known station.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms/send"
+  },
+  "tags": [
+    "sms",
+    "send",
+    "signature-failed"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1,
+      "phone": "+84901234567",
+      "body": "Synthetic code 1234",
+      "currency": "TWD",
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}

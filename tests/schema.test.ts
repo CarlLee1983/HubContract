@@ -1,7 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema, MongoProbeSchema } from "../src/schema/scenario";
+import { ContractRunner } from "../src/runner";
 
 describe("Scenario Schema (Zod)", () => {
+  it("rejects Mongo collection names the probe cannot capture", () => {
+    expect(MongoProbeSchema.safeParse({ collections: ["httplog_deposit!"] }).success).toBe(false);
+    expect(MongoProbeSchema.safeParse({ pattern: "httplog_*" }).success).toBe(true);
+  });
+
   it("should validate a valid check-transaction scenario definition", () => {
     const validScenario = {
       id: "check-transaction-deposit-hit",
@@ -77,5 +83,37 @@ describe("Scenario Schema (Zod)", () => {
       pattern: "platform-maintenance:v1:cq9",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("validates a target-neutral SMS lock precondition", () => {
+    const scenario = {
+      id: "sms-locked",
+      name: "SMS locked",
+      route: { method: "POST", path: "/v1/sms/send" },
+      request: {},
+      preconditions: { smsLock: { nationalNumber: "639123456789" } },
+    };
+    const parsed = ScenarioDefinitionSchema.parse(scenario);
+    expect(parsed.preconditions?.smsLock?.nationalNumber).toBe("639123456789");
+    expect(ScenarioDefinitionSchema.safeParse({
+      ...scenario,
+      preconditions: { smsLock: { nationalNumber: "not-a-number" } },
+    }).success).toBe(false);
+  });
+
+  it("fails closed when a target has no precondition adapter", async () => {
+    const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "sms-locked",
+      name: "SMS locked",
+      route: { method: "POST", path: "/v1/sms/send" },
+      request: {},
+      preconditions: { smsLock: { nationalNumber: "901234567" } },
+    });
+    try {
+      await expect(runner.record(scenario)).rejects.toThrow("requires a precondition adapter");
+    } finally {
+      await runner.close();
+    }
   });
 });

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "ioredis": "^6.0.0",
+    "mongodb": "^6",
     "mysql2": "^3.24.4",
     "zod": "^4.6.5"
   }

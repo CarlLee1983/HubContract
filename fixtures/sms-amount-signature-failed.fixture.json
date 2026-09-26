@@ -1,0 +1,22 @@
+{
+  "scenarioId": "sms-amount-signature-failed",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "sign 驗證失敗",
+      "errors": {
+        "sign": [
+          "sign 驗證失敗"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}
