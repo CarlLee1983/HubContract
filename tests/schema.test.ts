@@ -101,6 +101,18 @@ describe("Scenario Schema (Zod)", () => {
     }).success).toBe(false);
   });
 
+  it("validates a target-neutral MCP maintenance precondition", () => {
+    const scenario = {
+      id: "mcp-clear", name: "MCP clear",
+      route: { method: "DELETE", path: "/mcp/platform-maintenance/cq9" },
+      preconditions: { mcpMaintenance: { platform: "cq9", duration: "1h", reason: "Contract setup" } },
+    };
+    expect(ScenarioDefinitionSchema.parse(scenario).preconditions?.mcpMaintenance?.platform).toBe("cq9");
+    expect(ScenarioDefinitionSchema.safeParse({
+      ...scenario, preconditions: { mcpMaintenance: { platform: "", duration: "1h", reason: "Contract setup" } },
+    }).success).toBe(false);
+  });
+
   it("fails closed when a target has no precondition adapter", async () => {
     const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
     const scenario = ScenarioDefinitionSchema.parse({
