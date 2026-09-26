@@ -1,0 +1,111 @@
+{
+  "scenarioId": "player-create-existing",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "account": "synthetic_user_02",
+        "created_at": "<MASKED_TIMESTAMP>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "member": [
+        {
+          "id": 2,
+          "station_id": 1,
+          "account": "synthetic_user_02"
+        }
+      ],
+      "main_players": [
+        {
+          "id": 2,
+          "user_id": 2,
+          "platform_id": 1,
+          "account": "synthetic_user_02DEMO_STATION"
+        }
+      ],
+      "main_wallets": [
+        {
+          "id": 2,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 0,
+          "currency": "TWD",
+          "balance": "500.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 4,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 2,
+          "currency": "USD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 5,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 2,
+          "currency": "PHP",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ]
+    },
+    "after": {
+      "member": [
+        {
+          "id": 2,
+          "station_id": 1,
+          "account": "synthetic_user_02"
+        }
+      ],
+      "main_players": [
+        {
+          "id": 2,
+          "user_id": 2,
+          "platform_id": 1,
+          "account": "synthetic_user_02DEMO_STATION"
+        }
+      ],
+      "main_wallets": [
+        {
+          "id": 2,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 0,
+          "currency": "TWD",
+          "balance": "500.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 4,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 2,
+          "currency": "USD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 5,
+          "user_id": 2,
+          "platform_id": 1,
+          "player_id": 2,
+          "currency": "PHP",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ]
+    }
+  }
+}

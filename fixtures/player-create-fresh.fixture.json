@@ -1,0 +1,70 @@
+{
+  "scenarioId": "player-create-fresh",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "account": "synthetic_user_04",
+        "created_at": "<MASKED_TIMESTAMP>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "member": [],
+      "main_players": [],
+      "main_wallets": []
+    },
+    "after": {
+      "member": [
+        {
+          "id": 4,
+          "station_id": 1,
+          "account": "synthetic_user_04"
+        }
+      ],
+      "main_players": [
+        {
+          "id": 5,
+          "user_id": 4,
+          "platform_id": 1,
+          "account": "synthetic_user_04DEMO_STATION"
+        }
+      ],
+      "main_wallets": [
+        {
+          "id": 6,
+          "user_id": 4,
+          "platform_id": 1,
+          "player_id": 5,
+          "currency": "TWD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 7,
+          "user_id": 4,
+          "platform_id": 1,
+          "player_id": 5,
+          "currency": "USD",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        },
+        {
+          "id": 8,
+          "user_id": 4,
+          "platform_id": 1,
+          "player_id": 5,
+          "currency": "PHP",
+          "balance": "0.0000",
+          "freeze": "0.0000"
+        }
+      ]
+    }
+  }
+}
