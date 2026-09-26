@@ -1,0 +1,22 @@
+{
+  "scenarioId": "player-balance-validation-failed",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "玩家帳號為必填項",
+      "errors": {
+        "account": [
+          "玩家帳號為必填項"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  }
+}

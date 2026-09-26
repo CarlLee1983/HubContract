@@ -1,17 +1,19 @@
 {
-  "id": "player-balance-outbound-error",
-  "name": "Player Balance: Outbound call returns a business error",
-  "description": "Issue #8: sbo's findAccount() outbound call responds with a non-zero error.id. Sbo::findAccount() throws Exception(error.msg), which PlayerController::balance() catches and turns into a 200 with that message as the body.",
+  "id": "player-query-outbound-timeout",
+  "name": "Player Query: synchronous SBO lookup timeout",
+  "description": "The SBO provider takes longer than the configured two-second HTTP timeout during synchronous lookup. Earning catches the timeout; the Player response and unchanged wallet are recorded.",
   "route": {
     "method": "GET",
-    "path": "/v1/player/balance"
+    "path": "/v1/player/"
   },
   "tags": [
     "player",
-    "balance",
+    "query",
     "outbound",
-    "error",
+    "timeout",
     "CAP-03",
+    "BR-13",
+    "BR-42",
     "CAP-01",
     "BR-01"
   ],
@@ -33,13 +35,18 @@
   "dbProbe": {
     "queries": [
       {
-        "name": "sbo_wallet",
-        "sql": "SELECT id, balance, freeze, player_id FROM wallets WHERE platform_id = 3 AND user_id = 1",
+        "name": "user_wallets",
+        "sql": "SELECT id, platform_id, balance, freeze, player_id FROM wallets WHERE user_id = 1 ORDER BY id",
         "params": []
       },
       {
         "name": "sbo_player",
-        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3",
+        "sql": "SELECT id, account, vendor_player_id, playing FROM players WHERE station_id = 1 AND platform_id = 3 AND user_id = 1",
+        "params": []
+      },
+      {
+        "name": "user_transactions",
+        "sql": "SELECT id, wallet_id, balance_original, balance_variable, balance_complete, trade_type FROM transactions WHERE user_id = 1 ORDER BY id",
         "params": []
       }
     ]
@@ -55,12 +62,8 @@
           },
           "response": {
             "status": 200,
-            "body": {
-              "error": {
-                "id": 9999,
-                "msg": "Insufficient permission"
-              }
-            }
+            "body": {},
+            "delayMs": 3500
           }
         }
       ]
@@ -70,6 +73,11 @@
     {
       "target": "request.query.timestamp",
       "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.data.created_at",
+      "type": "mask",
+      "replacement": "<CREATED_AT>"
     }
   ]
 }

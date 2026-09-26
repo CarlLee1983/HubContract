@@ -1,0 +1,101 @@
+{
+  "scenarioId": "player-query-outbound-success",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "id": 1,
+        "account": "synthetic_user_01",
+        "balance": 1550,
+        "created_at": "<CREATED_AT>"
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "user_wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ],
+      "user_transactions": []
+    },
+    "after": {
+      "user_wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "balance": "550.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ],
+      "user_transactions": [
+        {
+          "id": 1,
+          "wallet_id": 3,
+          "balance_original": "0.0000",
+          "balance_variable": "550.0000",
+          "balance_complete": "550.0000",
+          "trade_type": "game_profit"
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/get-player-balance.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "Username": "synthetic_user_01DEMO_STATIONp3",
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01"
+        }
+      }
+    ]
+  }
+}

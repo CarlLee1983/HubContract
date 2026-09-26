@@ -41,7 +41,8 @@ INSERT INTO `platform_currencies` (`id`, `platform_id`, `currency`, `vendor_curr
 TRUNCATE TABLE `users`;
 INSERT INTO `users` (`id`, `station_id`, `account`, `last_deposit_at`, `last_betting_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 'synthetic_user_01', NOW(), NULL, NOW(), NOW(), NULL),
-(2, 1, 'synthetic_user_02', NOW(), NULL, NOW(), NOW(), NULL);
+(2, 1, 'synthetic_user_02', NOW(), NULL, NOW(), NOW(), NULL),
+(3, 1, 'synthetic_user_03', NOW(), NULL, NOW(), NOW(), NULL);
 
 -- 6a. Players (Issue #8): pre-created so GET /v1/player/balance's findAccount()
 -- doesn't take the createAccount() branch (an extra outbound call + INSERT) —
@@ -49,7 +50,12 @@ INSERT INTO `users` (`id`, `station_id`, `account`, `last_deposit_at`, `last_bet
 -- account format is LobbyAbstract::getFormattedPlayerAccount(): {user.account}{station.code}p{platform.id}.
 TRUNCATE TABLE `players`;
 INSERT INTO `players` (`id`, `station_id`, `platform_id`, `user_id`, `account`, `vendor_player_id`, `playing`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 3, 1, 'synthetic_user_01DEMO_STATIONp3', NULL, 0, NOW(), NOW(), NULL);
+(1, 1, 3, 1, 'synthetic_user_01DEMO_STATIONp3', NULL, 0, NOW(), NOW(), NULL),
+-- Existing complete member; a repeated POST /v1/player must not add rows.
+(2, 1, 1, 2, 'synthetic_user_02DEMO_STATION', NULL, 0, NOW(), NOW(), NULL),
+-- D-40: same member/platform, distinct account strings satisfy the schema's unique key.
+(3, 1, 1, 3, 'synthetic_user_03DEMO_STATION', NULL, 0, NOW(), NOW(), NULL),
+(4, 1, 1, 3, 'synthetic_user_03DEMO_STATION_duplicate', NULL, 0, NOW(), NOW(), NULL);
 
 -- 6b. Wallets (Main Wallet for user 1 & 2, plus a pre-created sbo wallet for
 -- the Issue #8 player above so checkWalletByPlayer() doesn't INSERT one).
@@ -57,7 +63,9 @@ TRUNCATE TABLE `wallets`;
 INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_id`, `in_use`, `currency`, `balance`, `freeze`, `check_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 1, 'main', 0, 1, 'TWD', 1000.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
 (2, 2, 1, 'main', 0, 1, 'TWD', 500.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
-(3, 1, 3, 'sbo', 1, 0, 'TWD', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL);
+(3, 1, 3, 'sbo', 1, 0, 'TWD', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
+(4, 2, 1, 'main', 2, 0, 'USD', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL),
+(5, 2, 1, 'main', 2, 0, 'PHP', 0.0000, 0.0000, NOW(), NOW(), NOW(), NULL);
 
 -- 6c. Play logs (Issue #8): PlayerService::getPlayBalance() picks the platform
 -- from the user's most recent play_log row, not from the request.
