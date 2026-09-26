@@ -1,5 +1,5 @@
 {
-  "scenarioId": "catalog-games-maintenance",
+  "scenarioId": "catalog-games-redis-maintenance",
   "layer1_inboundResponse": {
     "statusCode": 200,
     "statusText": "OK",
@@ -31,13 +31,11 @@
             "names": {},
             "code": "JDB_SYNTHETIC",
             "game_company_name": "jdb",
-            "original_platform_name": "jdb",
-            "currencies": [
-              "TWD"
-            ],
+            "original_platform_name": null,
+            "currencies": [],
             "type": "slots",
             "logo": "",
-            "maintain": true,
+            "maintain": false,
             "status": false,
             "orientation": null,
             "is_recommended": "none"
@@ -48,11 +46,13 @@
             "names": {},
             "code": "CQ9_SYNTHETIC",
             "game_company_name": "cq9",
-            "original_platform_name": null,
-            "currencies": [],
+            "original_platform_name": "cq9",
+            "currencies": [
+              "TWD"
+            ],
             "type": "slots",
             "logo": "",
-            "maintain": false,
+            "maintain": true,
             "status": false,
             "orientation": null,
             "is_recommended": "none"
@@ -66,8 +66,8 @@
     "before": {
       "station": [
         {
-          "id": 5,
-          "code": "CATALOG_MAINTAINED",
+          "id": 7,
+          "code": "CATALOG_REDIS",
           "cost_percent": "0.00"
         }
       ],
@@ -122,9 +122,9 @@
       ],
       "station_companies": [
         {
-          "id": 4,
-          "game_company_id": 2,
-          "game_company_name": "jdb",
+          "id": 5,
+          "game_company_id": 3,
+          "game_company_name": "cq9",
           "active": 1,
           "currency": "TWD"
         }
@@ -170,8 +170,8 @@
     "after": {
       "station": [
         {
-          "id": 5,
-          "code": "CATALOG_MAINTAINED",
+          "id": 7,
+          "code": "CATALOG_REDIS",
           "cost_percent": "0.00"
         }
       ],
@@ -226,9 +226,9 @@
       ],
       "station_companies": [
         {
-          "id": 4,
-          "game_company_id": 2,
-          "game_company_name": "jdb",
+          "id": 5,
+          "game_company_id": 3,
+          "game_company_name": "cq9",
           "active": 1,
           "currency": "TWD"
         }
@@ -278,10 +278,38 @@
   "layer4_sharedResources": {
     "redis": {
       "before": {
-        "platform-maintenance:v1:jdb": null
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "contract",
+            "set_at": "<ISO8601Z>",
+            "until": "<ISO8601Z>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
       },
       "after": {
-        "platform-maintenance:v1:jdb": null
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "contract",
+            "set_at": "<ISO8601Z>",
+            "until": "<ISO8601Z>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
       }
     },
     "mongo": {

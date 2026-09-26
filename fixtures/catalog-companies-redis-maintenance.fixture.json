@@ -1,22 +1,33 @@
 {
-  "scenarioId": "catalog-companies-unknown-station",
+  "scenarioId": "catalog-companies-redis-maintenance",
   "layer1_inboundResponse": {
-    "statusCode": 500,
-    "statusText": "Internal Server Error",
+    "statusCode": 200,
+    "statusText": "OK",
     "headers": {
       "content-type": "application/json"
     },
     "body": {
-      "message": "Station not found",
-      "exception": "App\\Support\\Generator\\Exceptions\\RuntimeException",
-      "file": "<MASKED_FILE_PATH>",
-      "line": 27,
-      "trace": "<MASKED_TRACE>"
+      "message": "OK",
+      "data": [
+        {
+          "original_name": "cq9",
+          "name": "cq9",
+          "currency": "TWD",
+          "maintain": true,
+          "game_type": []
+        }
+      ]
     }
   },
   "layer2_dbState": {
     "before": {
-      "station": [],
+      "station": [
+        {
+          "id": 7,
+          "code": "CATALOG_REDIS",
+          "cost_percent": "0.00"
+        }
+      ],
       "platforms": [
         {
           "id": 1,
@@ -66,10 +77,24 @@
           "currency": "TWD"
         }
       ],
-      "station_companies": []
+      "station_companies": [
+        {
+          "id": 5,
+          "game_company_id": 3,
+          "game_company_name": "cq9",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
     },
     "after": {
-      "station": [],
+      "station": [
+        {
+          "id": 7,
+          "code": "CATALOG_REDIS",
+          "cost_percent": "0.00"
+        }
+      ],
       "platforms": [
         {
           "id": 1,
@@ -119,7 +144,15 @@
           "currency": "TWD"
         }
       ],
-      "station_companies": []
+      "station_companies": [
+        {
+          "id": 5,
+          "game_company_id": 3,
+          "game_company_name": "cq9",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ]
     }
   },
   "layer3_outboundCalls": {
@@ -128,10 +161,38 @@
   "layer4_sharedResources": {
     "redis": {
       "before": {
-        "platform-maintenance:v1:sbo": null
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "contract",
+            "set_at": "<ISO8601Z>",
+            "until": "<ISO8601Z>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
       },
       "after": {
-        "platform-maintenance:v1:sbo": null
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "contract",
+            "set_at": "<ISO8601Z>",
+            "until": "<ISO8601Z>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
       }
     },
     "mongo": {

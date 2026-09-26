@@ -23,20 +23,44 @@
   },
   "layer2_dbState": {
     "before": {
+      "station": [
+        {
+          "id": 6,
+          "code": "CURRENCY_INACTIVE",
+          "cost_percent": "0.00"
+        }
+      ],
       "station_currencies": [
         {
+          "id": 8,
           "currency": "TWD",
           "status": 0
         }
       ]
     },
     "after": {
+      "station": [
+        {
+          "id": 6,
+          "code": "CURRENCY_INACTIVE",
+          "cost_percent": "0.00"
+        }
+      ],
       "station_currencies": [
         {
+          "id": 8,
           "currency": "TWD",
           "status": 0
         }
       ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
     }
   }
 }

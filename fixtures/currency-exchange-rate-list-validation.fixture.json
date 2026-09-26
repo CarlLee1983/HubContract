@@ -19,7 +19,71 @@
     }
   },
   "layer2_dbState": {
-    "before": {},
-    "after": {}
+    "before": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "currencies": [
+        {
+          "id": 1,
+          "name": "TWD",
+          "rate": "32.500000",
+          "active": 1
+        },
+        {
+          "id": 2,
+          "name": "USD",
+          "rate": "1.000000",
+          "active": 0
+        },
+        {
+          "id": 3,
+          "name": "PHP",
+          "rate": "56.000000",
+          "active": 1
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "currencies": [
+        {
+          "id": 1,
+          "name": "TWD",
+          "rate": "32.500000",
+          "active": 1
+        },
+        {
+          "id": 2,
+          "name": "USD",
+          "rate": "1.000000",
+          "active": 0
+        },
+        {
+          "id": 3,
+          "name": "PHP",
+          "rate": "56.000000",
+          "active": 1
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
+    }
   }
 }

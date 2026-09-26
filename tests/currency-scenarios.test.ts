@@ -57,7 +57,7 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV || process.env.HUB_SEED === "snapsho
       if (name === "index-inactive-station-currency") {
         expect(response.statusCode).toBe(200);
         expect(response.body.data.map((row: { currency: string }) => row.currency)).toEqual(["TWD"]);
-        expect(fixture.layer2_dbState?.before.station_currencies).toEqual([{ currency: "TWD", status: 0 }]);
+        expect(fixture.layer2_dbState?.before.station_currencies.map((row: { currency: string; status: number }) => ({ currency: row.currency, status: row.status }))).toEqual([{ currency: "TWD", status: 0 }]);
       }
       if (name === "exchange-rate-list") {
         expect(response.statusCode).toBe(200);
