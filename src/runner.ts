@@ -244,6 +244,32 @@ export class ContractRunner {
   }
 
   /**
+   * A declared TTL anchor makes recorded fixtures repeatable while verify()
+   * continues to compare the live TTL against that anchor and its tolerance.
+   * An observed TTL outside the declared range fails recording instead of
+   * silently turning a bad capture into a passing fixture.
+   */
+  private canonicalizeRecordedRedisTtl(capture: RedisCapture, scenario: ScenarioDefinition): RedisCapture {
+    const result: RedisCapture = {};
+    for (const [key, record] of Object.entries(capture)) {
+      const rule = scenario.redisProbe?.keys.find((candidate) => {
+        if (candidate.ttlExpectedSeconds === undefined || candidate.db !== record?.db) return false;
+        const glob = new RegExp("^" + candidate.pattern.split("*").map((part) => part.replace(/[^A-Za-z0-9_]/g, "\\$&")).join(".*") + "$");
+        return glob.test(key);
+      });
+      if (record && rule?.ttlExpectedSeconds !== undefined) {
+        if (record.ttl <= 0 || Math.abs(record.ttl - rule.ttlExpectedSeconds) > rule.ttlToleranceSeconds) {
+          throw new Error(`Redis TTL for ${key} is outside the declared ${rule.ttlExpectedSeconds}±${rule.ttlToleranceSeconds}s recording range: ${record.ttl}`);
+        }
+        result[key] = { ...record, ttl: rule.ttlExpectedSeconds };
+      } else {
+        result[key] = record;
+      }
+    }
+    return result;
+  }
+
+  /**
    * Prepares and executes HTTP request according to scenario definition
    */
   private async executeRequest(scenario: ScenarioDefinition): Promise<{
@@ -434,8 +460,8 @@ export class ContractRunner {
       layer4_sharedResources: hasRedis || hasMongo
         ? {
             redis: hasRedis ? {
-              before: redisBefore,
-              after: redisAfter,
+              before: this.canonicalizeRecordedRedisTtl(redisBefore, scenario),
+              after: this.canonicalizeRecordedRedisTtl(redisAfter, scenario),
             } : undefined,
             mongo: hasMongo ? { newDocuments: mongoNewDocuments } : undefined,
           }

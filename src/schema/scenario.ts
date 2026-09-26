@@ -41,6 +41,7 @@ export const RedisProbeKeyRuleSchema = z.object({
     ),
   db: z.number().default(1).describe("Redis db index (default 1 per ADR-0013)"),
   ttlToleranceSeconds: z.number().default(30).describe("Acceptable difference in TTL seconds"),
+  ttlExpectedSeconds: z.number().int().positive().optional().describe("Stable fixture TTL anchor; verify still compares the observed TTL using ttlToleranceSeconds"),
 });
 
 export const RedisProbeSchema = z.object({

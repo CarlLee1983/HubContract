@@ -48,7 +48,11 @@ describe("Offline: scenarios/ and fixtures/ schema validation", () => {
       const transactions = scenario.dbProbe?.queries.find((query) => query.name === "transactions");
       const activityLog = scenario.dbProbe?.queries.find((query) => query.name === "activity_log");
       expect(transactions?.sql).toContain("balance_variable");
+      expect(transactions?.sql).toContain("model_no_matches_order");
+      expect(transactions?.sql).toContain("wallet_id_matches_order");
+      expect(transactions?.sql).toContain("linked_trade_no");
       expect(activityLog?.sql).toContain("event");
+      expect(activityLog?.sql).toContain("subject_id");
       expect(activityLog?.sql).not.toContain("COUNT(");
       expect(scenario.redisProbe?.keys.length).toBeGreaterThan(0);
       expect(scenario.mongoProbe).toBeDefined();
@@ -57,6 +61,10 @@ describe("Offline: scenarios/ and fixtures/ schema validation", () => {
       expect(fixture.layer2_dbState).toBeDefined();
       expect(Array.isArray(fixture.layer2_dbState?.after.transactions)).toBe(true);
       expect(Array.isArray(fixture.layer2_dbState?.after.activity_log)).toBe(true);
+      for (const transaction of fixture.layer2_dbState?.after.transactions as Record<string, unknown>[]) {
+        expect(transaction.model_no_matches_order).toBe(1);
+        expect(transaction.wallet_id_matches_order).toBe(1);
+      }
       expect(fixture.layer3_outboundCalls).toBeDefined();
       expect(fixture.layer4_sharedResources?.redis).toBeDefined();
       expect(fixture.layer4_sharedResources?.mongo).toBeDefined();
