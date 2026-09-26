@@ -5,10 +5,12 @@ import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema, FixtureSchema } from "../src/schema/scenario";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
-describe("Issue #5: Pilot Scenarios Contract Suite", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #5: Pilot Scenarios Contract Suite", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

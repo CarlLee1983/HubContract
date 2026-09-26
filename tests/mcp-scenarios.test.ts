@@ -5,6 +5,7 @@ import { ContractRunner } from "../src/runner";
 import { ScenarioDefinitionSchema, FixtureSchema } from "../src/schema/scenario";
 import { config } from "../src/config";
 import { resetEnvironment } from "../src/env/reset";
+import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
 const MCP_SECRET = "synthetic_mcp_secret_for_contract_testing_only_9f3a1c";
 
@@ -25,9 +26,10 @@ async function setMaintenanceFlag(): Promise<void> {
   }
 }
 
-describe("Issue #7: MCP Platform Maintenance Contract Integration Test", () => {
+describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #7: MCP Platform Maintenance Contract Integration Test", () => {
   const runner = new ContractRunner({
     baseUrl: config.baseUrl,
+    stubUrl: config.stub.baseUrl,
   });
 
   beforeEach(async () => {

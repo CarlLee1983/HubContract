@@ -4,6 +4,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Per-worktree overrides (Issue #8) — see .env.example. Falls back to the
+# committed defaults (main checkout's ports/subnet) when no `.env` exists.
+if [ -f "${ROOT_DIR}/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${ROOT_DIR}/.env"
+  set +a
+fi
+
 # shellcheck disable=SC1090
 source "${ROOT_DIR}/docker/legacy.commit"
 
@@ -51,16 +60,17 @@ fi
 
 echo "==> [HubContract] Starting recording environment containers..."
 cd "${ROOT_DIR}"
-STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" docker compose up -d
-
-echo "==> [HubContract] Waiting for services to be healthy..."
-docker compose wait mariadb redis mongo legacy-app >/dev/null 2>&1 || true
+# `docker compose wait` (previously used here) blocks until containers STOP,
+# not until they're healthy — since none of these services ever stop on their
+# own, that call hung forever. `up -d --wait` is compose's actual "block until
+# healthy (or running, for services with no healthcheck)" primitive.
+STATIONHUB_VENDOR_DIR="${STATIONHUB_REPO}/vendor" docker compose up -d --wait --wait-timeout 120
 
 echo "==> [HubContract] Resetting database to synthetic seed state..."
 "${SCRIPT_DIR}/env-reset.sh"
 
 echo "==> [HubContract] Verifying GET /v1/server/status..."
-STATUS_RES=$(curl -s -w "\n%{http_code}" http://localhost:8080/v1/server/status)
+STATUS_RES=$(curl -s -w "\n%{http_code}" "http://localhost:${LEGACY_PORT:-8080}/v1/server/status")
 HTTP_CODE=$(echo "${STATUS_RES}" | tail -n 1)
 BODY=$(echo "${STATUS_RES}" | sed '$d')
 

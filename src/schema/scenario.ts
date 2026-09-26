@@ -48,6 +48,62 @@ export const RedisProbeSchema = z.object({
 });
 
 /**
+ * Provider stub schema (Issue #8): describes how the stub (compose service
+ * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
+ * by the target under test (e.g. Legacy calling out to a game platform).
+ * Matching order is method, then path, then the optional body condition
+ * (partial match: every key here must equal the corresponding key in the
+ * parsed request body) — see the Issue #8 exploration notes.
+ */
+export const StubResponseSchema = z.object({
+  status: z.number().default(200),
+  body: z.any().optional(),
+  headers: z.record(z.string(), z.string()).default({}),
+  delayMs: z
+    .number()
+    .default(0)
+    .describe(
+      "Simulated latency before responding. Set higher than the caller's own HTTP timeout to simulate a timeout instead of adding a separate 'hang forever' mode."
+    ),
+});
+
+export const StubMatcherSchema = z.object({
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+  path: z.string().startsWith("/"),
+  body: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      "Partial match against the parsed JSON/form request body — every key here must deep-equal the corresponding key in the request body, nested objects/arrays included."
+    ),
+  response: StubResponseSchema,
+});
+
+export const StubScriptSchema = z.object({
+  matchers: z.array(StubMatcherSchema).default([]),
+});
+
+export type StubScript = z.infer<typeof StubScriptSchema>;
+export type StubMatcher = z.infer<typeof StubMatcherSchema>;
+export type StubResponse = z.infer<typeof StubResponseSchema>;
+
+/**
+ * A single request the stub received — the one source of truth for this
+ * shape (code review Standards #11), used by src/stub/store.ts (in-memory
+ * record), src/stub/client.ts (control API response), and
+ * FixtureSchema.layer3_outboundCalls (golden/comparison shape) alike.
+ */
+export const StubRequestRecordSchema = z.object({
+  method: z.string(),
+  path: z.string(),
+  query: z.record(z.string(), z.string()).default({}),
+  headers: z.record(z.string(), z.string()).default({}),
+  body: z.any().optional(),
+});
+
+export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
+
+/**
  * Scenario definition schema (input for record & verify)
  */
 export const ScenarioDefinitionSchema = z.object({
@@ -58,6 +114,9 @@ export const ScenarioDefinitionSchema = z.object({
     method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
     path: z.string().startsWith("/"),
   }),
+  // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
+  // "deposit"). Optional so pre-existing scenario files without tags stay valid.
+  tags: z.array(z.string()).default([]),
   request: z.object({
     headers: z.record(z.string(), z.string()).default({}),
     query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
@@ -70,6 +129,21 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  // Issue #8: captureRun() *always* resets the stub and loads this script (or
+  // an empty one, if omitted) before executing the request — every scenario
+  // is checked for undefined outbound calls, not just ones that declare a
+  // stub. When present, the matched call(s) are read back into
+  // layer3_outboundCalls.
+  stub: z
+    .object({
+      script: StubScriptSchema,
+      // Code review Standards #3 (Story 26): which recorded headers are
+      // meaningful to a contract is scenario-specific (a platform that signs
+      // via a header needs it kept; most don't) — declared explicitly per
+      // scenario instead of a hardcoded global, same as normalizers/dbProbe.
+      outboundHeaderAllowlist: z.array(z.string()).default(["content-type", "authorization"]),
+    })
+    .optional(),
   normalizers: z.array(NormalizerRuleSchema).default([]),
 });
 
@@ -101,6 +175,11 @@ export const FixtureSchema = z.object({
     .object({
       before: z.record(z.string(), z.any()),
       after: z.record(z.string(), z.any()),
+    })
+    .optional(),
+  layer3_outboundCalls: z
+    .object({
+      calls: z.array(StubRequestRecordSchema),
     })
     .optional(),
   layer4_sharedResources: z
