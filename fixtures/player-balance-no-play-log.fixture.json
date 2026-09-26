@@ -1,0 +1,21 @@
+{
+  "scenarioId": "player-balance-no-play-log",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "尚無遊戲記錄"
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "user_02_play_logs": []
+    },
+    "after": {
+      "user_02_play_logs": []
+    }
+  }
+}
