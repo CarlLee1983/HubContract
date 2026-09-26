@@ -1,0 +1,247 @@
+{
+  "scenarioId": "catalog-games-validation",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "站台代碼必填 (and 1 more error)",
+      "errors": {
+        "station_code": [
+          "站台代碼必填"
+        ],
+        "sign": [
+          "缺少必要的 station_code 參數"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "platforms": [
+        {
+          "id": 1,
+          "name": "main",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "name": "cq9",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "name": "sbo",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 4,
+          "name": "jdb",
+          "active": 1,
+          "maintain": 1
+        }
+      ],
+      "game_companies": [
+        {
+          "id": 1,
+          "name": "sbo",
+          "platform_id": 3,
+          "platform_name": "sbo",
+          "currency": "TWD"
+        },
+        {
+          "id": 2,
+          "name": "jdb",
+          "platform_id": 4,
+          "platform_name": "jdb",
+          "currency": "TWD"
+        },
+        {
+          "id": 3,
+          "name": "cq9",
+          "platform_id": 2,
+          "platform_name": "cq9",
+          "currency": "TWD"
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ],
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "code": "CQ9_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "game_currencies": [
+        {
+          "game_id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 2,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 3,
+          "currency": "TWD",
+          "status": 1
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "platforms": [
+        {
+          "id": 1,
+          "name": "main",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "name": "cq9",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "name": "sbo",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 4,
+          "name": "jdb",
+          "active": 1,
+          "maintain": 1
+        }
+      ],
+      "game_companies": [
+        {
+          "id": 1,
+          "name": "sbo",
+          "platform_id": 3,
+          "platform_name": "sbo",
+          "currency": "TWD"
+        },
+        {
+          "id": 2,
+          "name": "jdb",
+          "platform_id": 4,
+          "platform_name": "jdb",
+          "currency": "TWD"
+        },
+        {
+          "id": 3,
+          "name": "cq9",
+          "platform_id": 2,
+          "platform_name": "cq9",
+          "currency": "TWD"
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ],
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "code": "CQ9_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "game_currencies": [
+        {
+          "game_id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 2,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 3,
+          "currency": "TWD",
+          "status": 1
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:sbo": null
+      },
+      "after": {
+        "platform-maintenance:v1:sbo": null
+      }
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

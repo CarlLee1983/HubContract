@@ -1,0 +1,66 @@
+{
+  "scenarioId": "currency-index-inactive-station-currency",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": [
+        {
+          "currency": "TWD",
+          "region": "taiwan",
+          "region_name": "Taiwan",
+          "region_code": "TW",
+          "country_code": 886,
+          "locale_code": "zh_tw",
+          "symbol": "NT$"
+        }
+      ]
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station": [
+        {
+          "id": 6,
+          "code": "CURRENCY_INACTIVE",
+          "cost_percent": "0.00"
+        }
+      ],
+      "station_currencies": [
+        {
+          "id": 8,
+          "currency": "TWD",
+          "status": 0
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 6,
+          "code": "CURRENCY_INACTIVE",
+          "cost_percent": "0.00"
+        }
+      ],
+      "station_currencies": [
+        {
+          "id": 8,
+          "currency": "TWD",
+          "status": 0
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

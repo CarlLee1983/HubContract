@@ -1,0 +1,66 @@
+{
+  "id": "currency-exchange-rate-show-unknown-currency",
+  "name": "Currency exchange rate show unknown currency",
+  "description": "Records Legacy exchange-rate lookup for XXX.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies/exchange-rate/XXX"
+  },
+  "tags": [
+    "currency",
+    "exchange-rate-show",
+    "unknown-currency",
+    "CAP-14",
+    "CAP-01",
+    "BR-01",
+    "BR-92"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0,
+      "station_code": "DEMO_STATION"
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "currencies",
+        "sql": "SELECT id, name, rate, active FROM currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  }
+}

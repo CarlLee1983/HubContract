@@ -1,0 +1,41 @@
+{
+  "id": "server-status-unvalidated-params",
+  "name": "Server status: invalid signature and timestamp are ignored",
+  "description": "Route #20 / D-36: with a known Station, the action has no request validator or signature rule.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/server/status"
+  },
+  "tags": [
+    "server",
+    "status",
+    "unauthenticated",
+    "D-36",
+    "CAP-17"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "sign": "invalid_signature_hex_value_12345"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "DEMO_STATION"
+        ]
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  }
+}

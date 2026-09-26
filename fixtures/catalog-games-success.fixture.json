@@ -1,0 +1,291 @@
+{
+  "scenarioId": "catalog-games-success",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "games": [
+          {
+            "id": 1,
+            "name": "Synthetic SBO Game",
+            "names": {},
+            "code": "SBO_SYNTHETIC",
+            "game_company_name": "sbo",
+            "original_platform_name": "sbo",
+            "currencies": [
+              "TWD"
+            ],
+            "type": "sports",
+            "logo": "",
+            "maintain": false,
+            "status": true,
+            "orientation": null,
+            "is_recommended": "none"
+          },
+          {
+            "id": 2,
+            "name": "Synthetic Maintained JDB Game",
+            "names": {},
+            "code": "JDB_SYNTHETIC",
+            "game_company_name": "jdb",
+            "original_platform_name": null,
+            "currencies": [],
+            "type": "slots",
+            "logo": "",
+            "maintain": false,
+            "status": false,
+            "orientation": null,
+            "is_recommended": "none"
+          },
+          {
+            "id": 3,
+            "name": "Synthetic CQ9 Game",
+            "names": {},
+            "code": "CQ9_SYNTHETIC",
+            "game_company_name": "cq9",
+            "original_platform_name": null,
+            "currencies": [],
+            "type": "slots",
+            "logo": "",
+            "maintain": false,
+            "status": false,
+            "orientation": null,
+            "is_recommended": "none"
+          }
+        ],
+        "cursor": null
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "platforms": [
+        {
+          "id": 1,
+          "name": "main",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "name": "cq9",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "name": "sbo",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 4,
+          "name": "jdb",
+          "active": 1,
+          "maintain": 1
+        }
+      ],
+      "game_companies": [
+        {
+          "id": 1,
+          "name": "sbo",
+          "platform_id": 3,
+          "platform_name": "sbo",
+          "currency": "TWD"
+        },
+        {
+          "id": 2,
+          "name": "jdb",
+          "platform_id": 4,
+          "platform_name": "jdb",
+          "currency": "TWD"
+        },
+        {
+          "id": 3,
+          "name": "cq9",
+          "platform_id": 2,
+          "platform_name": "cq9",
+          "currency": "TWD"
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ],
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "code": "CQ9_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "game_currencies": [
+        {
+          "game_id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 2,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 3,
+          "currency": "TWD",
+          "status": 1
+        }
+      ]
+    },
+    "after": {
+      "station": [
+        {
+          "id": 1,
+          "code": "DEMO_STATION",
+          "cost_percent": "0.00"
+        }
+      ],
+      "platforms": [
+        {
+          "id": 1,
+          "name": "main",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "name": "cq9",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "name": "sbo",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 4,
+          "name": "jdb",
+          "active": 1,
+          "maintain": 1
+        }
+      ],
+      "game_companies": [
+        {
+          "id": 1,
+          "name": "sbo",
+          "platform_id": 3,
+          "platform_name": "sbo",
+          "currency": "TWD"
+        },
+        {
+          "id": 2,
+          "name": "jdb",
+          "platform_id": 4,
+          "platform_name": "jdb",
+          "currency": "TWD"
+        },
+        {
+          "id": 3,
+          "name": "cq9",
+          "platform_id": 2,
+          "platform_name": "cq9",
+          "currency": "TWD"
+        }
+      ],
+      "station_companies": [
+        {
+          "id": 1,
+          "game_company_id": 1,
+          "game_company_name": "sbo",
+          "active": 1,
+          "currency": "TWD"
+        }
+      ],
+      "games": [
+        {
+          "id": 1,
+          "code": "SBO_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 2,
+          "code": "JDB_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        },
+        {
+          "id": 3,
+          "code": "CQ9_SYNTHETIC",
+          "active": 1,
+          "maintain": 0
+        }
+      ],
+      "game_currencies": [
+        {
+          "game_id": 1,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 2,
+          "currency": "TWD",
+          "status": 1
+        },
+        {
+          "game_id": 3,
+          "currency": "TWD",
+          "status": 1
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:sbo": null
+      },
+      "after": {
+        "platform-maintenance:v1:sbo": null
+      }
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}

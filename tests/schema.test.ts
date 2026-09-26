@@ -113,6 +113,18 @@ describe("Scenario Schema (Zod)", () => {
     }).success).toBe(false);
   });
 
+  it("accepts only a platform identifier for a maintenance precondition", () => {
+    const scenario = {
+      id: "catalog-redis-maintenance",
+      name: "Redis maintenance",
+      route: { method: "GET", path: "/v1/games" },
+      preconditions: { platformMaintenance: { platform: "cq9" } },
+    };
+    expect(ScenarioDefinitionSchema.parse(scenario).preconditions?.platformMaintenance?.platform).toBe("cq9");
+    expect(ScenarioDefinitionSchema.safeParse({ ...scenario, preconditions: { platformMaintenance: { platform: "CQ9" } } }).success).toBe(false);
+    expect(ScenarioDefinitionSchema.safeParse({ ...scenario, preconditions: { platformMaintenance: { platform: "cq9", redisKey: "platform-maintenance:v1:cq9" } } }).success).toBe(false);
+  });
+
   it("fails closed when a target has no precondition adapter", async () => {
     const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
     const scenario = ScenarioDefinitionSchema.parse({
@@ -136,6 +148,21 @@ describe("Scenario Schema (Zod)", () => {
       name: "MCP clear",
       route: { method: "DELETE", path: "/mcp/platform-maintenance/cq9" },
       preconditions: { mcpMaintenance: { platform: "cq9", duration: "1h", reason: "Contract setup" } },
+    });
+    try {
+      await expect(runner.record(scenario)).rejects.toThrow("requires a precondition adapter");
+    } finally {
+      await runner.close();
+    }
+  });
+
+  it("fails closed for platform maintenance without a target adapter", async () => {
+    const runner = new ContractRunner({ baseUrl: "http://127.0.0.1:1", stubUrl: "http://127.0.0.1:2" });
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "catalog-redis-maintenance",
+      name: "Redis maintenance",
+      route: { method: "GET", path: "/v1/games" },
+      preconditions: { platformMaintenance: { platform: "cq9" } },
     });
     try {
       await expect(runner.record(scenario)).rejects.toThrow("requires a precondition adapter");

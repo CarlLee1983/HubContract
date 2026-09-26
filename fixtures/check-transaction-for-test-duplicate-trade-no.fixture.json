@@ -1,0 +1,166 @@
+{
+  "scenarioId": "check-transaction-for-test-duplicate-trade-no",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "OK",
+      "data": {
+        "txn_no": "DE_SYNTHETIC_004",
+        "trade_no": "TRADE_DUP_DEP_001",
+        "type": "deposit",
+        "status": "completed",
+        "amount": 400
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "deposit_record": [
+        {
+          "no": "DE_SYNTHETIC_004",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "400.0000",
+          "status": "completed"
+        },
+        {
+          "no": "DE_SYNTHETIC_005",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "450.0000",
+          "status": "processing"
+        }
+      ],
+      "remittance": [
+        {
+          "no": "REMIT_CHECK_001",
+          "txn_no": null,
+          "type": "main2game",
+          "amount": "400.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "transactions": [],
+      "activity_log": []
+    },
+    "after": {
+      "deposit_record": [
+        {
+          "no": "DE_SYNTHETIC_004",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "400.0000",
+          "status": "completed"
+        },
+        {
+          "no": "DE_SYNTHETIC_005",
+          "trade_no": "TRADE_DUP_DEP_001",
+          "user_id": 1,
+          "wallet_id": 1,
+          "amount": "450.0000",
+          "status": "processing"
+        }
+      ],
+      "remittance": [
+        {
+          "no": "REMIT_CHECK_001",
+          "txn_no": "REMIT_CHECK_001",
+          "type": "main2game",
+          "amount": "400.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ],
+      "transactions": [],
+      "activity_log": [
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\RemittanceRecord",
+          "event": "updated",
+          "subject_id": 900001,
+          "properties": "{\"attributes\":{\"txn_no\":\"REMIT_CHECK_001\"},\"old\":{\"txn_no\":null}}"
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/web-root/restricted/player/check-transaction-status.aspx",
+        "query": {},
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "CompanyKey": "synthetic_company_key",
+          "ServerId": "synthetic-server-01",
+          "txnId": "REMIT_CHECK_001"
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {
+        "httplog_check_transaction": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-checkTransaction:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<MASKED>",
+              "header": {
+                "Content-Length": [
+                  "97"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "CompanyKey": "synthetic_company_key",
+                "ServerId": "synthetic-server-01",
+                "txnId": "REMIT_CHECK_001"
+              },
+              "response": {
+                "amount": 400,
+                "error": {
+                  "id": 0,
+                  "msg": ""
+                },
+                "transactionType": "deposit"
+              },
+              "uri": "http://mock-provider:8081/web-root/restricted/player/check-transaction-status.aspx"
+            },
+            "datetime": "<MASKED>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}

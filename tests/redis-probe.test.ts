@@ -3,6 +3,7 @@ import { RedisProbeService } from "../src/probe/redisProbe";
 import { compareRedisState } from "../src/comparator/comparator";
 import { config } from "../src/config";
 import Redis from "ioredis";
+import { createConnection, type RowDataPacket } from "mysql2/promise";
 import { LegacyPreconditionAdapter } from "../src/target/legacyPreconditions";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
@@ -90,6 +91,54 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Co
     } finally {
       await adapter.close();
       await rawRedis.del(`${config.redis.prefix}${key}`);
+    }
+  });
+
+  it("Legacy adapter sets a platform maintenance gate in DB1", async () => {
+    const key = `${config.redis.prefix}platform-maintenance:v1:cq9`;
+    const adapter = new LegacyPreconditionAdapter();
+    try {
+      await rawRedis.del(key);
+      await adapter.apply({ platformMaintenance: { platform: "cq9" } });
+      const value = JSON.parse((await rawRedis.get(key))!);
+      expect(value).toMatchObject({
+        reason: "Contract testing maintenance flag",
+        source: "manual",
+        set_by: "contract",
+        estimated: true,
+      });
+      expect(Date.parse(value.until) - Date.parse(value.set_at)).toBe(3_600_000);
+      expect(await rawRedis.ttl(key)).toBeGreaterThan(0);
+      expect(await rawRedis.ttl(key)).toBeLessThanOrEqual(3600);
+    } finally {
+      await adapter.close();
+      await rawRedis.del(key);
+    }
+  });
+
+  it("Legacy adapter occupies the wallet sync lock for a domain user", async () => {
+    const connection = await createConnection(config.db);
+    let userId: number;
+    try {
+      const [rows] = await connection.execute<RowDataPacket[]>(
+        "SELECT u.id FROM users u JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ?",
+        ["synthetic_user_01", "DEMO_STATION"]
+      );
+      expect(rows).toHaveLength(1);
+      userId = Number(rows[0].id);
+    } finally {
+      await connection.end();
+    }
+    const key = `${config.redis.prefix}game_to_main_wallet_sync:${userId}_TWD`;
+    const adapter = new LegacyPreconditionAdapter();
+    try {
+      await rawRedis.del(key);
+      await adapter.apply({ walletLock: { account: "synthetic_user_01", stationCode: "DEMO_STATION", currency: "TWD" } });
+      expect(await rawRedis.get(key)).toBe("synthetic_contract_lock_owner");
+      expect(await rawRedis.ttl(key)).toBeGreaterThan(5);
+    } finally {
+      await adapter.close();
+      await rawRedis.del(key);
     }
   });
 
