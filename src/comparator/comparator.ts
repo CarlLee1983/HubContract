@@ -136,7 +136,7 @@ export function compareOutboundCalls(
 export function compareRedisState(
   actual: Record<string, RedisKeyRecord | null>,
   expected: Record<string, RedisKeyRecord | null>,
-  stage: "before" | "after" = "after"
+  stage: string = "after"
 ): Difference[] {
   const diffs: Difference[] = [];
   const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);

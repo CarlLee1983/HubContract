@@ -30,6 +30,17 @@ describe("Issue #12: filterScenarios", () => {
     expect(result.map((s) => s.id)).toEqual(["maintenance-set"]);
   });
 
+  it("matches either route in a chained HTTP scenario", () => {
+    const chained = scenario({
+      route: undefined,
+      steps: [
+        { id: "launch", route: { method: "POST", path: "/v1/games/launch" }, request: { headers: {} } },
+        { id: "callback", route: { method: "POST", path: "/callback/game/pg/verifySession" }, request: { headers: {} } },
+      ],
+    });
+    expect(filterScenarios([chained], { routes: ["/callback/game/pg/verifySession"] })).toEqual([chained]);
+  });
+
   it("matches ANY of multiple route filters (OR within routes)", () => {
     const result = filterScenarios(scenarios, {
       routes: ["/mcp/platform-maintenance/cq9", "/does-not-exist"],

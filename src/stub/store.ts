@@ -9,6 +9,7 @@ export interface StubMatchResult {
   headers: Record<string, string>;
   delayMs: number;
   matched: boolean;
+  rawBody?: string;
 }
 
 /**
@@ -67,6 +68,7 @@ export class StubStore {
       headers: matcher.response.headers,
       delayMs: matcher.response.delayMs,
       matched: true,
+      rawBody: matcher.response.rawBody,
     };
   }
 

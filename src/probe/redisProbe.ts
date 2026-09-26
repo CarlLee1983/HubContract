@@ -117,4 +117,13 @@ export class RedisProbeService {
     }
     this.clients.clear();
   }
+
+  async expirePgOps(ops: string): Promise<void> {
+    const client = this.getClient(1);
+    if (client.status === "wait") await client.connect();
+    const key = `${this.prefix}launchGame:verifyData:${ops}`;
+    if (await client.pexpire(key, 1) !== 1) throw new Error("PG verifyData key missing before expiry");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    if (await client.exists(key)) throw new Error("PG verifyData key did not expire");
+  }
 }

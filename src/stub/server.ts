@@ -69,7 +69,12 @@ export function createStubServer(store: StubStore = new StubStore()): http.Serve
         await new Promise((resolve) => setTimeout(resolve, result.delayMs));
       }
 
-      sendJson(res, result.status, result.body, result.headers);
+      if (result.rawBody !== undefined) {
+        res.writeHead(result.status, { "content-type": "text/html; charset=utf-8", ...result.headers });
+        res.end(result.rawBody);
+      } else {
+        sendJson(res, result.status, result.body, result.headers);
+      }
     } catch (err) {
       // Code review Standards #8: a control-API validation error (handled
       // above via safeParse) is a 400 with the caller's mistake spelled out;

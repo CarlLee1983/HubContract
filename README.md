@@ -78,6 +78,8 @@ bun run verify --report-json report.json
 
 目錄、幣別與健康檢查的 Legacy 契約情境分別在 `scenarios/catalog/`、`scenarios/currency/`、`scenarios/server/`，可用 `--tag CAP-09`、`--tag CAP-14`、`--tag CAP-17` 只跑單一 Capability。這批情境使用 `HUB_SEED=synthetic` 的固定邊界資料：目錄包含 JDB 的 DB 維護旗標與 CQ9 的 Redis 維護 gate（`platformMaintenance` 前置條件由目標 adapter 建立）、孤兒 StationGameCompany、`game_type` 空陣列與非空物件；幣別包含已停用的全域匯率列。每個情境的 DB probe 只擷取列出的表與欄位；共享資源 probe 觀察 `httplog_*` 的新增文件，目錄情境另觀察指定平台的 Redis gate。`GET /v1/server/status` 本身不驗證簽章或必填欄位，但若請求提供未知 `station_code`，全域初始化仍會先回錯誤。
 
+`scenarios/game/` 包含 `POST /v1/games/launch` 與 PG VerifySession。`steps` 讓啟動和 callback 共用同一次環境重置、stub 腳本與 DB probe；runner 從 GetLaunchURLHTML 的 `extra_args.ops` 取出一次性令牌，放入 callback 的 `operator_player_session`，並在每步指定的位置比對 `launchGame:verifyData` 的內容及 TTL。過期情境對實際 Redis key 設定 1ms 到期，再送 callback。情境 `setup` 在請求前建立合成 Hub user 與 PG 配置，PG Player 則由啟動流程懶建；不改動其他情境共用的合成種子。這批情境使用固定 synthetic ID，尚未支援 `HUB_SEED=snapshot`。固定 Legacy 設定的 `APP_DOMAIN_PATH` 為空，故此錄製環境的 callback 路徑是 `/callback/game/pg/verifySession`；`/api/callback/game/pg/verifySession` 在此環境回 405。
+
 這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
