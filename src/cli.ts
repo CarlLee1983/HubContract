@@ -90,8 +90,9 @@ async function main() {
       throw new Error(`${modulePath} must export createPreconditionAdapter({ targetUrl })`);
     }
     preconditionAdapter = await module.createPreconditionAdapter({ targetUrl });
-  } else if (!values.target) {
-    // The default CLI target is the local Legacy recording environment.
+  } else if (targetUrl.replace(/\/$/, "") === config.baseUrl.replace(/\/$/, "")) {
+    // The configured local recording target is Legacy, whether selected by
+    // default or passed explicitly with --target.
     preconditionAdapter = new LegacyPreconditionAdapter();
   }
 

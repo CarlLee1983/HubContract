@@ -85,6 +85,12 @@ export const StubMatcherSchema = z.object({
     .describe(
       "Partial match against the parsed JSON/form request body — every key here must deep-equal the corresponding key in the request body, nested objects/arrays included."
     ),
+  bodyMd5: z.object({
+    outputField: z.string().min(1),
+    inputFields: z.array(z.string().min(1)).min(1),
+    suffix: z.string(),
+    uppercase: z.boolean().default(true),
+  }).optional().describe("Validate a dynamic MD5 body field from ordered body fields and a synthetic suffix"),
   response: StubResponseSchema,
 });
 

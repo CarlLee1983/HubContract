@@ -7,10 +7,11 @@ import type { PreconditionAdapter } from "../runner";
 export class LegacyPreconditionAdapter implements PreconditionAdapter {
   private redis: Redis;
 
-  constructor(options: { host?: string; port?: number; prefix?: string } = {}) {
+  constructor(options: { host?: string; port?: number; password?: string; prefix?: string } = {}) {
     this.redis = new Redis({
       host: options.host ?? config.redis.host,
       port: options.port ?? config.redis.port,
+      password: options.password ?? config.redis.password,
       db: 1, // Legacy's cache.lock_connection uses the default Redis connection.
       lazyConnect: true,
     });

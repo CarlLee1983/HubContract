@@ -80,6 +80,11 @@
           },
           "body": {
             "orgCode": "synthetic_org_code"
+          },
+          "bodyMd5": {
+            "outputField": "sign",
+            "inputFields": ["orgCode", "rand"],
+            "suffix": "synthetic_md5_key"
           }
         }
       ]
