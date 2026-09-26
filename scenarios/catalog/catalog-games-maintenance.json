@@ -1,7 +1,7 @@
 {
   "id": "catalog-games-maintenance",
   "name": "Catalog games: maintenance",
-  "description": "Platform maintenance flag changes matching game maintain and status.",
+  "description": "DB maintenance flag on JDB is visible in the catalog while its Redis gate is absent.",
   "route": {
     "method": "GET",
     "path": "/v1/games"
@@ -48,8 +48,20 @@
   "dbProbe": {
     "queries": [
       {
-        "name": "games",
-        "sql": "SELECT id, code, active, maintain FROM games WHERE deleted_at IS NULL ORDER BY id",
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "CATALOG_MAINTAINED"
+        ]
+      },
+      {
+        "name": "platforms",
+        "sql": "SELECT id, name, active, maintain FROM platforms WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "game_companies",
+        "sql": "SELECT id, name, platform_id, platform_name, currency FROM game_companies ORDER BY id",
         "params": []
       },
       {
@@ -58,7 +70,29 @@
         "params": [
           "CATALOG_MAINTAINED"
         ]
+      },
+      {
+        "name": "games",
+        "sql": "SELECT id, code, active, maintain FROM games WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "game_currencies",
+        "sql": "SELECT game_id, currency, status FROM game_currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
       }
     ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:jdb",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
   }
 }

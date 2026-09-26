@@ -11,7 +11,7 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
 3. **出站呼叫**：送往遊戲線路與 SMS 供應商的 request，由 stub server 攔截並錄製。
 4. **共享資源**：Redis key 與 TTL、Mongo `httplog_*` 等。Queue 不比對 payload，只比對 job 執行後的最終效果。
 
-對外的 30 條路由比對全部四層；內部路由（後台、`dataapi`、`service` 等）只比對第 2、4 層。
+對外的 30 條路由具備四層觀測能力：HTTP 情境一律錄製入站回應、宣告的 DB 查詢結果，以及出站呼叫層（沒有呼叫時為空陣列）；Redis 只比對情境指定的 key，Mongo 只比對情境指定的 `httplog_*` 集合或 pattern。未宣告的 DB 表與 Redis key 不在該情境的比對範圍。內部動作與排程情境不錄製入站 HTTP 回應。
 
 ## 運作方式
 
@@ -76,7 +76,9 @@ bun run verify --route /v1/wallet/check-transaction --tag deposit --tag withdraw
 bun run verify --report-json report.json
 ```
 
-目錄、幣別與健康檢查的 Legacy 契約情境分別在 `scenarios/catalog/`、`scenarios/currency/`、`scenarios/server/`，可用 `--tag CAP-09`、`--tag CAP-14`、`--tag CAP-17` 只跑單一 Capability。這批情境使用 `HUB_SEED=synthetic` 的固定邊界資料：目錄包含維護中的 Platform、孤兒 StationGameCompany、`game_type` 空陣列與非空物件；幣別包含已停用的全域匯率列。`GET /v1/server/status` 本身不驗證簽章或必填欄位，但若請求提供未知 `station_code`，全域初始化仍會先回錯誤。
+目錄、幣別與健康檢查的 Legacy 契約情境分別在 `scenarios/catalog/`、`scenarios/currency/`、`scenarios/server/`，可用 `--tag CAP-09`、`--tag CAP-14`、`--tag CAP-17` 只跑單一 Capability。這批情境使用 `HUB_SEED=synthetic` 的固定邊界資料：目錄包含 JDB 的 DB 維護旗標與 CQ9 的 Redis 維護 gate（`platformMaintenance` 前置條件由目標 adapter 建立）、孤兒 StationGameCompany、`game_type` 空陣列與非空物件；幣別包含已停用的全域匯率列。每個情境的 DB probe 只擷取列出的表與欄位；共享資源 probe 觀察 `httplog_*` 的新增文件，目錄情境另觀察指定平台的 Redis gate。`GET /v1/server/status` 本身不驗證簽章或必填欄位，但若請求提供未知 `station_code`，全域初始化仍會先回錯誤。
+
+這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 

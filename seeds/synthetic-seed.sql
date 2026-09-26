@@ -12,7 +12,8 @@ INSERT INTO `stations` (`id`, `name`, `code`, `secret_key`, `cost_percent`, `cal
 (3, '合成孤兒目錄站台', 'CATALOG_ORPHAN', 'synthetic_secret_key_for_CATALOG_ORPHAN_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
 (4, '合成型別目錄站台', 'CATALOG_TYPED', 'synthetic_secret_key_for_CATALOG_TYPED_1234567890', '{"TWD":{"sbo":{"sports":2.5}}}', 'http://localhost:8080', NOW(), NOW(), NULL),
 (5, '合成維護目錄站台', 'CATALOG_MAINTAINED', 'synthetic_secret_key_for_CATALOG_MAINTAINED_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
-(6, '合成停用幣別站台', 'CURRENCY_INACTIVE', 'synthetic_secret_key_for_CURRENCY_INACTIVE_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL);
+(6, '合成停用幣別站台', 'CURRENCY_INACTIVE', 'synthetic_secret_key_for_CURRENCY_INACTIVE_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL),
+(7, '合成 Redis 維護站台', 'CATALOG_REDIS', 'synthetic_secret_key_for_CATALOG_REDIS_1234567890', 0.00, 'http://localhost:8080', NOW(), NOW(), NULL);
 
 -- 2. Station Currencies
 TRUNCATE TABLE `station_currencies`;
@@ -24,7 +25,8 @@ INSERT INTO `station_currencies` (`id`, `station_id`, `currency`, `status`, `cre
 (5, 3, 'TWD', 1, NOW(), NOW(), NULL),
 (6, 4, 'TWD', 1, NOW(), NOW(), NULL),
 (7, 5, 'TWD', 1, NOW(), NOW(), NULL),
-(8, 6, 'TWD', 0, NOW(), NOW(), NULL);
+(8, 6, 'TWD', 0, NOW(), NOW(), NULL),
+(9, 7, 'TWD', 1, NOW(), NOW(), NULL);
 
 -- The exchange-rate list filters active global currencies; show does not.
 TRUNCATE TABLE `currencies`;
@@ -103,21 +105,25 @@ INSERT INTO `wallets` (`id`, `user_id`, `platform_id`, `platform_name`, `player_
 TRUNCATE TABLE `games`;
 INSERT INTO `games` (`id`, `code`, `signature`, `name`, `type`, `platform_name`, `game_company_name`, `active`, `maintain`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'SBO_SYNTHETIC', 'sbo_synthetic_game', 'Synthetic SBO Game', 'sports', 'sbo', 'sbo', 1, 0, NOW(), NOW(), NULL),
-(2, 'JDB_SYNTHETIC', 'jdb_synthetic_game', 'Synthetic Maintained JDB Game', 'slots', 'jdb', 'jdb', 1, 0, NOW(), NOW(), NULL);
+(2, 'JDB_SYNTHETIC', 'jdb_synthetic_game', 'Synthetic Maintained JDB Game', 'slots', 'jdb', 'jdb', 1, 0, NOW(), NOW(), NULL),
+(3, 'CQ9_SYNTHETIC', 'cq9_synthetic_game', 'Synthetic CQ9 Game', 'slots', 'cq9', 'cq9', 1, 0, NOW(), NOW(), NULL);
 TRUNCATE TABLE `game_currencies`;
 INSERT INTO `game_currencies` (`id`, `game_id`, `currency`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 'TWD', 1, NOW(), NOW(), NULL),
-(2, 2, 'TWD', 1, NOW(), NOW(), NULL);
+(2, 2, 'TWD', 1, NOW(), NOW(), NULL),
+(3, 3, 'TWD', 1, NOW(), NOW(), NULL);
 TRUNCATE TABLE `game_companies`;
 INSERT INTO `game_companies` (`id`, `name`, `platform_id`, `platform_name`, `currency`, `created_at`, `updated_at`) VALUES
 (1, 'sbo', 3, 'sbo', 'TWD', NOW(), NOW()),
-(2, 'jdb', 4, 'jdb', 'TWD', NOW(), NOW());
+(2, 'jdb', 4, 'jdb', 'TWD', NOW(), NOW()),
+(3, 'cq9', 2, 'cq9', 'TWD', NOW(), NOW());
 TRUNCATE TABLE `station_game_companies`;
 INSERT INTO `station_game_companies` (`id`, `station_id`, `game_company_id`, `game_company_name`, `currency`, `active`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
 (2, 3, 999999, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
 (3, 4, 1, 'sbo', 'TWD', 1, NOW(), NOW(), NULL),
-(4, 5, 2, 'jdb', 'TWD', 1, NOW(), NOW(), NULL);
+(4, 5, 2, 'jdb', 'TWD', 1, NOW(), NOW(), NULL),
+(5, 7, 3, 'cq9', 'TWD', 1, NOW(), NOW(), NULL);
 TRUNCATE TABLE `play_logs`;
 INSERT INTO `play_logs` (`id`, `station_id`, `platform_id`, `user_id`, `player_id`, `game_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 1, 3, 1, 1, 1, NOW(), NOW(), NULL);

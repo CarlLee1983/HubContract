@@ -41,5 +41,26 @@
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
     }
-  ]
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "station_currencies",
+        "sql": "SELECT sc.id, sc.currency, sc.status FROM station_currencies sc JOIN stations s ON s.id = sc.station_id WHERE s.code = ? AND sc.deleted_at IS NULL ORDER BY sc.id",
+        "params": [
+          "DEMO_STATION"
+        ]
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  }
 }

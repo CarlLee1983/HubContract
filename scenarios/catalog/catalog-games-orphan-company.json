@@ -47,8 +47,20 @@
   "dbProbe": {
     "queries": [
       {
-        "name": "games",
-        "sql": "SELECT id, code, active, maintain FROM games WHERE deleted_at IS NULL ORDER BY id",
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "CATALOG_ORPHAN"
+        ]
+      },
+      {
+        "name": "platforms",
+        "sql": "SELECT id, name, active, maintain FROM platforms WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "game_companies",
+        "sql": "SELECT id, name, platform_id, platform_name, currency FROM game_companies ORDER BY id",
         "params": []
       },
       {
@@ -57,7 +69,29 @@
         "params": [
           "CATALOG_ORPHAN"
         ]
+      },
+      {
+        "name": "games",
+        "sql": "SELECT id, code, active, maintain FROM games WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "game_currencies",
+        "sql": "SELECT game_id, currency, status FROM game_currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
       }
     ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:sbo",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
   }
 }

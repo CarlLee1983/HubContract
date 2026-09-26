@@ -93,6 +93,28 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Co
     }
   });
 
+  it("Legacy adapter sets a platform maintenance gate in DB1", async () => {
+    const key = `${config.redis.prefix}platform-maintenance:v1:cq9`;
+    const adapter = new LegacyPreconditionAdapter();
+    try {
+      await rawRedis.del(key);
+      await adapter.apply({ platformMaintenance: { platform: "cq9" } });
+      const value = JSON.parse((await rawRedis.get(key))!);
+      expect(value).toMatchObject({
+        reason: "Contract testing maintenance flag",
+        source: "manual",
+        set_by: "contract",
+        estimated: true,
+      });
+      expect(Date.parse(value.until) - Date.parse(value.set_at)).toBe(3_600_000);
+      expect(await rawRedis.ttl(key)).toBeGreaterThan(0);
+      expect(await rawRedis.ttl(key)).toBeLessThanOrEqual(3600);
+    } finally {
+      await adapter.close();
+      await rawRedis.del(key);
+    }
+  });
+
   it("Criterion 2: Value exact match passes; value mismatch produces diff with path", () => {
     const actual = {
       "platform-maintenance:v1:cq9": {

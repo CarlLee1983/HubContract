@@ -313,7 +313,7 @@ export class ContractRunner {
     }
     // The target owns how a domain precondition is created. Apply it before
     // probes so both record and verify see the same initial state.
-    if (scenario.preconditions?.smsLock) {
+    if (scenario.preconditions?.smsLock || scenario.preconditions?.platformMaintenance) {
       if (!this.preconditionAdapter) {
         throw new Error(`Scenario "${scenario.id}" requires a precondition adapter`);
       }
@@ -424,9 +424,9 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
-      // Schedules declare the outbound layer even when it is empty, so a
-      // later provider call is a contract difference rather than omitted.
-      layer3_outboundCalls: scenario.trigger || outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
+      // Every HTTP and schedule scenario records an empty layer as well, so
+      // a new provider call becomes a contract difference.
+      layer3_outboundCalls: scenario.route || scenario.trigger || outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
       layer4_sharedResources: hasRedis || hasMongo
         ? {
             redis: hasRedis ? {

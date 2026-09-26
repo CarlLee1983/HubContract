@@ -6,6 +6,7 @@ import { resetEnvironment } from "../src/env/reset";
 import { ContractRunner } from "../src/runner";
 import { FixtureSchema, ScenarioDefinitionSchema } from "../src/schema/scenario";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
+import { expectRecordedFixture } from "./helpers/recordedFixture";
 
 const names = ["status", "status-unvalidated-params", "status-unknown-station"];
 
@@ -18,6 +19,9 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #14: server status contract"
     it(`verifies ${name} against its recorded Legacy fixture`, async () => {
       const scenario = ScenarioDefinitionSchema.parse(JSON.parse(await fs.readFile(path.join(__dirname, "../scenarios/server", `${name}.json`), "utf8")));
       const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(path.join(__dirname, "../fixtures", `server-${name}.fixture.json`), "utf8")));
+      const recorded = await runner.record(scenario);
+      expectRecordedFixture(recorded, fixture);
+      await resetEnvironment();
       const result = await runner.verify(scenario, fixture);
       expect(result.differences).toEqual([]);
       expect(result.passed).toBe(true);
@@ -28,6 +32,6 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Issue #14: server status contract"
         expect(fixture.layer1_inboundResponse?.statusCode).toBe(200);
         expect(fixture.layer1_inboundResponse?.body).toEqual({ message: "OK" });
       }
-    }, 30_000);
+    }, config.resetTimeoutMs * 2 + 30_000);
   }
 });

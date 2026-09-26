@@ -41,5 +41,24 @@
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
     }
-  ]
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "station",
+        "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
+        "params": [
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "currencies",
+        "sql": "SELECT id, name, rate, active FROM currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  }
 }

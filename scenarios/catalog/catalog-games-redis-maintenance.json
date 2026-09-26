@@ -1,18 +1,21 @@
 {
-  "id": "catalog-companies-success",
-  "name": "Catalog companies: success",
-  "description": "Baseline active station game companies; missing cost_percent yields game_type array.",
+  "id": "catalog-games-redis-maintenance",
+  "name": "Catalog games: Redis maintenance",
+  "description": "Redis maintenance gate on CQ9 is visible in the catalog while platforms.maintain remains 0.",
   "route": {
     "method": "GET",
-    "path": "/v1/games/companies"
+    "path": "/v1/games"
   },
   "tags": [
     "catalog",
-    "companies",
-    "success",
+    "games",
+    "maintenance",
     "CAP-09",
     "CAP-01",
-    "BR-01"
+    "BR-01",
+    "BR-70",
+    "BR-71",
+    "redis"
   ],
   "request": {
     "headers": {
@@ -20,11 +23,11 @@
       "Accept": "application/json"
     },
     "query": {
-      "station_code": "DEMO_STATION",
+      "station_code": "CATALOG_REDIS",
       "timestamp": 0
     },
     "signWith": {
-      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+      "secretKey": "synthetic_secret_key_for_CATALOG_REDIS_1234567890"
     }
   },
   "normalizers": [
@@ -41,6 +44,18 @@
       "target": "response.body.trace",
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d{3})?Z$",
+      "replacement": "<ISO8601Z>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d{3})?Z$",
+      "replacement": "<ISO8601Z>"
     }
   ],
   "dbProbe": {
@@ -49,7 +64,7 @@
         "name": "station",
         "sql": "SELECT id, code, cost_percent FROM stations WHERE code = ? AND deleted_at IS NULL ORDER BY id",
         "params": [
-          "DEMO_STATION"
+          "CATALOG_REDIS"
         ]
       },
       {
@@ -66,15 +81,25 @@
         "name": "station_companies",
         "sql": "SELECT sgc.id, sgc.game_company_id, sgc.game_company_name, sgc.active, sgc.currency FROM station_game_companies sgc JOIN stations s ON s.id = sgc.station_id WHERE s.code = ? AND sgc.deleted_at IS NULL ORDER BY sgc.id",
         "params": [
-          "DEMO_STATION"
+          "CATALOG_REDIS"
         ]
+      },
+      {
+        "name": "games",
+        "sql": "SELECT id, code, active, maintain FROM games WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "game_currencies",
+        "sql": "SELECT game_id, currency, status FROM game_currencies WHERE deleted_at IS NULL ORDER BY id",
+        "params": []
       }
     ]
   },
   "redisProbe": {
     "keys": [
       {
-        "pattern": "platform-maintenance:v1:sbo",
+        "pattern": "platform-maintenance:v1:cq9",
         "db": 1,
         "ttlToleranceSeconds": 30
       }
@@ -82,5 +107,10 @@
   },
   "mongoProbe": {
     "pattern": "httplog_*"
+  },
+  "preconditions": {
+    "platformMaintenance": {
+      "platform": "cq9"
+    }
   }
 }
