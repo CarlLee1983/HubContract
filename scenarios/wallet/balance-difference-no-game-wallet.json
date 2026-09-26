@@ -1,0 +1,79 @@
+{
+  "id": "balance-difference-no-game-wallet",
+  "name": "Balance Difference No Game Wallet",
+  "description": "CAP-08 wallet contract; Legacy response and all observable side effects.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/wallet/balance-difference"
+  },
+  "tags": [
+    "wallet",
+    "balance-difference",
+    "CAP-08",
+    "error",
+    "BR-01",
+    "BR-35"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8180",
+      "Accept": "application/json"
+    },
+    "body": {
+      "account": "synthetic_user_01",
+      "station_code": "DEMO_STATION",
+      "currency": "USD",
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "wallets",
+        "sql": "SELECT w.id,w.platform_id,w.currency,w.balance,w.freeze,w.player_id FROM wallets w JOIN users u ON u.id=w.user_id JOIN stations s ON s.id=u.station_id WHERE u.account=? AND s.code=? ORDER BY w.id",
+        "params": [
+          "synthetic_user_01",
+          "DEMO_STATION"
+        ]
+      },
+      {
+        "name": "play_log",
+        "sql": "SELECT platform_id,user_id,player_id,game_id FROM play_logs WHERE user_id=1 ORDER BY id DESC LIMIT 1",
+        "params": []
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "stub": {
+    "script": {
+      "matchers": []
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "mongo.httplog_find_account.0.context.datetime",
+      "type": "mask"
+    },
+    {
+      "target": "mongo.httplog_find_account.0.datetime",
+      "type": "mask"
+    }
+  ]
+}
