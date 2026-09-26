@@ -1,0 +1,42 @@
+{
+  "id": "currency-exchange-rate-show-validation",
+  "name": "Currency exchange rate show validation",
+  "description": "Records Legacy exchange-rate lookup for TWD.",
+  "route": {
+    "method": "GET",
+    "path": "/v1/currencies/exchange-rate/TWD"
+  },
+  "tags": [
+    "currency",
+    "exchange-rate-show",
+    "validation"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "query": {
+      "timestamp": 0
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.query.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}
