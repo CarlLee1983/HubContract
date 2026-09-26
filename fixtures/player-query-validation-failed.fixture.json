@@ -1,0 +1,74 @@
+{
+  "scenarioId": "player-query-validation-failed",
+  "layer1_inboundResponse": {
+    "statusCode": 422,
+    "statusText": "Unprocessable Content",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "玩家帳號為必填項",
+      "errors": {
+        "account": [
+          "玩家帳號為必填項"
+        ]
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "user_wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ],
+      "user_transactions": []
+    },
+    "after": {
+      "user_wallets": [
+        {
+          "id": 1,
+          "platform_id": 1,
+          "balance": "1000.0000",
+          "freeze": "0.0000",
+          "player_id": 0
+        },
+        {
+          "id": 3,
+          "platform_id": 3,
+          "balance": "0.0000",
+          "freeze": "0.0000",
+          "player_id": 1
+        }
+      ],
+      "sbo_player": [
+        {
+          "id": 1,
+          "account": "synthetic_user_01DEMO_STATIONp3",
+          "vendor_player_id": null,
+          "playing": 0
+        }
+      ],
+      "user_transactions": []
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { ScenarioDefinition, Fixture } from "./schema/scenario";
+import type { ScenarioDefinition, ScenarioPreconditions, Fixture } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
@@ -41,7 +41,13 @@ export interface RunnerOptions {
    * opt-in one.
    */
   stubUrl: string;
+  preconditionAdapter?: PreconditionAdapter;
   fixedTimestamp?: number;
+}
+
+export interface PreconditionAdapter {
+  apply(preconditions: ScenarioPreconditions): Promise<void>;
+  close?(): Promise<void>;
 }
 
 export interface VerifyResult {
@@ -186,6 +192,7 @@ export class ContractRunner {
   private mongoProbe: MongoProbeService;
   private queueDrain: QueueDrain;
   private stubClient: StubClient;
+  private preconditionAdapter?: PreconditionAdapter;
   private fixedTimestamp?: number;
   private environmentSafe = true;
 
@@ -205,6 +212,7 @@ export class ContractRunner {
     this.mongoProbe = new MongoProbeService(options.mongoConfig);
     this.queueDrain = options.queueDrain ?? new RedisQueueDrain(options.redisConfig);
     this.stubClient = new StubClient(options.stubUrl);
+    this.preconditionAdapter = options.preconditionAdapter;
     this.fixedTimestamp = options.fixedTimestamp;
   }
 
@@ -213,6 +221,7 @@ export class ContractRunner {
     await this.redisProbe.close();
     await this.mongoProbe.close();
     await this.queueDrain.close();
+    await this.preconditionAdapter?.close?.();
   }
 
   canResetEnvironment(): boolean {
@@ -288,6 +297,14 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
+    // The target owns how a domain precondition is created. Apply it before
+    // probes so both record and verify see the same initial state.
+    if (scenario.preconditions?.smsLock) {
+      if (!this.preconditionAdapter) {
+        throw new Error(`Scenario "${scenario.id}" requires a precondition adapter`);
+      }
+      await this.preconditionAdapter.apply(scenario.preconditions);
+    }
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before
@@ -305,7 +322,15 @@ export class ContractRunner {
     await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
 
     // Layer 1: Execute inbound request
-    const { response } = await this.executeRequest(scenario);
+    let response: Awaited<ReturnType<typeof this.executeRequest>>["response"];
+    try {
+      ({ response } = await this.executeRequest(scenario));
+    } catch (error) {
+      // The target may have queued work before the connection failed. Do not
+      // reset this environment for another scenario until workers are stopped.
+      this.environmentSafe = false;
+      throw error;
+    }
 
     const drain = scenario.queueDrain ?? DEFAULT_QUEUE_DRAIN;
     try {

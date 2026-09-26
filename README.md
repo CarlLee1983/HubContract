@@ -19,7 +19,7 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
   - `record`：對 Legacy 錄製預期結果。
   - `verify`：對任一受測目標比對預期結果。
 - **錄製環境**：docker compose，內含 Legacy PHP (8.3 CLI)、MariaDB 10.11.6、Redis 7.2、Mongo 6.0。每個情境執行前都重置為固定的種子資料。
-- **非同步效果**：Runner 預設等待 `HubWalletSync`、`HttpLogging` 的待處理、執行中及延遲工作歸零，再讀出站呼叫和 DB／Redis／Mongo 最終狀態；情境可用 `queueDrain` 改指定 queue 與逾時。逾時回報 `errored` 與 queue 計數。錄製環境啟動這兩個 worker。
+- **非同步效果**：Runner 預設等待 `HubWalletSync`、`HttpLogging` 的待處理、執行中及延遲工作歸零，再讀出站呼叫和 DB／Redis／Mongo 最終狀態；情境可用 `queueDrain` 改指定 queue 與逾時。外部目標須提供自己的 queue adapter。逾時回報 `errored` 與 queue 計數。錄製環境啟動這兩個 worker。
 
 ## 錄製環境操作指南
 
@@ -189,13 +189,23 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 
 ## 資料安全
 
+### SMS 契約情境（Issue #18）
+
+`scenarios/sms/` 涵蓋列表、更新、發送、餘額四條路由，各路由包含驗證失敗、簽章失敗與未知站台；餘額另涵蓋 Chuanx、Asmsc、AboSend 的成功及供應商故障。錄製環境的 `SMS_TEST=false` 只用於本機 Legacy 容器；種子資料中的供應商 URL 全部指向 `mock-provider:8081`，憑證和電話都是合成值。可用 `bun run record scenarios/sms` 錄製，並以 `bun run verify scenarios/sms` 驗證。
+
+Legacy 實際錄製顯示：一般 `/v1/sms/send` 請求未帶 `currency` 時，`siteCurrency()` 為 null，解析電話先產生 500，尚未走到供應商；對應 `send-without-currency`。另外三個發送情境在簽章請求中帶 `currency=TWD`，讓路由初始化幣別以觀察更深的流程：inactive SMS 未被拒絕、供應商建 log 時的未初始化屬性 500、Asmsc 在該 500 前先呼叫 `GetSenderIDList`，以及預先佔用 Redis DB1 的 cache lock 時回傳重送錯誤。這些是錄製環境的現行行為，並非建議新版維持缺陷。`/amount` 的供應商 500 則被 Legacy 吞掉，回應餘額 0。
+
+SMS fixture 含合成供應商憑證，因 Legacy 的列表資源和出站呼叫原樣帶出設定。鎖定情境只宣告手機的 national number，由 Legacy 前置條件 adapter 依錄製環境的 cache prefix 建立 Redis lock。500 回應的 `file` 和 `trace` 以逐欄位 normalizer 遮罩，錯誤訊息和其他欄位仍逐字比對。
+
+指定其他目標的 `-t` 時，鎖定情境需同時提供 `--precondition-adapter ./path/to/adapter.ts`；該模組匯出 `createPreconditionAdapter({ targetUrl })`，回傳有 `apply(preconditions)` 方法的 adapter。未提供時會明確失敗，不會替其他目標寫入 Legacy 的 Redis key。AboSend 的動態 `rand` 和 `sign` 由 stub 重新計算 MD5 驗證後才套用欄位 normalizer。
+
 這個 repo 是公開的。fixture 與種子資料一律遮罩後才能提交；站台 `secret_key`、帳號、手機號碼全部使用 100% 合成假資料（例如 `DEMO_STATION`、`synthetic_secret_key_...`、`synthetic_user_01`）。
 
 `src/config.ts` 裡的 DB/Redis 連線預設值，以及 `docker/.env.recording` 的 `APP_KEY`，都是合成、非機密的本機錄製環境帳密（與 `docker-compose.yml` 定義一致），僅用於本機一次性、可拋棄的錄製環境，不對應任何真實環境的憑證。
 
 ### 從測試站快照產生基準種子（Issue #13）
 
-手寫的 `seeds/synthetic-seed.sql` 只夠撐 Pilot 的 8 種情境。要涵蓋更多路由時，改用「真實測試站快照經過遮罩」產生的基準種子。
+手寫的 `seeds/synthetic-seed.sql` 涵蓋 Pilot 與目前的合成契約情境。要涵蓋更多真實資料組合時，改用「真實測試站快照經過遮罩」產生的基準種子。
 
 #### 為什麼是「起一個真的資料庫」而不是自己寫 SQL parser，為什麼是白名單而不是黑名單
 
@@ -250,10 +260,10 @@ stub 是每個情境都必經的依賴，不論情境有沒有宣告 `stub` 欄�
 
 ### snapshot 模式的已知限制：哪些 fixture 需要重新 `record`、哪些情境目前不能用
 
-`fixtures/*.fixture.json` 目前是對 **synthetic 模式**（`HUB_SEED=synthetic`，`seeds/synthetic-seed.sql` 的固定 id）錄製的。`scenario-baseline.sql` overlay 為了不跟真實快照的資料列衝突，id 統一落在 `900000000` 以上，所以任何 fixture 裡直接寫死數字 id 的欄位，在 `HUB_SEED=snapshot` 模式下對得上的機率是零。逐一對照 `scenarios/**` 全部情境後，分兩種情況：
+`fixtures/*.fixture.json` 目前是對 **synthetic 模式**（`HUB_SEED=synthetic`，`seeds/synthetic-seed.sql` 的固定 id）錄製的。`scenario-baseline.sql` overlay 為了不跟真實快照的資料列衝突，id 統一落在 `900000000` 以上，所以任何 fixture 裡直接寫死數字 id 的欄位，在 `HUB_SEED=snapshot` 模式下對得上的機率是零。目前有以下兩種限制：
 
 - **只是 fixture 裡的 golden 結果寫死了 id，情境本身用業務代碼查資料**：`check-transaction-both-hit`、`check-transaction-deposit-hit`、`check-transaction-duplicate-trade-no`、`check-transaction-withdrawal-hit` 這四個 fixture 的 `dbProbe` 結果裡有 `user_id: 1`；情境的 `request`/`dbProbe.sql` 本身查的是 `station_code`/`trade_no` 這類業務值（不是數字 id），所以 `scenario-baseline.sql` overlay 補的資料列在 snapshot 模式下查得到、`verify` 會拿新的 id 跑，只是跟這些寫死 `user_id: 1` 的舊 fixture 對不起來。真的要在 snapshot 模式下驗證，需要先有真實快照、跑過 `bun run seed:mask`、`HUB_SEED=snapshot` 重置環境，再對 Legacy 重新 `record` 一次，產生對應 `900000000+` id 的新 fixture。這次沒有真實快照可以錄，所以現有 fixture 沒有被動過，synthetic 模式的驗證行為也完全不變。
-- **情境本身（不只是 fixture）就寫死了數字 id，snapshot 模式下重新 `record` 也沒用**：`scenarios/player/player-balance-outbound-{success,error,timeout}.json` 的 `dbProbe.sql` 直接寫 `platform_id = 3`、`user_id = 1`（Issue #8 的 walking skeleton，dbProbe 目前還沒做成用業務代碼查詢）——這三個情境檔**本 PR 沒有修改**，因為改這三個檔案屬於 spec 的驗收條件三（等真的有快照、需要讓所有情境都能在兩種模式下跑時再處理），不是 Issue #13 遮罩腳本的範圍。`scenario-baseline.sql` 仍然照樣補了 `players`/`play_logs`/`platforms`(`sbo`)/`wallets`(`sbo` 錢包) 這幾張表的資料列（保持跟 `synthetic-seed.sql` 同步），只是因為 overlay 用的是 `900000003` 而不是 synthetic 模式的 `3`，這三個情境的 dbProbe 在 snapshot 模式下查不到列——這是已知、暫時無法避免的落差，不是遮罩腳本或 overlay 的 bug。
+- **情境本身（不只是 fixture）就寫死了數字 id，snapshot 模式下重新 `record` 也沒用**：Issue #8 的 `scenarios/player/player-balance-outbound-{success,error,timeout}.json` 的 `dbProbe.sql` 直接寫 `platform_id = 3`、`user_id = 1`。Issue #15 新增的 `player-create-*.json` 查詢固定 `station_id = 1`、`platform_id = 1`；`player-query-*.json` 查詢固定 `user_id = 1`、`station_id = 1`、`platform_id = 3`；`player-balance-no-play-log.json` 查詢固定 `station_id = 1`、`user_id = 2`。`player-create-*.json` 還依賴 synthetic seed 的完整既有會員資料：overlay 雖有 `synthetic_user_02` 的 user 和 TWD 主錢包，卻沒有它的 MAIN Player、USD/PHP 主錢包；`synthetic_user_03` 及其兩筆 MAIN Player 也未加入 overlay。其餘 Issue #15 的 `player-balance-{signature-failed,unknown-station,validation-failed}.json` 雖無固定 id 的 dbProbe，fixture 仍是 synthetic 模式的錄製結果，尚未在 snapshot 模式驗收。`scenario-baseline.sql` 補回的資料列使用 `900000000+` id；例如 sbo 的 `platform_id` 是 `900000003`，上述固定 id 查不到對應資料。目前沒有真實快照可用來重新錄製並驗收 Issue #15 的 Player 情境，因此這些情境**不宣稱支援 snapshot 模式**；需在取得快照後調整查詢、補足基準資料並重新 `record`、`verify`。
 
 ## 狀態
 

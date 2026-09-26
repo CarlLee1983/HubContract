@@ -1,0 +1,44 @@
+{
+  "id": "sms-update-validation",
+  "name": "SMS update validation",
+  "description": "Records route-specific FormRequest 422 validation envelope with a valid station and generated signature.",
+  "route": {
+    "method": "POST",
+    "path": "/v1/sms"
+  },
+  "tags": [
+    "sms",
+    "update",
+    "validation"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json"
+    },
+    "body": {
+      "station_code": "DEMO_STATION",
+      "timestamp": 0,
+      "hub_sms_id": 1
+    },
+    "signWith": {
+      "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
+    }
+  },
+  "normalizers": [
+    {
+      "target": "request.body.timestamp",
+      "type": "current_timestamp"
+    },
+    {
+      "target": "response.body.file",
+      "type": "mask",
+      "replacement": "<MASKED_FILE_PATH>"
+    },
+    {
+      "target": "response.body.trace",
+      "type": "mask",
+      "replacement": "<MASKED_TRACE>"
+    }
+  ]
+}
