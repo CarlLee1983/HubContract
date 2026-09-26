@@ -47,6 +47,16 @@ export const RedisProbeSchema = z.object({
   keys: z.array(RedisProbeKeyRuleSchema).default([]),
 });
 
+/** A synthetic Redis precondition applied before the before-state probe. */
+export const RedisSetupSchema = z.object({
+  keys: z.array(z.object({
+    key: z.string().min(1),
+    db: z.number().int().nonnegative().default(1),
+    value: z.string(),
+    ttlSeconds: z.number().int().positive(),
+  })).min(1),
+});
+
 /**
  * Provider stub schema (Issue #8): describes how the stub (compose service
  * `mock-provider`, src/stub/server.ts) should respond to outbound calls made
@@ -129,6 +139,7 @@ export const ScenarioDefinitionSchema = z.object({
   }),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
+  redisSetup: RedisSetupSchema.optional(),
   // Issue #8: captureRun() *always* resets the stub and loads this script (or
   // an empty one, if omitted) before executing the request — every scenario
   // is checked for undefined outbound calls, not just ones that declare a

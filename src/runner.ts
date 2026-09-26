@@ -270,6 +270,9 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
+    // The harness resets Redis between scenarios. Apply declared preconditions
+    // before the initial probe so record and verify observe the same starting state.
+    await this.redisProbe.applySetup(scenario.redisSetup);
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before

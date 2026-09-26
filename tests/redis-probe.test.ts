@@ -76,6 +76,21 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Co
     expect(state["non:existent:key"]).toBeNull();
   });
 
+  it("sets a synthetic lock in the requested DB under REDIS_PREFIX", async () => {
+    const key = "stationhublegacy_cache_:sms_639123456789";
+    await redisProbe.applySetup({
+      keys: [{ key, db: 1, value: "synthetic-owner", ttlSeconds: 10 }],
+    });
+    try {
+      expect(await rawRedis.get(`${config.redis.prefix}${key}`)).toBe("synthetic-owner");
+      const ttl = await rawRedis.ttl(`${config.redis.prefix}${key}`);
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(10);
+    } finally {
+      await rawRedis.del(`${config.redis.prefix}${key}`);
+    }
+  });
+
   it("Criterion 2: Value exact match passes; value mismatch produces diff with path", () => {
     const actual = {
       "platform-maintenance:v1:cq9": {

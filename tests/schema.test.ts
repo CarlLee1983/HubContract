@@ -78,4 +78,22 @@ describe("Scenario Schema (Zod)", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("validates a finite synthetic Redis lock precondition", () => {
+    const scenario = {
+      id: "sms-locked",
+      name: "SMS locked",
+      route: { method: "POST", path: "/v1/sms/send" },
+      request: {},
+      redisSetup: {
+        keys: [{ key: "stationhublegacy_cache_:sms_639123456789", value: "synthetic-owner", ttlSeconds: 10 }],
+      },
+    };
+    const parsed = ScenarioDefinitionSchema.parse(scenario);
+    expect(parsed.redisSetup?.keys[0]?.db).toBe(1);
+    expect(ScenarioDefinitionSchema.safeParse({
+      ...scenario,
+      redisSetup: { keys: [{ ...scenario.redisSetup.keys[0], ttlSeconds: -1 }] },
+    }).success).toBe(false);
+  });
 });
