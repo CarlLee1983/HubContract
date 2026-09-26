@@ -1,4 +1,4 @@
-import type { ScenarioDefinition, Fixture } from "./schema/scenario";
+import type { ScenarioDefinition, ScenarioPreconditions, Fixture } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe } from "./probe/dbProbe";
@@ -36,7 +36,13 @@ export interface RunnerOptions {
    * opt-in one.
    */
   stubUrl: string;
+  preconditionAdapter?: PreconditionAdapter;
   fixedTimestamp?: number;
+}
+
+export interface PreconditionAdapter {
+  apply(preconditions: ScenarioPreconditions): Promise<void>;
+  close?(): Promise<void>;
 }
 
 export interface VerifyResult {
@@ -177,6 +183,7 @@ export class ContractRunner {
   private dbProbe: MariaDbProbe;
   private redisProbe: RedisProbeService;
   private stubClient: StubClient;
+  private preconditionAdapter?: PreconditionAdapter;
   private fixedTimestamp?: number;
 
   constructor(options: RunnerOptions) {
@@ -193,12 +200,14 @@ export class ContractRunner {
     this.dbProbe = new MariaDbProbe(options.dbConfig);
     this.redisProbe = new RedisProbeService(options.redisConfig);
     this.stubClient = new StubClient(options.stubUrl);
+    this.preconditionAdapter = options.preconditionAdapter;
     this.fixedTimestamp = options.fixedTimestamp;
   }
 
   async close(): Promise<void> {
     await this.dbProbe.close();
     await this.redisProbe.close();
+    await this.preconditionAdapter?.close?.();
   }
 
   /**
@@ -270,9 +279,14 @@ export class ContractRunner {
    * record() and verify() so both run the exact same layer-capture sequence.
    */
   private async captureRun(scenario: ScenarioDefinition): Promise<CapturedRun> {
-    // The harness resets Redis between scenarios. Apply declared preconditions
-    // before the initial probe so record and verify observe the same starting state.
-    await this.redisProbe.applySetup(scenario.redisSetup);
+    // The target owns how a domain precondition is created. Apply it before
+    // probes so both record and verify see the same initial state.
+    if (scenario.preconditions?.smsLock) {
+      if (!this.preconditionAdapter) {
+        throw new Error(`Scenario "${scenario.id}" requires a precondition adapter`);
+      }
+      await this.preconditionAdapter.apply(scenario.preconditions);
+    }
     // Layer 2: DB Probe before
     const dbBefore = await this.dbProbe.capture(scenario.dbProbe);
     // Layer 4: Redis Probe before

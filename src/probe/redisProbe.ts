@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import type { RedisProbeSchema, RedisSetupSchema, RedisKeyRecord } from "../schema/scenario";
+import type { RedisProbeSchema, RedisKeyRecord } from "../schema/scenario";
 import type { z } from "zod";
 import { config } from "../config";
 
@@ -28,7 +28,6 @@ const valueReaders: Record<string, RedisValueReader> = {
 };
 
 export type RedisProbe = z.infer<typeof RedisProbeSchema>;
-export type RedisSetup = z.infer<typeof RedisSetupSchema>;
 
 export class RedisProbeService {
   private host: string;
@@ -56,20 +55,6 @@ export class RedisProbeService {
       this.clients.set(db, client);
     }
     return this.clients.get(db)!;
-  }
-
-  /** Apply scenario-owned synthetic keys before capturing the initial state. */
-  async applySetup(setup?: RedisSetup): Promise<void> {
-    if (!setup) return;
-
-    for (const entry of setup.keys) {
-      const client = this.getClient(entry.db);
-      if (client.status === "wait") await client.connect();
-      const fullKey = entry.key.startsWith(this.prefix)
-        ? entry.key
-        : `${this.prefix}${entry.key}`;
-      await client.set(fullKey, entry.value, "EX", entry.ttlSeconds);
-    }
   }
 
   /**
