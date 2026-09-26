@@ -1,0 +1,20 @@
+{
+  "id": "mcp-health",
+  "name": "MCP: Health",
+  "description": "Verify authenticated GET /mcp/health returns the MCP health envelope.",
+  "route": {
+    "method": "GET",
+    "path": "/mcp/health"
+  },
+  "tags": [
+    "mcp",
+    "health"
+  ],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json",
+      "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c"
+    }
+  }
+}

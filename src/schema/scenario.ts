@@ -66,6 +66,11 @@ export const ScenarioPreconditionsSchema = z.object({
   smsLock: z.object({
     nationalNumber: z.string().regex(/^[0-9]+$/),
   }).optional(),
+  mcpMaintenance: z.object({
+    platform: z.string().min(1),
+    duration: z.string().min(1),
+    reason: z.string().min(1),
+  }).optional(),
   platformMaintenance: z.strictObject({
     platform: z.string().regex(/^[a-z][a-z0-9_]*$/),
   }).optional(),

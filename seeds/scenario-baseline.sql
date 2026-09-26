@@ -126,4 +126,10 @@ INSERT INTO `sms` (`id`, `station_id`, `code`, `name`, `supplier`, `active`, `am
 (900000005, 900000001, '63', 'Synthetic AboSend', 'abo_send', 1, 5, '{"url":"http://mock-provider:8081","orgCode":"synthetic_org_code","MD5":"synthetic_md5_key","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL)
 ON DUPLICATE KEY UPDATE `active` = VALUES(`active`), `amount` = VALUES(`amount`), `settings` = VALUES(`settings`), `updated_at` = VALUES(`updated_at`), `deleted_at` = NULL;
 
+-- MCP contract baseline; snapshot mode still needs its own recorded fixtures.
+INSERT INTO `platform_maintenance_schedules`
+(`id`, `platform`, `weekday`, `start_time`, `duration_minutes`, `lead_minutes`, `trail_minutes`, `reason`, `enabled`, `effective_from`, `effective_until`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000019, 'cq9', 1, '10:00:00', 60, 0, 0, 'Synthetic MCP recurring maintenance', 1, NULL, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL)
+ON DUPLICATE KEY UPDATE `platform` = VALUES(`platform`), `weekday` = VALUES(`weekday`), `start_time` = VALUES(`start_time`), `duration_minutes` = VALUES(`duration_minutes`), `lead_minutes` = VALUES(`lead_minutes`), `trail_minutes` = VALUES(`trail_minutes`), `reason` = VALUES(`reason`), `enabled` = VALUES(`enabled`), `deleted_at` = NULL;
+
 SET FOREIGN_KEY_CHECKS = 1;

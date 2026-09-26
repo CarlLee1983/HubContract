@@ -1,0 +1,85 @@
+{
+  "scenarioId": "mcp-platform-maintenance-index",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "ok": true,
+      "data": {
+        "redis_available": true,
+        "items": {
+          "cq9": {
+            "platform": "cq9",
+            "source": "redis",
+            "set_source": "manual",
+            "reason": "Contract testing maintenance flag",
+            "set_by": "mcp",
+            "set_at": "<ISO8601+08:00>",
+            "until": "<ISO8601+08:00>",
+            "estimated": true,
+            "remaining_seconds": "<NORMALIZED_SECONDS>"
+          },
+          "jdb": {
+            "platform": "jdb",
+            "source": "db",
+            "set_source": null,
+            "reason": null,
+            "set_by": null,
+            "set_at": null,
+            "until": null,
+            "estimated": false,
+            "remaining_seconds": null
+          }
+        }
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {},
+    "after": {}
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "mcp",
+            "set_at": "<ISO8601+08:00>",
+            "until": "<ISO8601+08:00>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
+      },
+      "after": {
+        "platform-maintenance:v1:cq9": {
+          "key": "platform-maintenance:v1:cq9",
+          "db": 1,
+          "type": "string",
+          "value": {
+            "reason": "Contract testing maintenance flag",
+            "source": "manual",
+            "set_by": "mcp",
+            "set_at": "<ISO8601+08:00>",
+            "until": "<ISO8601+08:00>",
+            "estimated": true
+          },
+          "ttl": 3600,
+          "ttlTolerance": 30
+        }
+      }
+    }
+  }
+}

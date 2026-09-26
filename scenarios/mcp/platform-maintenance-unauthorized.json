@@ -13,6 +13,13 @@
       "Accept": "application/json"
     }
   },
+  "preconditions": {
+    "mcpMaintenance": {
+      "platform": "cq9",
+      "duration": "1h",
+      "reason": "Contract testing maintenance flag"
+    }
+  },
   "redisProbe": {
     "keys": [
       {

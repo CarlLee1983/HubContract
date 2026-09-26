@@ -166,4 +166,11 @@ INSERT INTO `sms` (`id`, `station_id`, `code`, `name`, `supplier`, `active`, `am
 (4, 1, '63', 'Synthetic Send Asmsc', 'asmsc', 1, 5, '{"url":"http://mock-provider:8081","api_id":"synthetic_api_id","api_password":"synthetic_api_password","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL),
 (5, 1, '63', 'Synthetic AboSend', 'abo_send', 1, 5, '{"url":"http://mock-provider:8081","orgCode":"synthetic_org_code","MD5":"synthetic_md5_key","smsCost":2}', '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
 
+-- MCP contract: a fixed Monday window for independent list, run, toggle,
+-- and soft-delete scenarios. The run scenario uses a fixed at override.
+TRUNCATE TABLE `platform_maintenance_schedules`;
+INSERT INTO `platform_maintenance_schedules`
+(`id`, `platform`, `weekday`, `start_time`, `duration_minutes`, `lead_minutes`, `trail_minutes`, `reason`, `enabled`, `effective_from`, `effective_until`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(900000019, 'cq9', 1, '10:00:00', 60, 0, 0, 'Synthetic MCP recurring maintenance', 1, NULL, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
+
 SET FOREIGN_KEY_CHECKS = 1;

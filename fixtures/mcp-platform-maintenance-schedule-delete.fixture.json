@@ -1,0 +1,68 @@
+{
+  "scenarioId": "mcp-platform-maintenance-schedule-delete",
+  "layer1_inboundResponse": {
+    "statusCode": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "ok": true,
+      "data": {
+        "id": 900000019,
+        "action": "remove",
+        "removed": true
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "schedules": [
+        {
+          "id": 900000019,
+          "platform": "cq9",
+          "weekday": 1,
+          "start_time": "10:00:00",
+          "duration_minutes": 60,
+          "lead_minutes": 0,
+          "trail_minutes": 0,
+          "reason": "Synthetic MCP recurring maintenance",
+          "enabled": 1,
+          "effective_from": null,
+          "effective_until": null,
+          "deleted": 0
+        }
+      ],
+      "activity_log": []
+    },
+    "after": {
+      "schedules": [
+        {
+          "id": 900000019,
+          "platform": "cq9",
+          "weekday": 1,
+          "start_time": "10:00:00",
+          "duration_minutes": 60,
+          "lead_minutes": 0,
+          "trail_minutes": 0,
+          "reason": "Synthetic MCP recurring maintenance",
+          "enabled": 1,
+          "effective_from": null,
+          "effective_until": null,
+          "deleted": 1
+        }
+      ],
+      "activity_log": [
+        {
+          "log_name": "system",
+          "description": "deleted",
+          "subject_type": "App\\Models\\PlatformMaintenanceSchedule",
+          "event": "deleted",
+          "subject_id": 900000019,
+          "platform": null,
+          "enabled": null
+        }
+      ]
+    }
+  }
+}

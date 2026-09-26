@@ -1,0 +1,14 @@
+{
+  "id": "mcp-platform-maintenance-schedule-create",
+  "name": "MCP recurring maintenance schedules: create",
+  "route": { "method": "POST", "path": "/mcp/platform-maintenance-schedule" },
+  "tags": ["mcp", "platform-maintenance-schedule"],
+  "request": {
+    "headers": { "Host": "localhost:8080", "Accept": "application/json", "Content-Type": "application/json", "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c" },
+    "body": { "platform": "CQ9", "weekday": "tue", "at": "11:30", "duration": "90m", "lead": "5m", "trail": "10m", "reason": "Synthetic Tuesday maintenance", "from": "2025-01-01", "until": "2030-12-31" }
+  },
+  "dbProbe": { "queries": [
+    { "name": "schedules", "sql": "SELECT id, platform, weekday, start_time, duration_minutes, lead_minutes, trail_minutes, reason, enabled, effective_from, effective_until, deleted_at IS NOT NULL AS deleted FROM platform_maintenance_schedules ORDER BY id", "params": [] },
+    { "name": "activity_log", "sql": "SELECT log_name, description, subject_type, event, subject_id, JSON_VALUE(properties, '$.attributes.platform') AS platform, JSON_VALUE(properties, '$.attributes.enabled') AS enabled FROM activity_log ORDER BY id", "params": [] }
+  ] }
+}

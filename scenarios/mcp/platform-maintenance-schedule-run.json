@@ -1,0 +1,50 @@
+{
+  "id": "mcp-platform-maintenance-schedule-run",
+  "name": "MCP Platform Maintenance Schedule: Run",
+  "description": "Reconcile the seeded Monday cq9 window at 10:30 and write both the maintenance flag and recurring marker.",
+  "route": {
+    "method": "POST",
+    "path": "/mcp/platform-maintenance-schedule/run"
+  },
+  "tags": ["mcp", "platform-maintenance-schedule"],
+  "request": {
+    "headers": {
+      "Host": "localhost:8080",
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "X-Station-Mcp-Secret": "synthetic_mcp_secret_for_contract_testing_only_9f3a1c"
+    },
+    "body": {
+      "at": "2026-09-28T10:30:00+08:00",
+      "dry_run": false
+    }
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "platform-maintenance:v1:cq9",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      },
+      {
+        "pattern": "platform-maintenance:recurring-applied:v1:cq9:900000019:2026-09-28",
+        "db": 1,
+        "ttlToleranceSeconds": 30
+      }
+    ]
+  },
+  "normalizers": [
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.set_at",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    },
+    {
+      "target": "redis.platform-maintenance:v1:cq9.value.until",
+      "type": "regex_replace",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\+08:00$",
+      "replacement": "<ISO8601+08:00>"
+    }
+  ]
+}

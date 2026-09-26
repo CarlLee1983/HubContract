@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { LegacyTargetAdapter } from "../src/target/legacyAdapter";
+import { config } from "../src/config";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -15,6 +16,7 @@ const dbBefore = { platforms: [{ id: 2, active: 1 }], platform_game_type_map: [
 const adapter = () => new LegacyTargetAdapter({
   readMappings: async () => dbBefore.platform_game_type_map,
 });
+const localLegacyUrl = `http://localhost:${config.legacyPort}`;
 
 describe("Legacy admin target adapter", () => {
   it("refuses to send the Legacy admin action to another target", async () => {
@@ -33,7 +35,7 @@ describe("Legacy admin target adapter", () => {
       return replies.shift()!;
     }) as typeof fetch;
 
-    await adapter().executeAction(action, "http://localhost:8080", dbBefore);
+    await adapter().executeAction(action, localLegacyUrl, dbBefore);
 
     expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
       "/login", "/login", "/games/platform-and-gametype",
@@ -54,7 +56,7 @@ describe("Legacy admin target adapter", () => {
       new Response("", { status: 302, headers: { Location: "/login" } }),
     ];
     globalThis.fetch = (async () => replies.shift()!) as unknown as typeof fetch;
-    await expect(adapter().executeAction(action, "http://localhost:8080", dbBefore))
+    await expect(adapter().executeAction(action, localLegacyUrl, dbBefore))
       .rejects.toThrow("Legacy admin login failed");
   });
 
@@ -65,23 +67,23 @@ describe("Legacy admin target adapter", () => {
       new Response("SQL error", { status: 500 }),
     ];
     globalThis.fetch = (async () => replies.shift()!) as unknown as typeof fetch;
-    await expect(adapter().executeAction(action, "http://localhost:8080", dbBefore))
+    await expect(adapter().executeAction(action, localLegacyUrl, dbBefore))
       .rejects.toThrow("Legacy internal action failed with HTTP 500");
   });
 
   it("refuses to sync when the complete mapping snapshot is missing", async () => {
-    await expect(adapter().executeAction(action, "http://localhost:8080", { platforms: dbBefore.platforms }))
+    await expect(adapter().executeAction(action, localLegacyUrl, { platforms: dbBefore.platforms }))
       .rejects.toThrow("requires a complete platform_game_type_map before probe");
   });
 
   it("refuses a partial snapshot before Legacy sync can detach a sibling", async () => {
     const partial = { ...dbBefore, platform_game_type_map: [dbBefore.platform_game_type_map[0]] };
-    await expect(adapter().executeAction(action, "http://localhost:8080", partial))
+    await expect(adapter().executeAction(action, localLegacyUrl, partial))
       .rejects.toThrow("requires a complete platform_game_type_map before probe");
   });
 
   it("refuses a stale Platform active precondition before the observer can run", async () => {
-    await expect(adapter().executeAction(action, "http://localhost:8080", {
+    await expect(adapter().executeAction(action, localLegacyUrl, {
       ...dbBefore, platforms: [{ id: 2, active: 0 }],
     })).rejects.toThrow("requires a matching platforms.active before probe");
   });

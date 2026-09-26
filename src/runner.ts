@@ -343,7 +343,7 @@ export class ContractRunner {
     }
     // The target owns how a domain precondition is created. Apply it before
     // probes so both record and verify see the same initial state.
-    if (scenario.preconditions?.smsLock || scenario.preconditions?.platformMaintenance || scenario.preconditions?.walletLock) {
+    if (scenario.preconditions?.smsLock || scenario.preconditions?.platformMaintenance || scenario.preconditions?.walletLock || scenario.preconditions?.mcpMaintenance) {
       if (!this.preconditionAdapter) {
         throw new Error(`Scenario "${scenario.id}" requires a precondition adapter`);
       }
