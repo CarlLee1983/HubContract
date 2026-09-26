@@ -1,7 +1,7 @@
 import { parseArgs } from "util";
 import fs from "fs/promises";
 import { ContractRunner } from "./runner";
-import { LegacyTargetAdapter } from "./target/legacyAdapter";
+import { selectTarget } from "./target/selectTarget";
 import { ReportSchema } from "./schema/report";
 import { config } from "./config";
 import { resetEnvironment } from "./env/reset";
@@ -43,10 +43,12 @@ async function main() {
     process.exit(1);
   }
 
-  const targetUrl = values.target ?? config.baseUrl;
-  if (values.adapter && values.adapter !== "legacy") {
-    throw new Error(`Unknown target adapter: ${values.adapter}`);
-  }
+  const { targetUrl, targetAdapter } = selectTarget({
+    target: values.target,
+    baseUrl: config.baseUrl,
+    adapter: values.adapter,
+    legacyPort: config.legacyPort,
+  });
   const outDir = values.outDir!;
   // Issue #12: scenario path is a file OR a directory of scenarios; defaults
   // to scenarios/ so a bare `bun run verify` runs the whole suite.
@@ -86,7 +88,7 @@ async function main() {
   const runner = new ContractRunner({
     baseUrl: targetUrl,
     stubUrl: config.stub.baseUrl,
-    targetAdapter: values.adapter === "legacy" || !values.target ? new LegacyTargetAdapter() : undefined,
+    targetAdapter,
   });
   const startedAt = new Date();
   let runOutcomes: Awaited<ReturnType<typeof runScenarios>> = [];

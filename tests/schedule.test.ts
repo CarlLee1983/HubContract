@@ -22,12 +22,12 @@ it("maps exactly one neutral schedule to one Legacy argv invocation", async () =
   const adapter = new LegacyTargetAdapter(async (argv) => { calls.push(argv); });
   await adapter.triggerSchedule("remittance.retry");
   expect(calls).toEqual([["docker", "compose", "exec", "-T", "legacy-app", "php", "artisan", "remittance:retry"]]);
-  expect(adapter.triggerSchedule("schedule:run")).rejects.toThrow("Unsupported Legacy schedule");
+  await expect(adapter.triggerSchedule("schedule:run")).rejects.toThrow("Unsupported Legacy schedule");
 });
 
 it("bounds failed and stuck target commands", async () => {
-  expect(runCommand([process.execPath, "-e", "process.exit(7)"])).rejects.toThrow("exit 7");
-  expect(runCommand([process.execPath, "-e", "await new Promise(() => {})"], 100)).rejects.toThrow("timed out");
+  await expect(runCommand([process.execPath, "-e", "process.exit(7)"])).rejects.toThrow("exit 7");
+  await expect(runCommand([process.execPath, "-e", "await new Promise(() => {})"], 100)).rejects.toThrow("timed out");
 });
 
 it("requires HTTP response fixtures and forbids them for schedules", () => {
@@ -40,6 +40,12 @@ it("requires HTTP response fixtures and forbids them for schedules", () => {
     scenarioId: schedule.id,
     layer1_inboundResponse: { statusCode: 200, statusText: "OK", headers: {}, body: {} },
   })).toThrow("must not declare layer1");
+  expect(() => assertFixtureMatchesScenario(schedule, { scenarioId: schedule.id }))
+    .toThrow("requires layer3_outboundCalls");
+  expect(() => assertFixtureMatchesScenario(schedule, {
+    scenarioId: schedule.id,
+    layer3_outboundCalls: { calls: [] },
+  })).not.toThrow();
 });
 
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy scheduled remittance", () => {
@@ -51,24 +57,25 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy scheduled remittance", () =
       await resetEnvironment({ timeoutMs: 60000 });
       const first = await runner.record(scenario);
       expect(first).toEqual(golden);
+      expect(first.layer2_dbState?.after.activity_log).toHaveLength(4);
       await resetEnvironment({ timeoutMs: 60000 });
       expect(await runner.record(scenario)).toEqual(first);
       await resetEnvironment({ timeoutMs: 60000 });
       expect((await runner.verify(scenario, golden)).passed).toBe(true);
 
       const changedDb = structuredClone(golden);
-      changedDb.layer2_dbState!.after.wallets[1].balance = "999.0000";
+      changedDb.layer2_dbState!.after.activity_log[3].new_status = "wrong";
       await resetEnvironment({ timeoutMs: 60000 });
       const dbResult = await runner.verify(scenario, changedDb);
       expect(dbResult.passed).toBe(false);
-      expect(dbResult.differences.some((difference) => difference.layer === "db_state" && difference.path.includes("wallets"))).toBe(true);
+      expect(dbResult.differences.some((difference) => difference.layer === "db_state" && difference.path.includes("activity_log"))).toBe(true);
 
       const changedOutbound = structuredClone(golden);
-      changedOutbound.layer3_outboundCalls!.calls[0].body.txnId = "wrong";
+      changedOutbound.layer3_outboundCalls!.calls = [];
       await resetEnvironment({ timeoutMs: 60000 });
       const outboundResult = await runner.verify(scenario, changedOutbound);
       expect(outboundResult.passed).toBe(false);
-      expect(outboundResult.differences.some((difference) => difference.layer === "outbound_calls" && difference.path.includes("txnId"))).toBe(true);
+      expect(outboundResult.differences.some((difference) => difference.layer === "outbound_calls" && difference.path.includes("calls"))).toBe(true);
     } finally {
       await runner.close();
     }

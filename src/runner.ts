@@ -354,10 +354,9 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
-      // Only recorded when there actually were outbound calls — a scenario
-      // with no `stub` (and no surprise undefined calls, or record() above
-      // would already have thrown) has nothing structural to compare here.
-      layer3_outboundCalls: outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
+      // Schedules declare the outbound layer even when it is empty, so a
+      // later provider call is a contract difference rather than omitted.
+      layer3_outboundCalls: scenario.trigger || outboundCalls.length > 0 ? { calls: outboundCalls } : undefined,
       layer4_sharedResources: hasRedis
         ? {
             redis: {

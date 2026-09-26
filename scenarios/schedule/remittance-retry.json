@@ -29,6 +29,11 @@
         "name": "transactions",
         "sql": "SELECT id, user_id, model_type, model_id, model_no, wallet_id, platform_name, trade_type, currency, balance_original, balance_variable, balance_complete FROM transactions WHERE model_no = 'RE_SYNTHETIC_RETRY' ORDER BY id",
         "params": []
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, event, JSON_VALUE(properties, '$.attributes.model_no') AS model_no, JSON_VALUE(properties, '$.attributes.wallet_id') AS wallet_id, JSON_VALUE(properties, '$.attributes.trade_type') AS trade_type, JSON_VALUE(properties, '$.attributes.balance_variable') AS balance_variable, JSON_VALUE(properties, '$.old.balance') AS old_balance, JSON_VALUE(properties, '$.attributes.balance') AS new_balance, JSON_VALUE(properties, '$.old.status') AS old_status, JSON_VALUE(properties, '$.attributes.status') AS new_status, JSON_VALUE(properties, '$.old.stage') AS old_stage, JSON_VALUE(properties, '$.attributes.stage') AS new_stage FROM activity_log ORDER BY subject_type, event, trade_type, model_no",
+        "params": []
       }
     ]
   },

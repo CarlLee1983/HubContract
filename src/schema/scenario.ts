@@ -210,4 +210,7 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   if (scenario.trigger && fixture.layer1_inboundResponse) {
     throw new Error(`Schedule scenario ${scenario.id} must not declare layer1_inboundResponse`);
   }
+  if (scenario.trigger && !fixture.layer3_outboundCalls) {
+    throw new Error(`Schedule scenario ${scenario.id} requires layer3_outboundCalls`);
+  }
 }
