@@ -9,7 +9,8 @@
   "tags": [
     "player",
     "create",
-    "account-suffix-error"
+    "account-suffix-error",
+    "CAP-02"
   ],
   "request": {
     "headers": {

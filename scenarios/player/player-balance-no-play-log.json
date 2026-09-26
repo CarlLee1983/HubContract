@@ -30,7 +30,9 @@
   "tags": [
     "player",
     "balance",
-    "error"
+    "error",
+    "last-play-log",
+    "CAP-03"
   ],
   "dbProbe": {
     "queries": [
