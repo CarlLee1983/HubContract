@@ -55,14 +55,15 @@
       },
       {
         "name": "transactions",
-        "sql": "SELECT t.model_type, t.type, t.trade_type, t.balance_original, t.balance_variable, t.balance_complete FROM transactions t JOIN users u ON u.id=t.user_id WHERE u.account=? AND t.model_type='App\\\\Models\\\\WithdrawalRecord' ORDER BY t.id",
+        "sql": "SELECT t.model_type, t.platform_name, t.type, t.trade_type, t.currency, t.balance_original, t.balance_variable, t.balance_complete FROM transactions t JOIN users u ON u.id = t.user_id JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? ORDER BY t.id",
         "params": [
-          "synthetic_user_01"
+          "synthetic_user_01",
+          "DEMO_STATION"
         ]
       },
       {
         "name": "activity_log",
-        "sql": "SELECT COUNT(*) AS count FROM activity_log",
+        "sql": "SELECT log_name, description, subject_type, event, JSON_VALUE(properties, '$.attributes.wallet_id') AS wallet_id, JSON_VALUE(properties, '$.attributes.trade_type') AS trade_type, JSON_VALUE(properties, '$.attributes.balance_variable') AS balance_variable, JSON_VALUE(properties, '$.old.balance') AS old_balance, JSON_VALUE(properties, '$.attributes.balance') AS new_balance, JSON_VALUE(properties, '$.old.status') AS old_status, JSON_VALUE(properties, '$.attributes.status') AS new_status, JSON_VALUE(properties, '$.old.stage') AS old_stage, JSON_VALUE(properties, '$.attributes.stage') AS new_stage FROM activity_log ORDER BY id",
         "params": []
       },
       {

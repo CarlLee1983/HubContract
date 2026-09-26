@@ -3,6 +3,7 @@ import { RedisProbeService } from "../src/probe/redisProbe";
 import { compareRedisState } from "../src/comparator/comparator";
 import { config } from "../src/config";
 import Redis from "ioredis";
+import { createConnection, type RowDataPacket } from "mysql2/promise";
 import { LegacyPreconditionAdapter } from "../src/target/legacyPreconditions";
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
@@ -94,7 +95,19 @@ describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("RedisProbeService & Redis State Co
   });
 
   it("Legacy adapter occupies the wallet sync lock for a domain user", async () => {
-    const key = `${config.redis.prefix}game_to_main_wallet_sync:1_TWD`;
+    const connection = await createConnection(config.db);
+    let userId: number;
+    try {
+      const [rows] = await connection.execute<RowDataPacket[]>(
+        "SELECT u.id FROM users u JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ?",
+        ["synthetic_user_01", "DEMO_STATION"]
+      );
+      expect(rows).toHaveLength(1);
+      userId = Number(rows[0].id);
+    } finally {
+      await connection.end();
+    }
+    const key = `${config.redis.prefix}game_to_main_wallet_sync:${userId}_TWD`;
     const adapter = new LegacyPreconditionAdapter();
     try {
       await rawRedis.del(key);

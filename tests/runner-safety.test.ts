@@ -8,11 +8,9 @@ describe("ContractRunner batch safety", () => {
     const runner = new ContractRunner({
       baseUrl: "http://127.0.0.1:1",
       stubUrl: "http://127.0.0.1:2",
-      targetAdapter: {
-        setupSchedule: async () => { events.push("setup"); },
-      },
     });
     const internal = runner as any;
+    internal.dbProbe.setup = async () => { events.push("setup"); };
     internal.dbProbe.capture = async () => { events.push("probe"); throw new Error("stop after probe"); };
     const scenario = ScenarioDefinitionSchema.parse({
       id: "deposit-setup", name: "Deposit setup",

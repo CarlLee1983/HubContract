@@ -35,11 +35,7 @@
       ],
       "order": [],
       "transactions": [],
-      "activity_log": [
-        {
-          "count": 0
-        }
-      ],
+      "activity_log": [],
       "remittance": []
     },
     "after": {
@@ -70,8 +66,10 @@
       "transactions": [
         {
           "model_type": "App\\Models\\DepositRecord",
+          "platform_name": "main",
           "type": "deposit",
           "trade_type": "wallet_in",
+          "currency": "TWD",
           "balance_original": "1000.0000",
           "balance_variable": "25.0000",
           "balance_complete": "1025.0000"
@@ -79,7 +77,64 @@
       ],
       "activity_log": [
         {
-          "count": 4
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\DepositRecord",
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": "pending",
+          "old_stage": null,
+          "new_stage": "pending"
+        },
+        {
+          "log_name": "wallet",
+          "description": "status has be change.,stage has be change.,completed_at has be change.",
+          "subject_type": "App\\Models\\DepositRecord",
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": "pending",
+          "new_status": "completed",
+          "old_stage": "pending",
+          "new_stage": "finished"
+        },
+        {
+          "log_name": "wallet",
+          "description": "updated",
+          "subject_type": "App\\Models\\Wallet",
+          "event": "updated",
+          "wallet_id": null,
+          "trade_type": null,
+          "balance_variable": null,
+          "old_balance": "1000",
+          "new_balance": "1025",
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
+        },
+        {
+          "log_name": "wallet",
+          "description": "created",
+          "subject_type": "App\\Models\\Transaction",
+          "event": "created",
+          "wallet_id": "1",
+          "trade_type": "wallet_in",
+          "balance_variable": "25",
+          "old_balance": null,
+          "new_balance": null,
+          "old_status": null,
+          "new_status": null,
+          "old_stage": null,
+          "new_stage": null
         }
       ],
       "remittance": []
