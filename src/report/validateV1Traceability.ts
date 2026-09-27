@@ -36,6 +36,33 @@ const VALID_BR = new Set([
   ...range(40, 48), ...range(50, 61), ...range(70, 72), ...range(80, 81), ...range(90, 94),
 ].map((n) => `BR-${String(n).padStart(2, "0")}`));
 
+// Route applicability is independent of scenario tags and matrix entries.
+// Sources: HubRefactoring docs/legacy-baseline/03-business-rules.md and
+// docs/renovation/capability-map.md. BR-01 applies to signed v1 routes;
+// launch also exercises CAP-10 wallet sync and CAP-13 PG callback rules.
+const V1_ROUTE_BR: Record<keyof typeof V1_CAPABILITIES, readonly string[]> = {
+  "GET /v1/player": ["BR-04", "BR-13", "BR-42"],
+  "GET /v1/player/balance": ["BR-04", "BR-42"],
+  "POST /v1/player": ["BR-02", "BR-03"],
+  "POST /v1/wallet/deposit": ["BR-02", "BR-04", "BR-10", "BR-11", "BR-12", "BR-20", "BR-21", "BR-22", "BR-23", "BR-30", "BR-31", "BR-32", "BR-40", "BR-41", "BR-42", "BR-43", "BR-44", "BR-46", "BR-47", "BR-48"],
+  "POST /v1/wallet/withdraw": ["BR-02", "BR-04", "BR-10", "BR-11", "BR-20", "BR-21", "BR-22", "BR-24", "BR-25", "BR-31", "BR-33", "BR-40", "BR-41", "BR-42", "BR-45", "BR-47", "BR-48"],
+  "POST /v1/wallet/check-transaction": ["BR-05", "BR-21", "BR-26"],
+  "POST /v1/wallet/check-transaction-for-test": ["BR-04", "BR-21", "BR-47", "BR-48"],
+  "POST /v1/wallet/balance-difference": ["BR-04", "BR-35"],
+  "GET /v1/games": ["BR-53", "BR-70", "BR-71", "BR-72"],
+  "GET /v1/games/types": [],
+  "GET /v1/games/companies": [],
+  "POST /v1/games/launch": ["BR-02", "BR-04", "BR-32", "BR-33", "BR-34", "BR-40", "BR-41", "BR-42", "BR-43", "BR-44", "BR-47", "BR-48", "BR-50", "BR-51", "BR-52", "BR-53", "BR-54", "BR-55", "BR-56", "BR-57", "BR-58", "BR-59", "BR-60", "BR-61", "BR-80", "BR-81"],
+  "GET /v1/currencies": [],
+  "GET /v1/currencies/exchange-rate": ["BR-92"],
+  "GET /v1/currencies/exchange-rate/{currency}": ["BR-92"],
+  "GET /v1/sms": [],
+  "POST /v1/sms": [],
+  "POST /v1/sms/send": ["BR-90", "BR-91"],
+  "POST /v1/sms/amount": [],
+  "GET /v1/server/status": [],
+};
+
 function range(start: number, end: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
@@ -106,6 +133,7 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
     for (const value of required) if (!CASES.has(value)) errors.push(`${key}: invalid required case ${value}`);
     if (!required.has("success") && !required.has("legacy-defect")) errors.push(`${key}: require success or legacy-defect`);
     if (key === "POST /v1/sms/send" && required.has("success")) errors.push(`${key}: recorded Legacy success path is broken`);
+    if (key === "GET /v1/player/balance" && required.has("success")) errors.push(`${key}: recorded Legacy success path is broken`);
     if (key === "GET /v1/server/status") {
       if (required.has("signature")) errors.push(`${key}: unsigned route cannot require signature`);
     } else if (!required.has("signature")) errors.push(`${key}: signature case required`);
@@ -158,7 +186,11 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
         tagBR.length !== entry.businessRules.length || tagBR.some((tag) => !entry.businessRules.includes(tag))) {
         errors.push(`${prefix}: BR tags and matrix businessRules differ`);
       }
-      for (const br of entry.businessRules) if (!VALID_BR.has(br)) errors.push(`${prefix}: invalid business rule ${br}`);
+      const applicableBR = new Set([...(key === "GET /v1/server/status" ? [] : ["BR-01"]), ...(V1_ROUTE_BR[key as keyof typeof V1_CAPABILITIES] ?? [])]);
+      for (const br of new Set([...tagBR, ...entry.businessRules])) {
+        if (!VALID_BR.has(br)) errors.push(`${prefix}: invalid business rule ${br}`);
+        else if (!applicableBR.has(br)) errors.push(`${prefix}: business rule ${br} does not apply to route`);
+      }
       if (entry.businessRules.every((br) => br === "BR-01") && entry.noNumberedRule !== true) {
         errors.push(`${prefix}: missing route-specific BR or explicit noNumberedRule`);
       }
@@ -169,6 +201,7 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
       for (const value of entry.cases) if (!CASES.has(value)) errors.push(`${prefix}: invalid case ${value}`);
       if (key === "GET /v1/server/status" && entry.cases.includes("signature")) errors.push(`${prefix}: unsigned status has no signature case`);
       if (key === "POST /v1/sms/send" && entry.cases.includes("success")) errors.push(`${prefix}: fictional SMS success`);
+      if (key === "GET /v1/player/balance" && entry.cases.includes("success")) errors.push(`${prefix}: broken balance response is not success`);
       for (const layer of entry.layers) if (!LAYERS.has(layer)) errors.push(`${prefix}: invalid layer ${layer}`);
       if (fixture) {
         const actual = fixtureLayers(fixture);
