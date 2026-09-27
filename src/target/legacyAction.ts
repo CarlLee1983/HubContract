@@ -134,7 +134,7 @@ async function executeServiceIssue(
     await attachExistingGuest(sessionCookie[0], sessionCookie[1]);
   }
 
-  await request("/service/issue/", {
+  const response = await request("/service/issue/", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -142,6 +142,9 @@ async function executeServiceIssue(
     },
     body: new URLSearchParams({ type: String(parameters.categoryId) }).toString(),
   });
+  if (response.status === 419) {
+    throw new Error("Legacy service issue CSRF precondition failed with HTTP 419");
+  }
 }
 
 function legacySessionRequest(baseUrl: string, host: string, accept: string) {

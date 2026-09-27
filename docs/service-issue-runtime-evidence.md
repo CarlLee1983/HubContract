@@ -59,8 +59,10 @@ globalThis.fetch = nativeFetch;
 ```
 
 The exact 500 response is runtime evidence for these pinned runs, not a contract
-assertion. A CSRF 419 could also produce an unchanged final-state fixture, so
-the runtime diagnostic is needed to establish that each actor reached
-`IssueController::store()`; rerun this inspection when the pinned Legacy version
-or session setup changes. The fixture by itself establishes only the probed
-final state.
+assertion. A CSRF 419 could also leave the probed state unchanged, so the
+adapter rejects 419 as a failed action precondition before comparing the
+fixture. This guard does not establish that every other response reached
+`IssueController::store()`; the separate diagnostic above establishes that path
+for these pinned runs. Rerun the inspection when the pinned Legacy version or
+session setup changes. The fixture itself establishes only the probed final
+state.

@@ -13,13 +13,13 @@ const scenarios = [newVisitor, existingIssue].map((source) => ScenarioDefinition
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
 
-it("submits the service issue action without contracting its HTTP response", async () => {
+it("submits the service issue action without contracting its controller response", async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const replies = [
     new Response("history", { status: 200, headers: {
       "Set-Cookie": "XSRF-TOKEN=csrf%3D; Path=/",
     } }),
-    new Response("CSRF response is not an action fixture", { status: 419 }),
+    new Response("controller error", { status: 500 }),
   ];
   globalThis.fetch = (async (url: string | URL | Request, init: RequestInit = {}) => {
     calls.push({ url: String(url), init });
@@ -32,6 +32,18 @@ it("submits the service issue action without contracting its HTTP response", asy
   expect(calls.map((call) => new URL(call.url).pathname)).toEqual(["/service/issue/history", "/service/issue/"]);
   expect(new Headers(calls[1].init.headers).get("X-XSRF-TOKEN")).toBe("csrf=");
   expect(calls[1].init.body).toBe("type=1");
+});
+
+it("rejects a CSRF response before comparing an unchanged final state", async () => {
+  const replies = [
+    new Response("history", { status: 200, headers: { "Set-Cookie": "XSRF-TOKEN=csrf; Path=/" } }),
+    new Response("expired session", { status: 419 }),
+  ];
+  globalThis.fetch = (async () => replies.shift()!) as typeof fetch;
+
+  await expect(new LegacyTargetAdapter().executeAction(scenarios[0].action!,
+    `http://localhost:${config.legacyPort}`, { service_issues: [], user_guests: [] }))
+    .rejects.toThrow("Legacy service issue CSRF precondition failed with HTTP 419");
 });
 
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy service issue action (#26)", () => {
