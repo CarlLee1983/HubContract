@@ -18,7 +18,8 @@ function syntheticInput() {
     const id = `v1-synthetic-${index}`;
     const isStatus = path === "/v1/server/status";
     const isSmsSend = path === "/v1/sms/send";
-    const cases = [isSmsSend ? "legacy-defect" : "success", ...(!isStatus ? ["signature"] : [])] as V1Matrix["routes"][number]["requiredCases"];
+    const isBrokenBalance = path === "/v1/player/balance";
+    const cases = [isSmsSend || isBrokenBalance ? "legacy-defect" : "success", ...(!isStatus ? ["signature"] : [])] as V1Matrix["routes"][number]["requiredCases"];
     scenarios.push(ScenarioDefinitionSchema.parse({ id, name: id, route: { method, path }, tags: [capability, ...(!isStatus ? ["BR-01"] : [])], request: { headers: {} } }));
     fixtures.push(FixtureSchema.parse({ scenarioId: id, layer1_inboundResponse: { statusCode: 200, statusText: "OK", headers: {}, body: {} } }));
     routes.push({ method, path, capability, requiredCases: cases, scenarios: [{ id, fixtureId: id, outcome: "synthetic", cases, businessRules: isStatus ? [] : ["BR-01"], noNumberedRule: true, layers: ["http"] }] });
@@ -59,6 +60,17 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("missing matrix mapping");
   });
 
+  it("rejects a valid BR from another route even when tag and matrix agree", () => {
+    const input = syntheticInput();
+    const deposit = input.matrix.routes.find((route) => route.path === "/v1/wallet/deposit")!;
+    const scenario = input.scenarios.find((scenario) => scenario.route?.path === deposit.path)!;
+    deposit.scenarios[0]!.businessRules = ["BR-70"];
+    deposit.scenarios[0]!.noNumberedRule = false;
+    scenario.tags = ["CAP-04", "BR-70"];
+    expect(validateV1Traceability(input).join("\n"))
+      .toContain("business rule BR-70 does not apply to route");
+  });
+
   it("rejects fictional SMS success and status signature cases", () => {
     const input = syntheticInput();
     const sms = input.matrix.routes.find((route) => route.path === "/v1/sms/send")!;
@@ -68,6 +80,16 @@ describe("v1 traceability validator", () => {
     const errors = validateV1Traceability(input).join("\n");
     expect(errors).toContain("fictional SMS success");
     expect(errors).toContain("unsigned route cannot require signature");
+  });
+
+  it("rejects success classification for the broken player balance route", () => {
+    const input = syntheticInput();
+    const balance = input.matrix.routes.find((route) => route.path === "/v1/player/balance")!;
+    balance.requiredCases[0] = "success";
+    balance.scenarios[0]!.cases[0] = "success";
+    const errors = validateV1Traceability(input).join("\n");
+    expect(errors).toContain("recorded Legacy success path is broken");
+    expect(errors).toContain("broken balance response is not success");
   });
 
   it("maps the v1 launch step without treating a callback step as another v1 route", () => {
@@ -105,6 +127,18 @@ describe("v1 traceability validator", () => {
     launch.coverageGaps = [];
     expect(validateV1Traceability(input).join("\n")).toContain("missing required signature case");
   });
+});
+
+it("classifies the recorded player balance float-offset response as a Legacy defect", async () => {
+  const matrix = JSON.parse(await fs.readFile(path.join(root, "docs/v1-route-scenario-matrix.json"), "utf8")) as V1Matrix;
+  const route = matrix.routes.find((route) => route.path === "/v1/player/balance")!;
+  const entry = route.scenarios.find((scenario) => scenario.id === "player-balance-outbound-success")!;
+  const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(path.join(root, "fixtures/player-balance-outbound-success.fixture.json"), "utf8")));
+  expect(fixture.layer1_inboundResponse?.statusCode).toBe(200);
+  expect(fixture.layer1_inboundResponse?.body).toEqual({ message: "Trying to access array offset on float" });
+  expect(route.requiredCases).toContain("legacy-defect");
+  expect(route.requiredCases).not.toContain("success");
+  expect(entry.cases).toEqual(["legacy-defect"]);
 });
 
 it("validates the checked-in v1 matrix and all scenarios and fixtures", async () => {

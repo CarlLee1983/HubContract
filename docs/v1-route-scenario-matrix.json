@@ -124,7 +124,7 @@
       "path": "/v1/player/balance",
       "capability": "CAP-03",
       "requiredCases": [
-        "success",
+        "legacy-defect",
         "validation",
         "signature",
         "unknown-station",
@@ -170,7 +170,7 @@
           "fixtureId": "player-balance-outbound-success",
           "outcome": "Player Balance: Outbound call succeeds — Trying to access array offset on float",
           "cases": [
-            "success"
+            "legacy-defect"
           ],
           "businessRules": [
             "BR-01",
