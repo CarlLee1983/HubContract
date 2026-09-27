@@ -134,10 +134,58 @@
         },
         "body": {
           "orgCode": "synthetic_org_code",
-          "sign": "<MD5_HEX>",
-          "rand": "<SIX_DIGITS>"
+          "sign": "<SMS_SIGN_1>",
+          "rand": "<SMS_RAND_1>"
         }
       }
     ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_sms_amount": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-sms-amount:synthetic-abosend:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "76"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "orgCode": "synthetic_org_code",
+                "rand": "<SMS_RAND_1>",
+                "sign": "<SMS_SIGN_1>"
+              },
+              "response": {
+                "code": 200,
+                "data": {
+                  "balance": 19
+                }
+              },
+              "uri": "http://mock-provider:8081/api/viewOrgBalance"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "Synthetic AboSend",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
   }
 }

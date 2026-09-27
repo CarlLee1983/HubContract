@@ -29,6 +29,7 @@
       "secretKey": "synthetic_secret_key_for_contract_testing_only_1234567890"
     }
   },
+  "mongoProbe": { "collections": ["httplog_sms_send"] },
   "normalizers": [
     {
       "target": "request.body.timestamp",
@@ -43,7 +44,13 @@
       "target": "response.body.trace",
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
-    }
+    },
+    {"target": "mongo.httplog_sms_send.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_sms_send.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_sms_send.0.context.uri", "type": "regex_replace", "pattern": "api_password=[^&]+", "replacement": "api_password=<API_PASSWORD>"},
+    {"target": "mongo.httplog_sms_send.0.context.request.api_password", "type": "mask", "replacement": "<API_PASSWORD>"},
+    {"target": "mongo.httplog_sms_send.0.context.request.sign", "type": "mask", "replacement": "<SIGNATURE>"},
+    {"target": "mongo.httplog_sms_send.0.context.request.rand", "type": "mask", "replacement": "<RANDOM>"}
   ],
   "dbProbe": {
     "queries": [
