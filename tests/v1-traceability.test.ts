@@ -75,7 +75,7 @@ describe("v1 traceability validator", () => {
     const index = input.scenarios.findIndex((scenario) => scenario.route?.path === "/v1/games/launch");
     const original = input.scenarios[index]!;
     input.scenarios[index] = ScenarioDefinitionSchema.parse({
-      id: original.id, name: original.name, tags: original.tags,
+      id: original.id, name: original.name, tags: [...original.tags, "CAP-13"],
       steps: [
         { id: "launch", route: { method: "POST", path: "/v1/games/launch" }, request: { headers: {} } },
         { id: "callback", route: { method: "POST", path: "/callback/game/pg/verifySession" }, request: { headers: {} } },
@@ -83,6 +83,8 @@ describe("v1 traceability validator", () => {
     });
     input.fixtures[index] = FixtureSchema.parse({ scenarioId: original.id, stepResponses: [{ id: "launch", statusCode: 200, statusText: "OK", headers: {}, body: {} }] });
     expect(validateV1Traceability(input)).toEqual([]);
+    input.scenarios[index]!.steps!.pop();
+    expect(validateV1Traceability(input).join("\n")).toContain("wrong capability CAP-13");
   });
 
   it("rejects layer and fixture linkage drift", () => {

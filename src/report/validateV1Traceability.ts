@@ -142,7 +142,13 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
       const tags = scenario.tags ?? [];
       const caps = tags.filter((tag) => tag.startsWith("CAP-"));
       if (!caps.includes(expected[key])) errors.push(`${prefix}: missing route capability ${expected[key]}`);
-      for (const cap of caps) if (cap !== expected[key] && cap !== "CAP-01") errors.push(`${prefix}: wrong capability ${cap}`);
+      const hasPgCallback = scenario.steps?.some((step) =>
+        step.route.method === "POST" && step.route.path === "/callback/game/pg/verifySession") ?? false;
+      for (const cap of caps) {
+        if (cap !== expected[key] && cap !== "CAP-01" && !(cap === "CAP-13" && hasPgCallback)) {
+          errors.push(`${prefix}: wrong capability ${cap}`);
+        }
+      }
       if (!Array.isArray(entry.businessRules) || !Array.isArray(entry.cases) || !Array.isArray(entry.layers)) {
         errors.push(`${prefix}: businessRules, cases and layers must be arrays`);
         continue;
