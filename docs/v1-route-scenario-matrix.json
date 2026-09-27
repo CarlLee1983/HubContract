@@ -1986,10 +1986,9 @@
             "validation"
           ],
           "businessRules": [
-            "BR-01",
-            "BR-50"
+            "BR-01"
           ],
-          "noNumberedRule": false,
+          "noNumberedRule": true,
           "layers": [
             "http",
             "db",
@@ -2006,10 +2005,9 @@
             "signature"
           ],
           "businessRules": [
-            "BR-01",
-            "BR-50"
+            "BR-01"
           ],
-          "noNumberedRule": false,
+          "noNumberedRule": true,
           "layers": [
             "http",
             "db",
@@ -2047,10 +2045,9 @@
             "validation"
           ],
           "businessRules": [
-            "BR-01",
-            "BR-50"
+            "BR-01"
           ],
-          "noNumberedRule": false,
+          "noNumberedRule": true,
           "layers": [
             "http",
             "db",
@@ -2068,7 +2065,6 @@
           ],
           "businessRules": [
             "BR-01",
-            "BR-50",
             "BR-56"
           ],
           "noNumberedRule": false,
@@ -2215,10 +2211,9 @@
             "unknown-station"
           ],
           "businessRules": [
-            "BR-01",
-            "BR-50"
+            "BR-01"
           ],
-          "noNumberedRule": false,
+          "noNumberedRule": true,
           "layers": [
             "http",
             "db",

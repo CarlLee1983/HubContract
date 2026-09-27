@@ -101,7 +101,9 @@
     },
     {
       "target": "response.body.data.txn_no",
-      "type": "mask"
+      "type": "regex_replace",
+      "pattern": "^WI[0-9]{18}$",
+      "replacement": "WI<YmdHis><ms4>"
     },
     {
       "target": "response.body.data.datetime",

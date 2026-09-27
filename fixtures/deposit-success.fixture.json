@@ -9,7 +9,7 @@
     "body": {
       "message": "OK",
       "data": {
-        "txn_no": "<MASKED>",
+        "txn_no": "DE<YmdHis><ms4>",
         "trade_no": "TRADE_DEPOSIT_SUCCESS",
         "balance": 1025,
         "amount": 25,

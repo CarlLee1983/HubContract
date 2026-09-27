@@ -1,5 +1,7 @@
 # Original Hub API v1 Legacy replay acceptance
 
+> **Evidence scope:** The replay results, recording digest, and fixture-equality claims below predate the current audit corrections. They do not certify the updated scenarios and fixtures. Run a fresh isolated Legacy replay and verification before using them as acceptance evidence.
+
 On 2026-09-27, an isolated `HUB_SEED=synthetic` recording environment ran the
 Legacy source pinned by `docker/legacy.commit`:
 `7bb0661af03383dc7322628e7bc4b5be98acf449`. Its Composer lock matched

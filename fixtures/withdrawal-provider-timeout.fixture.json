@@ -9,7 +9,7 @@
     "body": {
       "message": "OK",
       "data": {
-        "txn_no": "<MASKED>",
+        "txn_no": "WI<YmdHis><ms4>",
         "trade_no": "TRADE_WITHDRAWAL_PROVIDER_TIMEOUT",
         "balance": 975,
         "amount": 25,

@@ -9,7 +9,7 @@
     "body": {
       "message": "OK",
       "data": {
-        "txn_no": "<MASKED>",
+        "txn_no": "DE<YmdHis><ms4>",
         "trade_no": "TRADE_QUEUE_DEP_001",
         "balance": 1025,
         "amount": 25,
@@ -63,6 +63,8 @@
       ],
       "remittance": [
         {
+          "no": "<TRANSFER_REFERENCE_1>",
+          "txn_no": "<TRANSFER_REFERENCE_1>",
           "amount": "1025.0000",
           "status": "completed",
           "stage": "finished"
@@ -88,7 +90,7 @@
           "Username": "synthetic_user_01DEMO_STATIONp3",
           "CompanyKey": "synthetic_company_key",
           "ServerId": "synthetic-server-01",
-          "txnId": "<MASKED>",
+          "txnId": "<TRANSFER_REFERENCE_1>",
           "IsFullAmount": false,
           "Amount": 1025
         }
@@ -130,7 +132,7 @@
                 "IsFullAmount": false,
                 "ServerId": "synthetic-server-01",
                 "Username": "synthetic_user_01DEMO_STATIONp3",
-                "txnId": "<MASKED>"
+                "txnId": "<TRANSFER_REFERENCE_1>"
               },
               "response": {
                 "balance": 1025,

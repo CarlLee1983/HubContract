@@ -76,7 +76,7 @@
       },
       {
         "name": "remittance",
-        "sql": "SELECT r.amount, r.status, r.stage FROM remittance_records r JOIN users u ON u.id = r.user_id JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? ORDER BY r.id",
+        "sql": "SELECT r.no, r.txn_no, r.amount, r.status, r.stage FROM remittance_records r JOIN users u ON u.id = r.user_id JOIN stations s ON s.id = u.station_id WHERE u.account = ? AND s.code = ? ORDER BY r.id",
         "params": [
           "synthetic_user_01",
           "DEMO_STATION"
@@ -138,7 +138,9 @@
     },
     {
       "target": "response.body.data.txn_no",
-      "type": "mask"
+      "type": "regex_replace",
+      "pattern": "^DE[0-9]{18}$",
+      "replacement": "DE<YmdHis><ms4>"
     },
     {
       "target": "response.body.data.datetime",
@@ -146,7 +148,9 @@
     },
     {
       "target": "outbound.0.body.txnId",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "mongo.httplog_deposit.0.context.datetime",
@@ -154,11 +158,25 @@
     },
     {
       "target": "mongo.httplog_deposit.0.context.request.txnId",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "mongo.httplog_deposit.0.datetime",
       "type": "mask"
+    },
+    {
+      "target": "db.after.remittance.0.no",
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
+    },
+    {
+      "target": "db.after.remittance.0.txn_no",
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     }
   ]
 }
