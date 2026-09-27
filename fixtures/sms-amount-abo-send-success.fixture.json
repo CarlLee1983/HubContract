@@ -134,8 +134,8 @@
         },
         "body": {
           "orgCode": "synthetic_org_code",
-          "sign": "<MD5_HEX>",
-          "rand": "<SIX_DIGITS>"
+          "sign": "<SMS_SIGN_1>",
+          "rand": "<SMS_RAND_1>"
         }
       }
     ]
@@ -167,8 +167,8 @@
               "method": "POST",
               "request": {
                 "orgCode": "synthetic_org_code",
-                "rand": "<RANDOM>",
-                "sign": "<SIGNATURE>"
+                "rand": "<SMS_RAND_1>",
+                "sign": "<SMS_SIGN_1>"
               },
               "response": {
                 "code": 200,

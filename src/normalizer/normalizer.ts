@@ -45,6 +45,24 @@ function deleteDotPath(obj: any, path: string): void {
 export interface NormalizerOptions {
   fixedTimestamp?: number;
   executionWindow?: { startMs: number; endMs: number };
+  symbols?: SymbolTable;
+}
+
+/** A capture-local namespace and first-seen order for dynamic values. */
+export type SymbolTable = Map<string, Map<string, string>>;
+
+function symbolFor(value: string, label: string, symbols: SymbolTable): string {
+  let values = symbols.get(label);
+  if (!values) {
+    values = new Map();
+    symbols.set(label, values);
+  }
+  let symbol = values.get(value);
+  if (!symbol) {
+    symbol = `<${label}_${values.size + 1}>`;
+    values.set(value, symbol);
+  }
+  return symbol;
 }
 
 // mysql2's dateStrings option returns DATETIME as a timezone-free SQL string.
@@ -74,6 +92,7 @@ export function applyNormalizers(
   options: NormalizerOptions = {}
 ): any {
   const result = structuredClone(root);
+  const symbols = options.symbols ?? new Map<string, Map<string, string>>();
 
   for (const rule of rules) {
     const { target, type, pattern, replacement } = rule;
@@ -109,6 +128,26 @@ export function applyNormalizers(
         if (recentSqlDatetime(currentVal, rule.timezoneOffsetMinutes!, options.executionWindow, rule.maxSkewSeconds!)) {
           setDotPath(result, target, replacement ?? "<RECENT_SQL_DATETIME>");
         }
+        break;
+      }
+      case "symbolize": {
+        if (currentVal === undefined) break;
+        if (typeof currentVal !== "string" || !new RegExp(pattern!).test(currentVal)) {
+          throw new Error(`Normalizer ${target} must match ${pattern}`);
+        }
+        setDotPath(result, target, symbolFor(currentVal, replacement!, symbols));
+        break;
+      }
+      case "symbolize_capture": {
+        if (currentVal === undefined) break;
+        const match = typeof currentVal === "string" ? new RegExp(pattern!).exec(currentVal) : null;
+        const captured = match?.[1];
+        if (!match || !captured) throw new Error(`Normalizer ${target} must contain ${pattern}`);
+        const offset = match[0].indexOf(captured);
+        if (offset < 0) throw new Error(`Normalizer ${target} has an invalid capture pattern`);
+        const start = match.index + offset;
+        setDotPath(result, target,
+          currentVal.slice(0, start) + symbolFor(captured, replacement!, symbols) + currentVal.slice(start + captured.length));
         break;
       }
     }

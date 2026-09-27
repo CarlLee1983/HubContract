@@ -16,11 +16,14 @@ const pgCollections: Record<string, string> = {
 describe("v1 provider HTTP log contracts", () => {
   for (const family of ["game", "player", "sms"]) {
     it(`${family} records exactly the selected collections and early rejection absences`, async () => {
-      for (const filename of await fs.readdir(path.join(root, "scenarios", family))) {
+      const filenames = (await fs.readdir(path.join(root, "scenarios", family)))
+        .filter((filename) => family !== "sms" || /^(amount|send)-/.test(filename));
+      expect(filenames).toHaveLength({ game: 9, player: 20, sms: 17 }[family]);
+      for (const filename of filenames) {
         const scenario = ScenarioDefinitionSchema.parse(JSON.parse(
           await fs.readFile(path.join(root, "scenarios", family, filename), "utf8")
         ));
-        if (!scenario.mongoProbe) continue;
+        expect(scenario.mongoProbe).toBeDefined();
 
         const outboundPaths = scenario.stub?.script.matchers.map((matcher) => matcher.path) ?? [];
         const expectedCollections = family === "game"
@@ -39,12 +42,14 @@ describe("v1 provider HTTP log contracts", () => {
         expect(documents).toBeDefined();
         expect(Object.keys(documents!).sort()).toEqual([...scenario.mongoProbe.collections!].sort());
 
-        const calls = scenario.stub?.script.matchers.length ?? 0;
-        const documentCount = Object.values(documents!).reduce((sum, rows) => sum + rows.length, 0);
-        if (calls === 0) expect(documentCount).toBe(0);
-        else expect(documentCount).toBeGreaterThan(0);
+        const expectedCounts = Object.fromEntries(expectedCollections.map((collection) => [collection, 0]));
+        for (const outboundPath of outboundPaths) {
+          const collection = family === "game" ? pgCollections[outboundPath] : expectedCollections[0];
+          expectedCounts[collection]++;
+        }
 
-        for (const rows of Object.values(documents!)) {
+        for (const [collection, rows] of Object.entries(documents!)) {
+          expect(rows).toHaveLength(expectedCounts[collection]);
           for (const row of rows) {
             expect(row.datetime).toBe("<DATETIME>");
             expect(row.context?.datetime).toBe("<DATETIME>");
@@ -57,6 +62,36 @@ describe("v1 provider HTTP log contracts", () => {
       }
     });
   }
+
+  it("retains distinct PG transfer identities and ties each Mongo log to its outbound call", async () => {
+    const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(
+      path.join(root, "fixtures/pg-launch-recall.fixture.json"), "utf8"
+    )));
+    const calls = fixture.layer3_outboundCalls!.calls;
+    const mongo = fixture.layer4_sharedResources!.mongo!.newDocuments;
+    expect(calls[1].body.transfer_reference).toBe("<TRANSFER_REFERENCE_1>");
+    expect(calls[2].body.transfer_reference).toBe("<TRANSFER_REFERENCE_2>");
+    expect(mongo.httplog_withdraw[0].context.request.transfer_reference).toBe(calls[1].body.transfer_reference);
+    expect(mongo.httplog_deposit[0].context.request.transfer_reference).toBe(calls[2].body.transfer_reference);
+    for (const call of calls) {
+      const collection = pgCollections[call.path];
+      const logged = mongo[collection][0].context;
+      expect(logged.uri).toEndWith(`trace_id=${call.query.trace_id}`);
+      for (const field of ["operator_token", "secret_key", "extra_args", "client_ip"]) {
+        if (call.body?.[field] !== undefined) expect(logged.request[field]).toBe(call.body[field]);
+      }
+    }
+  });
+
+  it("ties AboSend rand and sign to the logged request", async () => {
+    const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(
+      path.join(root, "fixtures/sms-amount-abo-send-success.fixture.json"), "utf8"
+    )));
+    const outbound = fixture.layer3_outboundCalls!.calls[0].body;
+    const logged = fixture.layer4_sharedResources!.mongo!.newDocuments.httplog_sms_amount[0].context.request;
+    expect(logged.rand).toBe(outbound.rand);
+    expect(logged.sign).toBe(outbound.sign);
+  });
 
   it("reports a changed provider balance at its exact Mongo document path", async () => {
     const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(

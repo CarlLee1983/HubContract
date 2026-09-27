@@ -131,7 +131,7 @@
         "method": "POST",
         "path": "/pg/Cash/v3/GetPlayerWallet",
         "query": {
-          "trace_id": "<UUID>"
+          "trace_id": "<PG_TRACE_ID_1>"
         },
         "headers": {
           "content-type": "application/x-www-form-urlencoded"
@@ -146,7 +146,7 @@
         "method": "POST",
         "path": "/pg/Cash/v3/TransferIn",
         "query": {
-          "trace_id": "<UUID>"
+          "trace_id": "<PG_TRACE_ID_2>"
         },
         "headers": {
           "content-type": "application/x-www-form-urlencoded"
@@ -157,14 +157,14 @@
           "currency": "PHP",
           "player_name": "synthetic_pg_userDEMO_STATIONp5",
           "amount": "100.00",
-          "transfer_reference": "<MASKED>"
+          "transfer_reference": "<TRANSFER_REFERENCE_1>"
         }
       },
       {
         "method": "POST",
         "path": "/external-game-launcher/api/v1/GetLaunchURLHTML",
         "query": {
-          "trace_id": "<UUID>"
+          "trace_id": "<PG_TRACE_ID_3>"
         },
         "headers": {
           "content-type": "application/x-www-form-urlencoded"
@@ -172,9 +172,9 @@
         "body": {
           "operator_token": "synthetic_pg_operator_token",
           "path": "/game/index.html",
-          "extra_args": "btt=1&ops=<PG_OPS>&l=en",
+          "extra_args": "btt=1&ops=<PG_OPS_1>&l=en",
           "url_type": "game-entry",
-          "client_ip": "<CLIENT_IP>"
+          "client_ip": "<PG_CLIENT_IP_1>"
         }
       }
     ]
@@ -207,10 +207,10 @@
               "request": {
                 "amount": "100.00",
                 "currency": "PHP",
-                "operator_token": "<OPERATOR_TOKEN>",
+                "operator_token": "synthetic_pg_operator_token",
                 "player_name": "synthetic_pg_userDEMO_STATIONp5",
-                "secret_key": "<SECRET_KEY>",
-                "transfer_reference": "<TRANSFER_REFERENCE>"
+                "secret_key": "synthetic_pg_secret_key",
+                "transfer_reference": "<TRANSFER_REFERENCE_1>"
               },
               "response": {
                 "data": {
@@ -218,7 +218,7 @@
                 },
                 "error": null
               },
-              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferIn?trace_id=<UUID>"
+              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferIn?trace_id=<PG_TRACE_ID_2>"
             },
             "datetime": "<DATETIME>",
             "level": 200,
@@ -250,14 +250,14 @@
               },
               "method": "POST",
               "request": {
-                "operator_token": "<OPERATOR_TOKEN>",
+                "operator_token": "synthetic_pg_operator_token",
                 "player_name": "synthetic_pg_userDEMO_STATIONp5",
-                "secret_key": "<SECRET_KEY>"
+                "secret_key": "synthetic_pg_secret_key"
               },
               "response": {
                 "error": "synthetic recall unavailable"
               },
-              "uri": "http://mock-provider:8081/pg/Cash/v3/GetPlayerWallet?trace_id=<UUID>"
+              "uri": "http://mock-provider:8081/pg/Cash/v3/GetPlayerWallet?trace_id=<PG_TRACE_ID_1>"
             },
             "datetime": "<DATETIME>",
             "level": 200,
@@ -289,14 +289,14 @@
               },
               "method": "POST",
               "request": {
-                "client_ip": "<CLIENT_IP>",
-                "extra_args": "btt=1&ops=<PG_OPS>&l=en",
-                "operator_token": "<OPERATOR_TOKEN>",
+                "client_ip": "<PG_CLIENT_IP_1>",
+                "extra_args": "btt=1&ops=<PG_OPS_1>&l=en",
+                "operator_token": "synthetic_pg_operator_token",
                 "path": "/game/index.html",
                 "url_type": "game-entry"
               },
               "response": "<!doctype html><html><body>synthetic PG launcher</body></html>",
-              "uri": "http://mock-provider:8081/external-game-launcher/api/v1/GetLaunchURLHTML?trace_id=<UUID>"
+              "uri": "http://mock-provider:8081/external-game-launcher/api/v1/GetLaunchURLHTML?trace_id=<PG_TRACE_ID_3>"
             },
             "datetime": "<DATETIME>",
             "level": 200,
