@@ -39,11 +39,30 @@
       "matchers": []
     }
   },
+  "mongoProbe": { "collections": ["httplog_create_account", "httplog_deposit", "httplog_launch_game"] },
   "normalizers": [
     {
       "target": "request.body.timestamp",
       "type": "current_timestamp"
-    }
+    },
+    {"target": "mongo.httplog_create_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.uri", "type": "regex_replace", "pattern": "trace_id=[a-f0-9-]+", "replacement": "trace_id=<UUID>"},
+    {"target": "mongo.httplog_create_account.0.context.request.operator_token", "type": "mask", "replacement": "<OPERATOR_TOKEN>"},
+    {"target": "mongo.httplog_create_account.0.context.request.secret_key", "type": "mask", "replacement": "<SECRET_KEY>"},
+    {"target": "mongo.httplog_deposit.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.uri", "type": "regex_replace", "pattern": "trace_id=[a-f0-9-]+", "replacement": "trace_id=<UUID>"},
+    {"target": "mongo.httplog_deposit.0.context.request.operator_token", "type": "mask", "replacement": "<OPERATOR_TOKEN>"},
+    {"target": "mongo.httplog_deposit.0.context.request.secret_key", "type": "mask", "replacement": "<SECRET_KEY>"},
+    {"target": "mongo.httplog_deposit.0.context.request.transfer_reference", "type": "mask", "replacement": "<TRANSFER_REFERENCE>"},
+    {"target": "mongo.httplog_launch_game.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.uri", "type": "regex_replace", "pattern": "trace_id=[a-f0-9-]+", "replacement": "trace_id=<UUID>"},
+    {"target": "mongo.httplog_launch_game.0.context.request.operator_token", "type": "mask", "replacement": "<OPERATOR_TOKEN>"},
+    {"target": "mongo.httplog_launch_game.0.context.request.secret_key", "type": "mask", "replacement": "<SECRET_KEY>"},
+    {"target": "mongo.httplog_launch_game.0.context.request.extra_args", "type": "regex_replace", "pattern": "ops=[a-f0-9-]+", "replacement": "ops=<PG_OPS>"},
+    {"target": "mongo.httplog_launch_game.0.context.request.client_ip", "type": "mask", "replacement": "<CLIENT_IP>"}
   ],
   "route": {
     "method": "POST",

@@ -16,11 +16,14 @@
       "sign": "invalid_signature_hex_value_12345"
     }
   },
+  "mongoProbe": { "collections": ["httplog_find_account"] },
   "normalizers": [
     {
       "target": "request.query.timestamp",
       "type": "current_timestamp"
-    }
+    },
+    {"target": "mongo.httplog_find_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_find_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"}
   ],
   "id": "player-balance-signature-failed",
   "name": "Player Balance: Signature Validation Failed",

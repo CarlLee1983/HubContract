@@ -16,6 +16,7 @@
       "sign": "dummy_sign_for_unknown_station"
     }
   },
+  "mongoProbe": { "collections": ["httplog_find_account"] },
   "normalizers": [
     {
       "target": "request.query.timestamp",
@@ -30,7 +31,9 @@
       "target": "response.body.trace",
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
-    }
+    },
+    {"target": "mongo.httplog_find_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_find_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"}
   ],
   "id": "player-balance-unknown-station",
   "name": "Player Balance: Unknown Station",
