@@ -2,6 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { applyNormalizers, getDotPath, setDotPath } from "../src/normalizer/normalizer";
 import { compareRedisState } from "../src/comparator/comparator";
 import { compareDbState } from "../src/comparator/comparator";
+import { compareMongoDocuments } from "../src/comparator/comparator";
+import { compareDiff } from "../src/comparator/comparator";
 import { NormalizerRuleSchema } from "../src/schema/scenario";
 
 describe("Normalizer", () => {
@@ -48,6 +50,77 @@ describe("Normalizer", () => {
     ]);
     expect(result.headers.date).toBe("<NORMALIZED_DATE>");
     expect(data.headers.date).toBe("Fri, 25 Sep 2026 14:13:46 GMT");
+  });
+
+  describe("capture-local symbols", () => {
+    const referencePattern = "^RE[0-9]{18}$";
+    const referenceRules = [
+      { target: "outbound.0.body.transfer_reference", type: "symbolize" as const, pattern: referencePattern, replacement: "TRANSFER_REFERENCE" },
+      { target: "outbound.1.body.transfer_reference", type: "symbolize" as const, pattern: referencePattern, replacement: "TRANSFER_REFERENCE" },
+      { target: "mongo.httplog_withdraw.0.context.request.transfer_reference", type: "symbolize" as const, pattern: referencePattern, replacement: "TRANSFER_REFERENCE" },
+      { target: "mongo.httplog_deposit.0.context.request.transfer_reference", type: "symbolize" as const, pattern: referencePattern, replacement: "TRANSFER_REFERENCE" },
+    ];
+    const first = "RE123456789012345678";
+    const second = "RE876543210987654321";
+
+    it("validates, distinguishes and correlates references across separate layer captures", () => {
+      const symbols = new Map<string, Map<string, string>>();
+      const outbound = applyNormalizers({ outbound: [
+        { body: { transfer_reference: first } }, { body: { transfer_reference: second } },
+      ] }, referenceRules, { symbols }).outbound;
+      const mongo = applyNormalizers({ mongo: {
+        httplog_deposit: [{ context: { request: { transfer_reference: second } } }],
+        httplog_withdraw: [{ context: { request: { transfer_reference: first } } }],
+      } }, referenceRules, { symbols }).mongo;
+      expect(outbound.map((call: { body: { transfer_reference: string } }) => call.body.transfer_reference))
+        .toEqual(["<TRANSFER_REFERENCE_1>", "<TRANSFER_REFERENCE_2>"]);
+      expect(mongo.httplog_withdraw[0].context.request.transfer_reference).toBe("<TRANSFER_REFERENCE_1>");
+      expect(mongo.httplog_deposit[0].context.request.transfer_reference).toBe("<TRANSFER_REFERENCE_2>");
+
+      const mismatched = applyNormalizers({ mongo: {
+        httplog_withdraw: [{ context: { request: { transfer_reference: "RE000000000000000000" } } }],
+      } }, referenceRules, { symbols }).mongo;
+      expect(compareMongoDocuments(mismatched, { httplog_withdraw: [mongo.httplog_withdraw[0]] }))
+        .toContainEqual(expect.objectContaining({
+          path: "after.mongo.newDocuments.httplog_withdraw.0.context.request.transfer_reference",
+          expected: "<TRANSFER_REFERENCE_1>",
+          actual: "<TRANSFER_REFERENCE_3>",
+        }));
+    });
+
+    it("exposes duplicate references and rejects empty or malformed ones", () => {
+      const duplicated = applyNormalizers({ outbound: [
+        { body: { transfer_reference: first } }, { body: { transfer_reference: first } },
+      ] }, referenceRules).outbound;
+      expect(duplicated[1].body.transfer_reference).toBe("<TRANSFER_REFERENCE_1>");
+      expect(compareDiff(duplicated, [
+        { body: { transfer_reference: "<TRANSFER_REFERENCE_1>" } },
+        { body: { transfer_reference: "<TRANSFER_REFERENCE_2>" } },
+      ], "outbound", "outbound_calls")).toContainEqual(expect.objectContaining({
+        path: "outbound.1.body.transfer_reference",
+      }));
+      for (const invalid of ["", "RE123", "RE123456789012345678X", 123]) {
+        expect(() => applyNormalizers({ outbound: [{ body: { transfer_reference: invalid } }] }, referenceRules))
+          .toThrow("outbound.0.body.transfer_reference");
+      }
+    });
+
+    it("correlates a captured UUID inside a URI with its direct outbound value", () => {
+      const uuid = "12345678-abcd-1234-abcd-123456789012";
+      const symbols = new Map<string, Map<string, string>>();
+      const direct = applyNormalizers({ outbound: [{ query: { trace_id: uuid } }] }, [
+        { target: "outbound.0.query.trace_id", type: "symbolize", pattern: "^[0-9a-f-]{36}$", replacement: "PG_TRACE_ID" },
+      ], { symbols }).outbound[0].query.trace_id;
+      const uri = applyNormalizers({ mongo: { httplog_deposit: [{ context: {
+        uri: `http://mock-provider:8081/pg/Cash/v3/TransferIn?trace_id=${uuid}`,
+      } }] } }, [
+        { target: "mongo.httplog_deposit.0.context.uri", type: "symbolize_capture", pattern: "trace_id=([0-9a-f-]{36})", replacement: "PG_TRACE_ID" },
+      ], { symbols }).mongo.httplog_deposit[0].context.uri;
+      expect(uri).toEndWith(`trace_id=${direct}`);
+      expect(() => applyNormalizers({ mongo: { httplog_deposit: [{ context: { uri: "missing-trace-id" } }] } }, [
+        { target: "mongo.httplog_deposit.0.context.uri", type: "symbolize_capture", pattern: "trace_id=([0-9a-f-]{36})", replacement: "PG_TRACE_ID" },
+      ])).toThrow("mongo.httplog_deposit.0.context.uri");
+    });
   });
 
   describe("Issue: MCP set_at/until must stay format-sensitive (code review HIGH #1)", () => {

@@ -44,22 +44,22 @@
     },
     {
       "target": "outbound.0.body.rand",
-      "type": "regex_replace",
+      "type": "symbolize",
       "pattern": "^\\d{6}$",
-      "replacement": "<SIX_DIGITS>"
+      "replacement": "SMS_RAND"
     },
     {
       "target": "outbound.0.body.sign",
-      "type": "regex_replace",
+      "type": "symbolize",
       "pattern": "^[A-F0-9]{32}$",
-      "replacement": "<MD5_HEX>"
+      "replacement": "SMS_SIGN"
     },
     {"target": "mongo.httplog_sms_amount.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
     {"target": "mongo.httplog_sms_amount.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
     {"target": "mongo.httplog_sms_amount.0.context.uri", "type": "regex_replace", "pattern": "api_password=[^&]+", "replacement": "api_password=<API_PASSWORD>"},
     {"target": "mongo.httplog_sms_amount.0.context.request.api_password", "type": "mask", "replacement": "<API_PASSWORD>"},
-    {"target": "mongo.httplog_sms_amount.0.context.request.sign", "type": "mask", "replacement": "<SIGNATURE>"},
-    {"target": "mongo.httplog_sms_amount.0.context.request.rand", "type": "mask", "replacement": "<RANDOM>"}
+    {"target": "mongo.httplog_sms_amount.0.context.request.sign", "type": "symbolize", "pattern": "^[A-F0-9]{32}$", "replacement": "SMS_SIGN"},
+    {"target": "mongo.httplog_sms_amount.0.context.request.rand", "type": "symbolize", "pattern": "^\\d{6}$", "replacement": "SMS_RAND"}
   ],
   "dbProbe": {
     "queries": [

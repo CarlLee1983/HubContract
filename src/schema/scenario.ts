@@ -6,7 +6,7 @@ import { z } from "zod";
  */
 export const NormalizerRuleSchema = z.object({
   target: z.string().describe("JSON dot path of target field (e.g. response.headers.date, request.body.timestamp)"),
-  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace", "recent_sql_datetime"]),
+  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace", "recent_sql_datetime", "symbolize", "symbolize_capture"]),
   pattern: z.string().optional(),
   replacement: z.string().optional(),
   timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
@@ -14,6 +14,10 @@ export const NormalizerRuleSchema = z.object({
 }).refine((rule) => rule.type !== "recent_sql_datetime" ||
   (rule.timezoneOffsetMinutes !== undefined && rule.maxSkewSeconds !== undefined), {
   message: "recent_sql_datetime requires timezoneOffsetMinutes and maxSkewSeconds",
+}).refine((rule) => !["symbolize", "symbolize_capture"].includes(rule.type) ||
+  (Boolean(rule.pattern) && /^[A-Z][A-Z0-9_]*$/.test(rule.replacement ?? "") &&
+    (rule.type !== "symbolize" || (rule.pattern!.startsWith("^") && rule.pattern!.endsWith("$")))), {
+  message: "symbolize requires an anchored pattern and both symbol types require an uppercase replacement label",
 });
 
 /**

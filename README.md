@@ -86,7 +86,7 @@ bun run verify --report-json report.json
 
 `scenarios/game/` 包含 `POST /v1/games/launch` 與 PG VerifySession。`steps` 讓啟動和 callback 共用同一次環境重置、stub 腳本與 DB probe；runner 從 GetLaunchURLHTML 的 `extra_args.ops` 取出一次性令牌，放入 callback 的 `operator_player_session`，並在每步指定的位置比對 `launchGame:verifyData` 的內容及 TTL。過期情境對實際 Redis key 設定 1ms 到期，再送 callback。情境 `setup` 在請求前建立合成 Hub user 與 PG 配置，PG Player 則由啟動流程懶建；不改動其他情境共用的合成種子。這批情境使用固定 synthetic ID，尚未支援 `HUB_SEED=snapshot`。固定 Legacy 設定的 `APP_DOMAIN_PATH` 為空，故此錄製環境的 callback 路徑是 `/callback/game/pg/verifySession`；`/api/callback/game/pg/verifySession` 在此環境回 405。
 
-Game 與 Player 情境另以精確集合名稱觀察 Legacy 的出站 HTTP log：PG 啟動會依流程寫入 `httplog_create_account`、`httplog_deposit`、`httplog_launch_game`；餘額回收可另寫入 `httplog_find_account`、`httplog_withdraw`。SBO Player 查詢與餘額同步寫入 `httplog_find_account`；沒有發出供應商請求的早期拒絕情境明列空集合。Runner 在 Mongo 探查前等待 `HubWalletSync` 和 `HttpLogging` queue 清空。Mongo fixture 僅遮罩日期、PG trace／一次性令牌、轉帳參考號、客戶 IP 與憑證；請求方法、路徑、業務參數、供應商回應和錯誤分類仍參與逐欄位比對。
+Game 與 Player 情境另以精確集合名稱觀察 Legacy 的出站 HTTP log：PG 啟動會依流程寫入 `httplog_create_account`、`httplog_deposit`、`httplog_launch_game`；餘額回收可另寫入 `httplog_find_account`、`httplog_withdraw`。SBO Player 查詢與餘額同步寫入 `httplog_find_account`；沒有發出供應商請求的早期拒絕情境明列空集合。Runner 在 Mongo 探查前等待 `HubWalletSync` 和 `HttpLogging` queue 清空。Mongo fixture 的日期與敏感供應商密碼以欄位遮罩；PG trace、一次性令牌、轉帳參考號與客戶 IP 以每次執行首次出現的符號取代，同一原值在出站呼叫與 Mongo log 必須得到同一符號。轉帳參考號先驗證 `^RE[0-9]{18}$`，因此空值、格式錯誤、兩筆轉帳重複參考號或 log 與 request 不一致皆無法通過。固定合成 PG 憑證與請求方法、路徑、業務參數、供應商回應、錯誤分類仍參與逐欄位比對。
 
 這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
@@ -242,7 +242,7 @@ Legacy 實際錄製顯示：一般 `/v1/sms/send` 請求未帶 `currency` 時，
 
 SMS fixture 含合成供應商憑證，因 Legacy 的列表資源和出站呼叫原樣帶出設定。鎖定情境只宣告手機的 national number，由 Legacy 前置條件 adapter 依錄製環境的 cache prefix 建立 Redis lock。500 回應的 `file` 和 `trace` 以逐欄位 normalizer 遮罩，錯誤訊息和其他欄位仍逐字比對。
 
-餘額供應商呼叫觀察 `httplog_sms_amount`，發送流程觀察 `httplog_sms_send`；未發出供應商請求的簽章、驗證、站台及發送前置條件失敗則明列空集合。這些 Mongo 文件在 `HttpLogging` queue 清空後擷取，僅遮罩日期、供應商密碼與動態簽章／亂數。Asmsc 的 `GetSenderIDList` 在發送流程先設定的 `httplog-sms-send` 通道下記錄，故其 500 情境仍有一筆出站 log。
+餘額供應商呼叫觀察 `httplog_sms_amount`，發送流程觀察 `httplog_sms_send`；未發出供應商請求的簽章、驗證、站台及發送前置條件失敗則明列空集合。這些 Mongo 文件在 `HttpLogging` queue 清空後擷取，日期與供應商密碼遮罩；AboSend 的動態 `rand`／`sign` 則與出站呼叫共用逐次符號，以檢查 log 與實際請求是否一致。Asmsc 的 `GetSenderIDList` 在發送流程先設定的 `httplog-sms-send` 通道下記錄，故其 500 情境仍有一筆出站 log。
 
 指定其他目標的 `-t` 時，鎖定情境需同時提供 `--precondition-adapter ./path/to/adapter.ts`；該模組匯出 `createPreconditionAdapter({ targetUrl })`，回傳有 `apply(preconditions)` 方法的 adapter。未提供時會明確失敗，不會替其他目標寫入 Legacy 的 Redis key。AboSend 的動態 `rand` 和 `sign` 由 stub 重新計算 MD5 驗證後才套用欄位 normalizer。
 
