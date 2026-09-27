@@ -3,7 +3,7 @@
   "name": "Wallet deposit drains sync and HTTP logging queues",
   "description": "Issue #9: deposit to the synthetic player's main wallet, then sync to SBO via HubWalletSync and capture the resulting httplog document.",
   "route": { "method": "POST", "path": "/v1/wallet/deposit" },
-  "tags": ["wallet", "deposit", "queue", "mongo"],
+  "tags": ["wallet", "deposit", "queue", "mongo", "CAP-04", "CAP-01", "BR-01", "BR-11", "BR-12", "BR-20", "BR-22", "BR-23", "BR-46"],
   "request": {
     "headers": { "Host": "localhost:8080", "Accept": "application/json" },
     "body": {

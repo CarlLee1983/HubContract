@@ -136,5 +136,43 @@
         }
       }
     ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_sms_amount": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-sms-amount:synthetic-chuanx:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": [],
+              "response": {
+                "balance": 17
+              },
+              "uri": "http://mock-provider:8081/sms/balance/v1?appkey=synthetic_appkey"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "Synthetic Chuanx",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
   }
 }

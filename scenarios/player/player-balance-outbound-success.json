@@ -11,10 +11,11 @@
     "balance",
     "outbound",
     "success",
-    "CAP-03",
     "D-30",
+    "CAP-03",
     "CAP-01",
-    "BR-01"
+    "BR-01",
+    "BR-42"
   ],
   "request": {
     "headers": {
@@ -69,10 +70,13 @@
       ]
     }
   },
+  "mongoProbe": { "collections": ["httplog_find_account"] },
   "normalizers": [
     {
       "target": "request.query.timestamp",
       "type": "current_timestamp"
-    }
+    },
+    {"target": "mongo.httplog_find_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_find_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"}
   ]
 }

@@ -7,8 +7,12 @@
     "launch",
     "pg",
     "callback",
-    "CAP-03",
-    "business-failure"
+    "business-failure",
+    "CAP-11",
+    "CAP-01",
+    "BR-01",
+    "BR-50",
+    "BR-56"
   ],
   "dbProbe": {
     "queries": [
@@ -39,11 +43,24 @@
       "matchers": []
     }
   },
+  "mongoProbe": { "collections": ["httplog_create_account", "httplog_deposit", "httplog_launch_game"] },
   "normalizers": [
     {
       "target": "request.body.timestamp",
       "type": "current_timestamp"
-    }
+    },
+    {"target": "mongo.httplog_create_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_deposit.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_deposit.0.context.request.transfer_reference", "type": "symbolize", "pattern": "^RE[0-9]{18}$", "replacement": "TRANSFER_REFERENCE"},
+    {"target": "mongo.httplog_launch_game.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_launch_game.0.context.request.extra_args", "type": "symbolize_capture", "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_OPS"},
+    {"target": "mongo.httplog_launch_game.0.context.request.client_ip", "type": "symbolize", "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$", "replacement": "PG_CLIENT_IP"}
   ],
   "route": {
     "method": "POST",

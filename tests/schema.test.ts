@@ -1,8 +1,30 @@
 import { describe, expect, it } from "bun:test";
-import { ScenarioDefinitionSchema, RedisProbeKeyRuleSchema, MongoProbeSchema } from "../src/schema/scenario";
+import { ScenarioDefinitionSchema, FixtureSchema, RedisProbeKeyRuleSchema, MongoProbeSchema, assertFixtureMatchesScenario } from "../src/schema/scenario";
 import { ContractRunner } from "../src/runner";
 
 describe("Scenario Schema (Zod)", () => {
+  it("requires an explicit outbound call list for v1 fixtures", () => {
+    const scenario = ScenarioDefinitionSchema.parse({
+      id: "status-v1", name: "status", route: { method: "GET", path: "/v1/server/status" },
+      request: { headers: {} },
+    });
+    const fixture = FixtureSchema.parse({
+      scenarioId: scenario.id,
+      layer1_inboundResponse: { statusCode: 200, statusText: "OK", headers: {}, body: {} },
+      layer2_dbState: { before: {}, after: {} },
+    });
+    expect(() => assertFixtureMatchesScenario(scenario, fixture)).toThrow("requires layer3_outboundCalls");
+    expect(() => assertFixtureMatchesScenario(scenario, {
+      ...fixture, layer3_outboundCalls: { calls: [] },
+    })).not.toThrow();
+
+    const mcp = ScenarioDefinitionSchema.parse({
+      id: "status-mcp", name: "MCP status", route: { method: "GET", path: "/mcp/health" },
+      request: { headers: {} },
+    });
+    expect(() => assertFixtureMatchesScenario(mcp, { ...fixture, scenarioId: mcp.id })).not.toThrow();
+  });
+
   it("rejects Mongo collection names the probe cannot capture", () => {
     expect(MongoProbeSchema.safeParse({ collections: ["httplog_deposit!"] }).success).toBe(false);
     expect(MongoProbeSchema.safeParse({ pattern: "httplog_*" }).success).toBe(true);

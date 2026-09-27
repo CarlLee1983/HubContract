@@ -6,7 +6,7 @@ import { z } from "zod";
  */
 export const NormalizerRuleSchema = z.object({
   target: z.string().describe("JSON dot path of target field (e.g. response.headers.date, request.body.timestamp)"),
-  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace", "recent_sql_datetime"]),
+  type: z.enum(["current_timestamp", "mask", "ignore", "regex_replace", "recent_sql_datetime", "symbolize", "symbolize_capture"]),
   pattern: z.string().optional(),
   replacement: z.string().optional(),
   timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
@@ -14,6 +14,10 @@ export const NormalizerRuleSchema = z.object({
 }).refine((rule) => rule.type !== "recent_sql_datetime" ||
   (rule.timezoneOffsetMinutes !== undefined && rule.maxSkewSeconds !== undefined), {
   message: "recent_sql_datetime requires timezoneOffsetMinutes and maxSkewSeconds",
+}).refine((rule) => !["symbolize", "symbolize_capture"].includes(rule.type) ||
+  (Boolean(rule.pattern) && /^[A-Z][A-Z0-9_]*$/.test(rule.replacement ?? "") &&
+    (rule.type !== "symbolize" || (rule.pattern!.startsWith("^") && rule.pattern!.endsWith("$")))), {
+  message: "symbolize requires an anchored pattern and both symbol types require an uppercase replacement label",
 });
 
 /**
@@ -212,7 +216,7 @@ const ScenarioDefinitionBaseSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   route: HttpRouteSchema.optional(),
-  steps: z.array(HttpStepSchema).min(2).optional(),
+  steps: z.array(HttpStepSchema).min(1).optional(),
   trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
   action: ScenarioActionSchema.optional(),
   // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
@@ -347,6 +351,11 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   }
   if (scenario.steps && (!fixture.stepResponses || fixture.stepResponses.length !== scenario.steps.length)) {
     throw new Error(`HTTP steps scenario ${scenario.id} requires one response per step`);
+  }
+  const hasV1Route = scenario.route?.path.startsWith("/v1/") ||
+    scenario.steps?.some((step) => step.route.path.startsWith("/v1/"));
+  if (hasV1Route && !fixture.layer3_outboundCalls) {
+    throw new Error(`v1 scenario ${scenario.id} requires layer3_outboundCalls`);
   }
   for (const step of scenario.steps ?? []) {
     if (step.redisCheckpoint && !fixture.redisCheckpoints?.[step.id]) {

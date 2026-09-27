@@ -12,10 +12,10 @@
     "outbound",
     "timeout",
     "CAP-03",
-    "BR-13",
-    "BR-42",
     "CAP-01",
-    "BR-01"
+    "BR-01",
+    "BR-13",
+    "BR-42"
   ],
   "request": {
     "headers": {
@@ -69,6 +69,7 @@
       ]
     }
   },
+  "mongoProbe": { "collections": ["httplog_find_account"] },
   "normalizers": [
     {
       "target": "request.query.timestamp",
@@ -78,6 +79,8 @@
       "target": "response.body.data.created_at",
       "type": "mask",
       "replacement": "<CREATED_AT>"
-    }
+    },
+    {"target": "mongo.httplog_find_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_find_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"}
   ]
 }

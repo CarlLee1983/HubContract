@@ -70,5 +70,15 @@
       ],
       "user_transactions": []
     }
+  },
+  "layer3_outboundCalls": {
+    "calls": []
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_find_account": []
+      }
+    }
   }
 }

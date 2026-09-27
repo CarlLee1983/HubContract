@@ -9,10 +9,10 @@
   "tags": [
     "wallet",
     "check-transaction-for-test",
-    "CAP-07",
     "signature-failed",
-    "BR-01",
-    "BR-48"
+    "CAP-07",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

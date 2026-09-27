@@ -7,8 +7,13 @@
     "launch",
     "pg",
     "callback",
-    "CAP-03",
-    "provider-failure"
+    "provider-failure",
+    "CAP-11",
+    "CAP-01",
+    "BR-01",
+    "BR-50",
+    "BR-56",
+    "BR-57"
   ],
   "dbProbe": {
     "queries": [
@@ -74,6 +79,7 @@
       ]
     }
   },
+  "mongoProbe": { "collections": ["httplog_create_account", "httplog_deposit", "httplog_launch_game"] },
   "normalizers": [
     {
       "target": "request.body.timestamp",
@@ -81,84 +87,112 @@
     },
     {
       "target": "outbound.0.query.trace_id",
-      "type": "mask",
-      "replacement": "<UUID>"
+      "type": "symbolize",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "replacement": "PG_TRACE_ID"
     },
     {
       "target": "outbound.1.query.trace_id",
-      "type": "mask",
-      "replacement": "<UUID>"
+      "type": "symbolize",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "replacement": "PG_TRACE_ID"
     },
     {
       "target": "outbound.2.query.trace_id",
-      "type": "mask",
-      "replacement": "<UUID>"
+      "type": "symbolize",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "replacement": "PG_TRACE_ID"
     },
     {
       "target": "outbound.3.query.trace_id",
-      "type": "mask",
-      "replacement": "<UUID>"
+      "type": "symbolize",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "replacement": "PG_TRACE_ID"
     },
     {
       "target": "outbound.0.body.extra_args",
-      "type": "regex_replace",
-      "pattern": "ops=[a-f0-9-]+",
-      "replacement": "ops=<PG_OPS>"
+      "type": "symbolize_capture",
+      "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+      "replacement": "PG_OPS"
     },
     {
       "target": "outbound.1.body.extra_args",
-      "type": "regex_replace",
-      "pattern": "ops=[a-f0-9-]+",
-      "replacement": "ops=<PG_OPS>"
+      "type": "symbolize_capture",
+      "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+      "replacement": "PG_OPS"
     },
     {
       "target": "outbound.2.body.extra_args",
-      "type": "regex_replace",
-      "pattern": "ops=[a-f0-9-]+",
-      "replacement": "ops=<PG_OPS>"
+      "type": "symbolize_capture",
+      "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+      "replacement": "PG_OPS"
     },
     {
       "target": "outbound.3.body.extra_args",
-      "type": "regex_replace",
-      "pattern": "ops=[a-f0-9-]+",
-      "replacement": "ops=<PG_OPS>"
+      "type": "symbolize_capture",
+      "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+      "replacement": "PG_OPS"
     },
     {
       "target": "outbound.0.body.transfer_reference",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "outbound.1.body.transfer_reference",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "outbound.2.body.transfer_reference",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "outbound.3.body.transfer_reference",
-      "type": "mask"
+      "type": "symbolize",
+      "pattern": "^RE[0-9]{18}$",
+      "replacement": "TRANSFER_REFERENCE"
     },
     {
       "target": "outbound.0.body.client_ip",
-      "type": "mask",
-      "replacement": "<CLIENT_IP>"
+      "type": "symbolize",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+      "replacement": "PG_CLIENT_IP"
     },
     {
       "target": "outbound.1.body.client_ip",
-      "type": "mask",
-      "replacement": "<CLIENT_IP>"
+      "type": "symbolize",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+      "replacement": "PG_CLIENT_IP"
     },
     {
       "target": "outbound.2.body.client_ip",
-      "type": "mask",
-      "replacement": "<CLIENT_IP>"
+      "type": "symbolize",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+      "replacement": "PG_CLIENT_IP"
     },
     {
       "target": "outbound.3.body.client_ip",
-      "type": "mask",
-      "replacement": "<CLIENT_IP>"
-    }
+      "type": "symbolize",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+      "replacement": "PG_CLIENT_IP"
+    },
+    {"target": "mongo.httplog_create_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_deposit.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_deposit.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_deposit.0.context.request.transfer_reference", "type": "symbolize", "pattern": "^RE[0-9]{18}$", "replacement": "TRANSFER_REFERENCE"},
+    {"target": "mongo.httplog_launch_game.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_launch_game.0.context.uri", "type": "symbolize_capture", "pattern": "trace_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_TRACE_ID"},
+    {"target": "mongo.httplog_launch_game.0.context.request.extra_args", "type": "symbolize_capture", "pattern": "ops=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "replacement": "PG_OPS"},
+    {"target": "mongo.httplog_launch_game.0.context.request.client_ip", "type": "symbolize", "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)$", "replacement": "PG_CLIENT_IP"}
   ],
   "route": {
     "method": "POST",
@@ -167,7 +201,8 @@
   "request": {
     "headers": {
       "Host": "localhost:8080",
-      "Accept": "application/json"
+      "Accept": "application/json",
+      "X-Forwarded-For": "192.0.2.10"
     },
     "body": {
       "station_code": "DEMO_STATION",

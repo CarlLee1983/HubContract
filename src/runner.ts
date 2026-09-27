@@ -459,8 +459,12 @@ export class ContractRunner {
     const { requests, unmatchedCount } = await this.stubClient.getRequests();
     const unmatchedOutboundCount = unmatchedCount;
     const allowlist = scenario.stub?.outboundHeaderAllowlist ?? DEFAULT_OUTBOUND_HEADER_ALLOWLIST;
+    // Preserve identity across the outbound request and its queued Mongo log.
+    // This map belongs to one record/verify capture, never another scenario.
+    const symbols = new Map<string, Map<string, string>>();
     const normalized = applyNormalizers({ outbound: requests }, scenario.normalizers, {
       fixedTimestamp: this.fixedTimestamp,
+      symbols,
     }).outbound as StubRequestRecord[];
     const outboundCalls: StubRequestRecord[] = normalized.map((call) => ({
       ...call,
@@ -471,6 +475,7 @@ export class ContractRunner {
     const dbAfterRaw = await this.dbProbe.capture(scenario.dbProbe);
     const dbAfter = applyNormalizers({ db: { after: dbAfterRaw } }, scenario.normalizers, {
       executionWindow: { startMs: executionStartedAtMs, endMs: Date.now() },
+      symbols,
     }).db.after as Record<string, unknown>;
     // Layer 4: Redis Probe after
     const redisAfterRaw = await this.redisProbe.capture(scenario.redisProbe);
@@ -478,6 +483,7 @@ export class ContractRunner {
     const mongoRaw = await this.mongoProbe.captureNew(scenario.mongoProbe, mongoBefore);
     const mongoNewDocuments = applyNormalizers({ mongo: mongoRaw }, scenario.normalizers, {
       fixedTimestamp: this.fixedTimestamp,
+      symbols,
     }).mongo as Record<string, Record<string, unknown>[]>;
 
     return { dbBefore, redisBefore, mongoNewDocuments, response, stepResponses, redisCheckpoints, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };

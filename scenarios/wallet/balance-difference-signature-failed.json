@@ -9,10 +9,10 @@
   "tags": [
     "wallet",
     "balance-difference",
-    "CAP-08",
     "error",
-    "BR-01",
-    "BR-35"
+    "CAP-08",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

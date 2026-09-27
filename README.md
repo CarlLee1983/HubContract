@@ -4,6 +4,8 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
 
 決策依據見 HubRefactoring 的 [ADR-0010](https://github.com/CarlLee1983/HubRefactoring/blob/main/docs/adr/0010-executable-contract-in-hubcontract.md)，規格見 [HubRefactoring#1](https://github.com/CarlLee1983/HubRefactoring/issues/1)。
 
+v1 的 20 條路由、情境、fixture 與觀測層對照見 [v1 路由情境矩陣](docs/v1-route-scenario-matrix.json)。
+
 ## 契約涵蓋的四層
 
 1. **入站回應**：HTTP status 與 body。
@@ -86,7 +88,9 @@ bun run verify --report-json report.json
 
 `scenarios/game/` 包含 `POST /v1/games/launch` 與 PG VerifySession。`steps` 讓啟動和 callback 共用同一次環境重置、stub 腳本與 DB probe；runner 從 GetLaunchURLHTML 的 `extra_args.ops` 取出一次性令牌，放入 callback 的 `operator_player_session`，並在每步指定的位置比對 `launchGame:verifyData` 的內容及 TTL。過期情境對實際 Redis key 設定 1ms 到期，再送 callback。情境 `setup` 在請求前建立合成 Hub user 與 PG 配置，PG Player 則由啟動流程懶建；不改動其他情境共用的合成種子。這批情境使用固定 synthetic ID，尚未支援 `HUB_SEED=snapshot`。固定 Legacy 設定的 `APP_DOMAIN_PATH` 為空，故此錄製環境的 callback 路徑是 `/callback/game/pg/verifySession`；`/api/callback/game/pg/verifySession` 在此環境回 405。
 
-這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
+Game 與 Player 情境另以精確集合名稱觀察 Legacy 的出站 HTTP log：PG 啟動會依流程寫入 `httplog_create_account`、`httplog_deposit`、`httplog_launch_game`；餘額回收可另寫入 `httplog_find_account`、`httplog_withdraw`。SBO Player 查詢與餘額同步寫入 `httplog_find_account`；沒有發出供應商請求的早期拒絕情境明列空集合。Runner 在 Mongo 探查前等待 `HubWalletSync` 和 `HttpLogging` queue 清空。Mongo fixture 的日期與敏感供應商密碼以欄位遮罩；PG trace、一次性令牌、轉帳參考號與客戶 IP 以每次執行首次出現的符號取代，同一原值在出站呼叫與 Mongo log 必須得到同一符號。轉帳參考號先驗證 `^RE[0-9]{18}$`，因此空值、格式錯誤、兩筆轉帳重複參考號或 log 與 request 不一致皆無法通過。固定合成 PG 憑證與請求方法、路徑、業務參數、供應商回應、錯誤分類仍參與逐欄位比對。
+
+這 45 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 
@@ -239,6 +243,8 @@ HUB_CONTRACT_INTEGRATION=1 bun test tests/schedule.test.ts
 Legacy 實際錄製顯示：一般 `/v1/sms/send` 請求未帶 `currency` 時，`siteCurrency()` 為 null，解析電話先產生 500，尚未走到供應商；對應 `send-without-currency`。另外三個發送情境在簽章請求中帶 `currency=TWD`，讓路由初始化幣別以觀察更深的流程：inactive SMS 未被拒絕、供應商建 log 時的未初始化屬性 500、Asmsc 在該 500 前先呼叫 `GetSenderIDList`，以及預先佔用 Redis DB1 的 cache lock 時回傳重送錯誤。這些是錄製環境的現行行為，並非建議新版維持缺陷。`/amount` 的供應商 500 則被 Legacy 吞掉，回應餘額 0。
 
 SMS fixture 含合成供應商憑證，因 Legacy 的列表資源和出站呼叫原樣帶出設定。鎖定情境只宣告手機的 national number，由 Legacy 前置條件 adapter 依錄製環境的 cache prefix 建立 Redis lock。500 回應的 `file` 和 `trace` 以逐欄位 normalizer 遮罩，錯誤訊息和其他欄位仍逐字比對。
+
+餘額供應商呼叫觀察 `httplog_sms_amount`，發送流程觀察 `httplog_sms_send`；未發出供應商請求的簽章、驗證、站台及發送前置條件失敗則明列空集合。這些 Mongo 文件在 `HttpLogging` queue 清空後擷取，日期與供應商密碼遮罩；AboSend 的動態 `rand`／`sign` 則與出站呼叫共用逐次符號，以檢查 log 與實際請求是否一致。Asmsc 的 `GetSenderIDList` 在發送流程先設定的 `httplog-sms-send` 通道下記錄，故其 500 情境仍有一筆出站 log。
 
 指定其他目標的 `-t` 時，鎖定情境需同時提供 `--precondition-adapter ./path/to/adapter.ts`；該模組匯出 `createPreconditionAdapter({ targetUrl })`，回傳有 `apply(preconditions)` 方法的 adapter。未提供時會明確失敗，不會替其他目標寫入 Legacy 的 Redis key。AboSend 的動態 `rand` 和 `sign` 由 stub 重新計算 MD5 驗證後才套用欄位 normalizer。
 
