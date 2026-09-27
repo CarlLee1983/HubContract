@@ -140,6 +140,16 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("fixtureId must identify existing fixture");
   });
 
+  it("rejects a v1 scenario when both matrix and fixture omit empty outbound calls", async () => {
+    const input = await checkedInInput();
+    const entry = input.matrix.routes.flatMap((route) => route.scenarios)
+      .find((scenario) => scenario.id === "sms-index")!;
+    const fixture = input.fixtures.find((candidate) => candidate.scenarioId === entry.id)!;
+    entry.layers = entry.layers.filter((layer) => layer !== "outbound");
+    delete fixture.layer3_outboundCalls;
+    expect(validateV1Traceability(input).join("\n")).toContain("missing outbound layer");
+  });
+
   it("rejects removal of a required launch signature case", async () => {
     const input = await checkedInInput();
     const launch = input.matrix.routes.find((route) => route.path === "/v1/games/launch")!;

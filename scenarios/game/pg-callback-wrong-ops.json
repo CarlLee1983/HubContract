@@ -27,7 +27,8 @@
       "request": {
         "headers": {
           "Host": "localhost:8080",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "X-Forwarded-For": "192.0.2.10"
         },
         "body": {
           "station_code": "DEMO_STATION",

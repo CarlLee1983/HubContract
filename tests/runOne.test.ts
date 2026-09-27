@@ -26,6 +26,7 @@ const goldenFixture: Fixture = {
     headers: { "content-type": "application/json" },
     body: { message: "OK" },
   },
+  layer3_outboundCalls: { calls: [] },
 };
 
 async function makeTempDir(): Promise<string> {

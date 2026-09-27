@@ -352,6 +352,11 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   if (scenario.steps && (!fixture.stepResponses || fixture.stepResponses.length !== scenario.steps.length)) {
     throw new Error(`HTTP steps scenario ${scenario.id} requires one response per step`);
   }
+  const hasV1Route = scenario.route?.path.startsWith("/v1/") ||
+    scenario.steps?.some((step) => step.route.path.startsWith("/v1/"));
+  if (hasV1Route && !fixture.layer3_outboundCalls) {
+    throw new Error(`v1 scenario ${scenario.id} requires layer3_outboundCalls`);
+  }
   for (const step of scenario.steps ?? []) {
     if (step.redisCheckpoint && !fixture.redisCheckpoints?.[step.id]) {
       throw new Error(`HTTP step ${step.id} requires a Redis checkpoint`);

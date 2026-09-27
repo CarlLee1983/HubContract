@@ -216,6 +216,7 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
       if (key === "POST /v1/sms/send" && entry.cases.includes("success")) errors.push(`${prefix}: fictional SMS success`);
       if (key === "GET /v1/player/balance" && entry.cases.includes("success")) errors.push(`${prefix}: broken balance response is not success`);
       for (const layer of entry.layers) if (!LAYERS.has(layer)) errors.push(`${prefix}: invalid layer ${layer}`);
+      if (!entry.layers.includes("outbound")) errors.push(`${prefix}: missing outbound layer`);
       if (fixture) {
         const actual = fixtureLayers(fixture);
         if (actual.size !== new Set(entry.layers).size || [...actual].some((layer) => !entry.layers.includes(layer))) {

@@ -26,6 +26,11 @@ wallets, PG play logs, and remittances before and after. Its Redis probe checks
 GetLaunchURLHTML; the recall path also calls GetPlayerWallet and TransferOut.
 The fixtures contain normalized synthetic values, including masked dynamic
 tokens, trace IDs, transfer references, client IPs, and Mongo timestamps.
+Launch scenarios with a provider call send the synthetic forwarded IP
+`192.0.2.10`. The pinned Legacy service trusts that header and includes the
+client IP in the form body sent to PG. Fixing this input keeps the logged
+`Content-Length` byte count reproducible across isolated Docker subnets while
+the fixture still compares the exact header and provider request.
 
 ## Reproduction and comparison
 

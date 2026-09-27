@@ -17,5 +17,8 @@
   "layer2_dbState": {
     "before": {},
     "after": {}
+  },
+  "layer3_outboundCalls": {
+    "calls": []
   }
 }
