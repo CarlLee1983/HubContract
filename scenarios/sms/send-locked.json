@@ -9,7 +9,11 @@
   "tags": [
     "sms",
     "send",
-    "locked"
+    "locked",
+    "CAP-15",
+    "CAP-01",
+    "BR-01",
+    "BR-90"
   ],
   "request": {
     "headers": {

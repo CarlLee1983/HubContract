@@ -7,8 +7,12 @@
     "launch",
     "pg",
     "callback",
-    "CAP-03",
-    "business-failure"
+    "business-failure",
+    "CAP-11",
+    "CAP-01",
+    "BR-01",
+    "BR-50",
+    "BR-56"
   ],
   "dbProbe": {
     "queries": [

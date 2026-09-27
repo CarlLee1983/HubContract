@@ -4,6 +4,8 @@ StationHub 翻新的**可執行契約**。同一組情境（scenario）可以分
 
 決策依據見 HubRefactoring 的 [ADR-0010](https://github.com/CarlLee1983/HubRefactoring/blob/main/docs/adr/0010-executable-contract-in-hubcontract.md)，規格見 [HubRefactoring#1](https://github.com/CarlLee1983/HubRefactoring/issues/1)。
 
+v1 的 20 條路由、情境、fixture 與觀測層對照見 [v1 路由情境矩陣](docs/v1-route-scenario-matrix.json)。
+
 ## 契約涵蓋的四層
 
 1. **入站回應**：HTTP status 與 body。

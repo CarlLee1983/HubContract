@@ -10,7 +10,10 @@
     "wallet",
     "withdrawal",
     "funds-write",
-    "signature-failed"
+    "signature-failed",
+    "CAP-05",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

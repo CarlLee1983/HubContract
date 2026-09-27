@@ -10,7 +10,12 @@
     "wallet",
     "deposit",
     "funds-write",
-    "duplicate-main-wallet"
+    "duplicate-main-wallet",
+    "CAP-04",
+    "CAP-01",
+    "BR-01",
+    "BR-10",
+    "BR-11"
   ],
   "request": {
     "headers": {

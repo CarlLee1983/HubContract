@@ -10,12 +10,13 @@
     "catalog",
     "games",
     "maintenance",
+    "redis",
     "CAP-09",
     "CAP-01",
     "BR-01",
     "BR-70",
     "BR-71",
-    "redis"
+    "BR-53"
   ],
   "request": {
     "headers": {

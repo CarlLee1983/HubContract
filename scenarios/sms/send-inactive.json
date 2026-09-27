@@ -9,7 +9,11 @@
   "tags": [
     "sms",
     "send",
-    "inactive"
+    "inactive",
+    "CAP-15",
+    "CAP-01",
+    "BR-01",
+    "BR-90"
   ],
   "request": {
     "headers": {

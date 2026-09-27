@@ -9,9 +9,11 @@
   "tags": [
     "wallet",
     "check-transaction-for-test",
-    "CAP-07",
     "duplicate-trade-no",
+    "CAP-07",
+    "CAP-01",
     "BR-01",
+    "BR-21",
     "BR-48"
   ],
   "request": {

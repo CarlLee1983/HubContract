@@ -10,7 +10,16 @@
     "wallet",
     "deposit",
     "funds-write",
-    "provider-failure"
+    "provider-failure",
+    "CAP-04",
+    "CAP-01",
+    "BR-01",
+    "BR-11",
+    "BR-12",
+    "BR-20",
+    "BR-22",
+    "BR-23",
+    "BR-46"
   ],
   "request": {
     "headers": {
