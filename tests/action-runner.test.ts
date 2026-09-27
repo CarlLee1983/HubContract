@@ -62,24 +62,28 @@ describe("internal action scenarios", () => {
     }
   });
 
-  it("does not read or enforce outbound calls for an action", async () => {
+  it("rejects unmatched outbound calls for an action without adding an outbound fixture layer", async () => {
     const runner = createRunner({
       baseUrl: "http://target",
       targetAdapter: { executeAction: async () => {} },
     });
     mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
-    (runner as any).stubClient.getRequests = async () => {
-      throw new Error("Action must not inspect outbound calls");
-    };
+    (runner as any).stubClient.getRequests = async () => ({ requests: [], unmatchedCount: 1 });
     try {
+      await expect(runner.record(actionScenario)).rejects.toThrow("outbound call(s) matched no stub script matcher");
+      (runner as any).stubClient.getRequests = async () => ({ requests: [], unmatchedCount: 0 });
+      mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
       const fixture = await runner.record(actionScenario);
       expect(fixture.layer3_outboundCalls).toBeUndefined();
       expect(ActionFixtureSchema.parse(fixture).layer3_outboundCalls).toBeUndefined();
       expect(ActionFixtureSchema.safeParse({ ...fixture, layer3_outboundCalls: { calls: [] } }).success).toBe(false);
       expect(() => assertFixtureMatchesScenario(actionScenario, { ...fixture, layer3_outboundCalls: { calls: [] } }))
         .toThrow("must not declare layer3_outboundCalls");
+      (runner as any).stubClient.getRequests = async () => ({ requests: [], unmatchedCount: 1 });
       mockDb(runner, [{ platform: [{ active: 0 }] }, { platform: [{ active: 1 }] }]);
-      expect((await runner.verify(actionScenario, fixture)).differences).toEqual([]);
+      expect((await runner.verify(actionScenario, fixture)).differences).toContainEqual(expect.objectContaining({
+        layer: "outbound_calls", path: "unmatched", expected: 0, actual: 1,
+      }));
     } finally {
       await runner.close();
     }

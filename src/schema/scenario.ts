@@ -100,6 +100,7 @@ export const StubResponseSchema = z.object({
   status: z.number().default(200),
   body: z.any().optional(),
   headers: z.record(z.string(), z.string()).default({}),
+  rawBody: z.string().optional().describe("Send an HTML or other non-JSON provider response verbatim"),
   delayMs: z
     .number()
     .default(0)
@@ -170,38 +171,54 @@ const ChatroomMessageActionSchema = z.object({
   name: z.enum(["chatroom.messageFromAdmin", "chatroom.messageFromService"]),
   parameters: z.object({ issueId: z.number().int().positive(), body: z.string().min(1) }),
 });
+const ServiceIssueActionSchema = z.object({
+  name: z.literal("serviceIssue.create"),
+  parameters: z.object({
+    categoryId: z.number().int().positive(),
+    actor: z.enum(["newVisitor", "existingIssue"]),
+  }),
+});
 export const ScenarioActionSchema = z.discriminatedUnion("name", [
   PlatformGameTypeActionSchema,
   ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.join") }),
   ChatroomIssueActionSchema.extend({ name: z.literal("chatroom.close") }),
   ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromAdmin") }),
   ChatroomMessageActionSchema.extend({ name: z.literal("chatroom.messageFromService") }),
+  ServiceIssueActionSchema,
 ]);
 export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
+
+const HttpRouteSchema = z.object({ method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]), path: z.string().startsWith("/") });
+const HttpRequestSchema = z.object({
+  headers: z.record(z.string(), z.string()).default({}),
+  query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  body: z.record(z.string(), z.any()).optional(),
+  signWith: z.object({ secretKey: z.string().min(1) }).optional(),
+});
+export const HttpStepSchema = z.object({
+  id: z.string().min(1),
+  route: HttpRouteSchema,
+  request: HttpRequestSchema.default({ headers: {} }),
+  normalizers: z.array(NormalizerRuleSchema).optional(),
+  // PG's callback receives the ops issued in GetLaunchURLHTML.extra_args.
+  pgOpsFromLaunch: z.boolean().optional(),
+  expirePgOpsBeforeRequest: z.boolean().optional(),
+  redisCheckpoint: RedisProbeSchema.optional(),
+});
+export type HttpStep = z.infer<typeof HttpStepSchema>;
 
 const ScenarioDefinitionBaseSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
-  route: z.object({
-    method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
-    path: z.string().startsWith("/"),
-  }).optional(),
+  route: HttpRouteSchema.optional(),
+  steps: z.array(HttpStepSchema).min(2).optional(),
   trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
   action: ScenarioActionSchema.optional(),
   // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",
   // "deposit"). Optional so pre-existing scenario files without tags stay valid.
   tags: z.array(z.string()).default([]),
-  request: z.object({
-    headers: z.record(z.string(), z.string()).default({}),
-    query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
-    body: z.record(z.string(), z.any()).optional(),
-    signWith: z
-      .object({
-        secretKey: z.string().min(1),
-      })
-      .optional(),
-  }).optional(),
+  request: HttpRequestSchema.optional(),
   setup: z.object({ statements: z.array(DbProbeQuerySchema).min(1) }).optional(),
   dbProbe: DbProbeSchema.optional(),
   redisProbe: RedisProbeSchema.optional(),
@@ -209,9 +226,8 @@ const ScenarioDefinitionBaseSchema = z.object({
   queueDrain: QueueDrainSchema.optional(),
   preconditions: ScenarioPreconditionsSchema.optional(),
   // Issue #8: captureRun() resets the stub and loads this script (or an empty
-  // one, if omitted) before execution. HTTP and schedule scenarios check
-  // undefined outbound calls even without a declared stub; internal actions
-  // contract only DB and shared resources.
+  // one, if omitted) before execution. Every scenario rejects unmatched
+  // outbound calls; internal action fixtures contract only DB and shared resources.
   stub: z
     .object({
       script: StubScriptSchema,
@@ -226,18 +242,23 @@ const ScenarioDefinitionBaseSchema = z.object({
 });
 
 export const ScenarioDefinitionSchema = ScenarioDefinitionBaseSchema.refine((value) =>
-  [value.route, value.trigger, value.action].filter(Boolean).length === 1 &&
-  (!value.action || (Boolean(value.dbProbe?.queries.length) && !value.request && !value.setup)), {
-  message: "Declare exactly one of route, trigger or action",
+  [value.route, value.steps, value.trigger, value.action].filter(Boolean).length === 1 &&
+  (!value.action || (Boolean(value.dbProbe?.queries.length) && !value.request)) &&
+  (!value.steps || (!value.request &&
+    new Set(value.steps.map((step) => step.id)).size === value.steps.length &&
+    value.steps.every((step, index) => !step.pgOpsFromLaunch || index > 0))), {
+  message: "Declare exactly one of route, steps, trigger or action; bound callback steps must follow launch",
 });
 export const InboundScenarioSchema = ScenarioDefinitionBaseSchema.extend({
-  route: z.object({ method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]), path: z.string().startsWith("/") }),
+  route: HttpRouteSchema,
+  steps: z.never().optional(),
   trigger: z.never().optional(),
   action: z.never().optional(),
   request: ScenarioDefinitionBaseSchema.shape.request.unwrap().default({ headers: {} }),
 });
 export const ActionScenarioSchema = ScenarioDefinitionBaseSchema.extend({
   route: z.never().optional(),
+  steps: z.never().optional(),
   trigger: z.never().optional(),
   action: ScenarioActionSchema,
   request: z.never().optional(),
@@ -270,6 +291,8 @@ export const FixtureSchema = z.object({
     headers: z.record(z.string(), z.string()),
     body: z.any(),
   }).optional(),
+  stepResponses: z.array(z.object({ id: z.string(), statusCode: z.number(), statusText: z.string(), headers: z.record(z.string(), z.string()), body: z.any() })).optional(),
+  redisCheckpoints: z.record(z.string(), z.record(z.string(), RedisKeyRecordSchema.nullable())).optional(),
   layer2_dbState: z
     .object({
       before: z.record(z.string(), z.any()),
@@ -321,6 +344,14 @@ export function assertFixtureMatchesScenario(scenario: ScenarioDefinition, fixtu
   }
   if (scenario.route && !fixture.layer1_inboundResponse) {
     throw new Error(`HTTP scenario ${scenario.id} requires layer1_inboundResponse`);
+  }
+  if (scenario.steps && (!fixture.stepResponses || fixture.stepResponses.length !== scenario.steps.length)) {
+    throw new Error(`HTTP steps scenario ${scenario.id} requires one response per step`);
+  }
+  for (const step of scenario.steps ?? []) {
+    if (step.redisCheckpoint && !fixture.redisCheckpoints?.[step.id]) {
+      throw new Error(`HTTP step ${step.id} requires a Redis checkpoint`);
+    }
   }
   if (scenario.trigger && fixture.layer1_inboundResponse) {
     throw new Error(`Schedule scenario ${scenario.id} must not declare layer1_inboundResponse`);

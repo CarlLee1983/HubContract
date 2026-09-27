@@ -1,0 +1,62 @@
+{
+  "scenarioId": "service-issue-new-visitor",
+  "layer2_dbState": {
+    "before": {
+      "service_issues": [
+        {
+          "id": 1,
+          "issueable_type": "App\\Models\\UserGuest",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": null,
+          "type": null,
+          "summaries": null,
+          "answer": null,
+          "closed_at": null
+        }
+      ],
+      "user_guests": [
+        {
+          "id": 1,
+          "account": "synthetic_guest_existing_issue",
+          "deleted_at": null
+        }
+      ],
+      "activity_log": []
+    },
+    "after": {
+      "service_issues": [
+        {
+          "id": 1,
+          "issueable_type": "App\\Models\\UserGuest",
+          "issueable_id": 1,
+          "service_issue_category_id": 1,
+          "closed_by_administer_id": null,
+          "last_message_id": null,
+          "type": null,
+          "summaries": null,
+          "answer": null,
+          "closed_at": null
+        }
+      ],
+      "user_guests": [
+        {
+          "id": 1,
+          "account": "synthetic_guest_existing_issue",
+          "deleted_at": null
+        }
+      ],
+      "activity_log": []
+    }
+  },
+  "layer4_sharedResources": {
+    "redis": {
+      "before": {},
+      "after": {}
+    },
+    "mongo": {
+      "newDocuments": {}
+    }
+  }
+}
