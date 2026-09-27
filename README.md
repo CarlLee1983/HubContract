@@ -82,6 +82,8 @@ bun run verify --report-json report.json
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 
+`scenarios/internal/service-issue-*.json` 使用中立動作 `serviceIssue.create`，以合成 category ID 1 分別走新訪客、已有 issue 的訪客。Legacy adapter 取得 web session 和 CSRF token；已有 issue 的情境由 adapter 將合成 guest 綁到該 session。情境探查 `service_issues`、`user_guests`、`activity_log`，以及 ADR-0013 的 Redis DB 1 key pattern、Mongo `httplog_*`。固定 Legacy 的 `IssueController::store()` 在任何 DB 寫入前呼叫不存在的 `UserService::whenVisitorCreateGuestOrReturnUser()`；adapter 只將此精確診斷視為已執行，fixture 僅斷言觀察到的最終狀態沒有變化，沒有 HTTP 錯誤回應契約。成功建立 issue 與既有 issue 的重導向路徑仍未在此固定版本得到證實，需另立基準後錄製。執行路徑證據與輸入限制見 [HubRefactoring #25](https://github.com/CarlLee1983/HubRefactoring/blob/main/docs/contract/service-issue-runtime.md)。
+
 每個情境執行前都會重置一次錄製環境（`--skip-reset` 可關閉），符合「情境彼此獨立、結果可重現」的規格；重置或情境本身丟出的任何錯誤，都只會讓那一個情境變成 `errored`，不會中斷其餘情境。情境檔本身若無法通過 schema 驗證，也不會讓整個 process 中止——會以該檔案的路徑當作 `id`，變成一筆 `errored` 報告紀錄。篩選後若沒有任何情境符合條件，CLI 會印出錯誤訊息，仍然照常輸出（空的）報告，並以非 0 結束；只要有任何情境 `failed` 或 `errored`，或整批一個情境都沒跑到，process 就以非 0 結束。
 
 ### JSON 報告格式

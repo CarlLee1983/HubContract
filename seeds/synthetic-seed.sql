@@ -173,4 +173,15 @@ INSERT INTO `platform_maintenance_schedules`
 (`id`, `platform`, `weekday`, `start_time`, `duration_minutes`, `lead_minutes`, `trail_minutes`, `reason`, `enabled`, `effective_from`, `effective_until`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (900000019, 'cq9', 1, '10:00:00', 60, 0, 0, 'Synthetic MCP recurring maintenance', 1, NULL, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00', NULL);
 
+-- Service issue action: one valid category and an existing guest with an issue.
+TRUNCATE TABLE `service_issues`;
+TRUNCATE TABLE `user_guests`;
+TRUNCATE TABLE `service_issue_categories`;
+INSERT INTO `service_issue_categories` (`id`, `name`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Synthetic issue category', 'Contract recording only', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+INSERT INTO `user_guests` (`id`, `account`, `created_at`, `updated_at`) VALUES
+(1, 'synthetic_guest_existing_issue', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+INSERT INTO `service_issues` (`id`, `issueable_type`, `service_issue_category_id`, `issueable_id`, `updated_at`, `created_at`) VALUES
+(1, 'App\\Models\\UserGuest', 1, 1, '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+
 SET FOREIGN_KEY_CHECKS = 1;

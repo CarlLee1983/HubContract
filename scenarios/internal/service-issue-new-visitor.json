@@ -1,0 +1,59 @@
+{
+  "id": "service-issue-new-visitor",
+  "name": "Create service issue as newVisitor",
+  "description": "Pinned Legacy reaches the undefined UserService method before DB writes; only final state is contracted.",
+  "action": {
+    "name": "serviceIssue.create",
+    "parameters": {
+      "categoryId": 1,
+      "actor": "newVisitor"
+    }
+  },
+  "tags": [
+    "service-issue",
+    "internal"
+  ],
+  "dbProbe": {
+    "queries": [
+      {
+        "name": "service_issues",
+        "sql": "SELECT id, issueable_type, issueable_id, service_issue_category_id, closed_by_administer_id, last_message_id, type, summaries, answer, closed_at FROM service_issues ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "user_guests",
+        "sql": "SELECT id, account, deleted_at FROM user_guests ORDER BY id",
+        "params": []
+      },
+      {
+        "name": "activity_log",
+        "sql": "SELECT log_name, description, subject_type, subject_id, event FROM activity_log ORDER BY id",
+        "params": []
+      }
+    ]
+  },
+  "redisProbe": {
+    "keys": [
+      {
+        "pattern": "game_to_main_wallet_sync:*",
+        "db": 1
+      },
+      {
+        "pattern": "platform-maintenance:v1:*",
+        "db": 1
+      },
+      {
+        "pattern": "launchGame:verifyData:*",
+        "db": 1
+      },
+      {
+        "pattern": "game:atg:token:*",
+        "db": 1
+      }
+    ]
+  },
+  "mongoProbe": {
+    "pattern": "httplog_*"
+  },
+  "normalizers": []
+}

@@ -36,6 +36,10 @@ export class LegacyActionAdapter {
     if (baseUrl.replace(/\/+$/, "") !== localLegacyUrl) {
       throw new Error(`Legacy action requires the local recording target ${localLegacyUrl}; got ${baseUrl}`);
     }
+    if (action.name === "serviceIssue.create") {
+      await executeServiceIssue(action.parameters, baseUrl, dbBefore);
+      return;
+    }
     if (action.name !== "platformGameType.setActive") {
       throw new Error(`Legacy target does not support action ${action.name}`);
     }
@@ -121,6 +125,87 @@ export class LegacyActionAdapter {
       throw new Error(`Legacy internal action failed with HTTP ${actionResponse.status}`);
     }
   }
+}
+
+async function executeServiceIssue(
+  parameters: { categoryId: number; actor: "newVisitor" | "existingIssue" },
+  baseUrl: string,
+  dbBefore: Readonly<Record<string, unknown>>,
+): Promise<void> {
+  const issues = dbBefore.service_issues;
+  const guests = dbBefore.user_guests;
+  if (!Array.isArray(issues) || !Array.isArray(guests) ||
+    (parameters.actor === "existingIssue" &&
+      (!guests.some((row) => row?.account === "synthetic_guest_existing_issue") ||
+       !issues.some((row) => row?.issueable_id === 1 && row?.issueable_type === "App\\Models\\UserGuest")))) {
+    throw new Error("Service issue action requires service_issues and user_guests before probes with the matching existing guest issue");
+  }
+
+  const cookies = new Map<string, string>();
+  const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
+    const headers = new Headers(init.headers);
+    headers.set("Host", "cmghub.test");
+    headers.set("Accept", "application/json");
+    if (cookies.size) headers.set("Cookie", [...cookies].map(([name, value]) => `${name}=${value}`).join("; "));
+    const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), { ...init, headers, redirect: "manual" });
+    for (const header of response.headers.getSetCookie()) {
+      const pair = header.split(";", 1)[0];
+      const equal = pair.indexOf("=");
+      if (equal > 0) cookies.set(pair.slice(0, equal), pair.slice(equal + 1));
+    }
+    return response;
+  };
+
+  const history = await request("/service/issue/history");
+  if (history.status !== 200) throw new Error(`Legacy service issue session setup failed with HTTP ${history.status}`);
+  const xsrf = cookies.get("XSRF-TOKEN");
+  if (!xsrf) throw new Error("Legacy service issue session did not provide a CSRF cookie");
+  if (parameters.actor === "existingIssue") {
+    const sessionCookie = [...cookies].find(([name]) => name !== "XSRF-TOKEN");
+    if (!sessionCookie) throw new Error("Legacy service issue session cookie missing");
+    await attachExistingGuest(sessionCookie[0], sessionCookie[1]);
+  }
+
+  const response = await request("/service/issue/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-XSRF-TOKEN": decodeURIComponent(xsrf),
+    },
+    body: new URLSearchParams({ type: String(parameters.categoryId) }).toString(),
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 500 && body?.exception === "Error" &&
+      body?.message === "Call to undefined method App\\Services\\UserService::whenVisitorCreateGuestOrReturnUser()" &&
+      body?.file === "/var/www/html/app/Http/Controllers/Service/IssueController.php" && body?.line === 55) {
+    return;
+  }
+  throw new Error(`Legacy service issue action reached an unexpected outcome (HTTP ${response.status})`);
+}
+
+async function attachExistingGuest(cookieName: string, cookieValue: string): Promise<void> {
+  // Use Laravel's own cookie/session services to bind the seeded guest to the
+  // browser session. No test-only route or change to pinned Legacy is needed.
+  const script = `require "/var/www/html/vendor/autoload.php";
+$app = require "/var/www/html/bootstrap/app.php";
+$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$name = getenv("ISSUE_SESSION_NAME");
+if ($name !== config("session.cookie")) { throw new Exception("Session cookie name mismatch"); }
+$plain = Illuminate\\Support\\Facades\\Crypt::decryptString(urldecode(getenv("ISSUE_SESSION_COOKIE")));
+$id = Illuminate\\Cookie\\CookieValuePrefix::validate($name, $plain, app("encrypter")->getKey());
+if (!$id) { throw new Exception("Invalid session cookie"); }
+$session = app("session")->driver();
+$session->setId($id);
+$session->start();
+$session->put("user_guest", "synthetic_guest_existing_issue");
+$session->save();`;
+  const proc = Bun.spawn(["docker", "compose", "exec", "-T", "-e", `ISSUE_SESSION_NAME=${cookieName}`,
+    "-e", `ISSUE_SESSION_COOKIE=${cookieValue}`, "legacy-app", "php", "-r", script], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdout: "pipe", stderr: "pipe", timeout: 60000,
+  });
+  const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
+  if (code !== 0) throw new Error(`Could not bind seeded guest to Legacy session: ${stderr}`);
 }
 
 function isGameTypeMapping(row: unknown, platformId: number): row is GameTypeMapping {

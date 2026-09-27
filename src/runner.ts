@@ -454,9 +454,9 @@ export class ContractRunner {
         before: dbBefore,
         after: dbAfter,
       },
-      // An empty call list is still a contract: future provider calls must
-      // differ from a route that made none during recording.
-      layer3_outboundCalls: { calls: outboundCalls },
+      // Internal actions contract DB and shared-resource state only. Undefined
+      // provider calls still fail through the stub's unmatched-call check.
+      layer3_outboundCalls: scenario.action ? undefined : { calls: outboundCalls },
       layer4_sharedResources: hasRedis || hasMongo
         ? {
             redis: hasRedis ? {
