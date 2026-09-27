@@ -1,4 +1,5 @@
 import type { Fixture, ScenarioDefinition } from "../schema/scenario";
+import { V1_SCENARIO_BUSINESS_RULES } from "./v1ScenarioBusinessRules";
 
 // The route inventory and primary capabilities are independent of the matrix under test.
 // Source: HubRefactoring docs/legacy-baseline/evidence/crosscut.md §0.1 and
@@ -157,6 +158,7 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
   if (scenarioById.size !== scenarios.length) errors.push("duplicate scenario IDs");
   if (fixtureById.size !== fixtures.length) errors.push("duplicate fixture scenario IDs");
   const mapped = new Map<string, string>();
+  const expectedScenarioRules = V1_SCENARIO_BUSINESS_RULES as Record<string, readonly string[]>;
   for (const [key, route] of routes) {
     for (const entry of route.scenarios ?? []) {
       const prefix = `${key} / ${entry.id}`;
@@ -191,6 +193,17 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
         if (!VALID_BR.has(br)) errors.push(`${prefix}: invalid business rule ${br}`);
         else if (!applicableBR.has(br)) errors.push(`${prefix}: business rule ${br} does not apply to route`);
       }
+      const expectedBR = expectedScenarioRules[entry.id];
+      if (!expectedBR) errors.push(`${prefix}: missing reviewed scenario business rules`);
+      else {
+        const expectedSet = new Set(expectedBR);
+        for (const br of expectedBR) {
+          if (!tagBR.includes(br)) errors.push(`${prefix}: missing expected BR tag ${br}`);
+          if (!entry.businessRules.includes(br)) errors.push(`${prefix}: missing expected matrix business rule ${br}`);
+        }
+        for (const br of tagBR) if (!expectedSet.has(br)) errors.push(`${prefix}: unexpected BR tag ${br}`);
+        for (const br of entry.businessRules) if (!expectedSet.has(br)) errors.push(`${prefix}: unexpected matrix business rule ${br}`);
+      }
       if (entry.businessRules.every((br) => br === "BR-01") && entry.noNumberedRule !== true) {
         errors.push(`${prefix}: missing route-specific BR or explicit noNumberedRule`);
       }
@@ -217,6 +230,9 @@ export function validateV1Traceability({ matrix, scenarios, fixtures }: Traceabi
       if (mapped.get(scenario.id) !== key) errors.push(`${scenario.id}: missing matrix mapping for ${key}`);
       if (!fixtureById.has(scenario.id)) errors.push(`${scenario.id}: fixture missing`);
     }
+  }
+  for (const id of Object.keys(expectedScenarioRules)) {
+    if (!mapped.has(id)) errors.push(`${id}: reviewed scenario missing matrix mapping`);
   }
   for (const fixture of fixtures) {
     const scenario = scenarioById.get(fixture.scenarioId);
