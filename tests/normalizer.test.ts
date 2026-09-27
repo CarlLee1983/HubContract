@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { applyNormalizers, getDotPath, setDotPath } from "../src/normalizer/normalizer";
 import { compareRedisState } from "../src/comparator/comparator";
+import { compareDbState } from "../src/comparator/comparator";
+import { NormalizerRuleSchema } from "../src/schema/scenario";
 
 describe("Normalizer", () => {
   it("should get and set dot path values correctly", () => {
@@ -105,6 +107,41 @@ describe("Normalizer", () => {
       expect(diffs.some((d) => d.path === "after.redis.platform-maintenance:v1:cq9.value.set_at")).toBe(
         true
       );
+    });
+  });
+
+  describe("recent SQL DATETIME", () => {
+    const rule = NormalizerRuleSchema.parse({
+      target: "db.after.service_issues.0.closed_at",
+      type: "recent_sql_datetime",
+      timezoneOffsetMinutes: 480,
+      maxSkewSeconds: 30,
+      replacement: "<RECENT_SQL_DATETIME>",
+    });
+    const window = {
+      startMs: Date.parse("2026-09-27T04:00:00Z"),
+      endMs: Date.parse("2026-09-27T04:00:05Z"),
+    };
+    const capture = (closedAt: unknown) => ({ db: { after: { service_issues: [{ closed_at: closedAt }] } } });
+
+    it("requires a declared offset and skew, then normalizes only a recent valid SQL datetime", () => {
+      expect(NormalizerRuleSchema.safeParse({ target: rule.target, type: rule.type }).success).toBe(false);
+      const input = capture("2026-09-27 12:00:02");
+      expect(applyNormalizers(input, [rule], { executionWindow: window }).db.after.service_issues[0].closed_at)
+        .toBe("<RECENT_SQL_DATETIME>");
+      expect(input.db.after.service_issues[0].closed_at).toBe("2026-09-27 12:00:02");
+      expect(applyNormalizers(capture(null), [rule], { executionWindow: window }).db.after.service_issues[0].closed_at)
+        .toBeNull();
+    });
+
+    it("leaves stale, malformed, and non-SQL values at the field path for diff reporting", () => {
+      const expected = { service_issues: [{ closed_at: "<RECENT_SQL_DATETIME>" }] };
+      for (const invalid of ["2026-09-26 12:00:02", "2026-02-30 12:00:02", "2026-09-27T12:00:02+08:00", 123]) {
+        const actual = applyNormalizers(capture(invalid), [rule], { executionWindow: window }).db.after;
+        expect(compareDbState(actual, expected)).toContainEqual(expect.objectContaining({
+          layer: "db_state", path: "after.service_issues.0.closed_at", expected: "<RECENT_SQL_DATETIME>", actual: invalid,
+        }));
+      }
     });
   });
 });

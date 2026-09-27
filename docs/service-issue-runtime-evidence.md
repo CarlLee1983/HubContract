@@ -16,6 +16,8 @@ The pinned `IssueController::store()` calls that method before
 each actor twice, verifies the fixture, and detects a missing `service_issues`
 row. It observed identical before and after DB probes for `service_issues`,
 `user_guests`, and `activity_log`, and no new `httplog_*` documents.
+The service issue scenarios apply their declared setup after reset and before
+the first probe, preserving this baseline alongside the chatroom seed.
 
 To reproduce in an isolated worktree with its own `.env` ports and Compose
 project, start `./scripts/env-up.sh`, then run
@@ -27,10 +29,17 @@ temporary command from the HubContract root after starting that environment:
 bun -e '
 import { LegacyTargetAdapter } from "./src/target/legacyAdapter.ts";
 import { resetEnvironment } from "./src/env/reset.ts";
+import { MariaDbProbe } from "./src/probe/dbProbe.ts";
+import { ScenarioDefinitionSchema } from "./src/schema/scenario.ts";
 import { config } from "./src/config.ts";
 const nativeFetch = globalThis.fetch;
 for (const actor of ["newVisitor", "existingIssue"] as const) {
   await resetEnvironment();
+  const scenario = ScenarioDefinitionSchema.parse(await Bun.file(`scenarios/internal/service-issue-${actor === "newVisitor" ? "new-visitor" : "existing-issue"}.json`).json());
+  const probe = new MariaDbProbe();
+  await probe.setup(scenario.setup!.statements);
+  const before = await probe.capture(scenario.dbProbe);
+  await probe.close();
   let diagnostic: Record<string, unknown> | undefined;
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const response = await nativeFetch(input, init);
@@ -45,13 +54,9 @@ for (const actor of ["newVisitor", "existingIssue"] as const) {
       };
     }
     return response;
-  }) as typeof fetch;
-  const before = actor === "existingIssue"
-    ? { service_issues: [{ issueable_id: 1, issueable_type: "App\\Models\\UserGuest" }],
-        user_guests: [{ account: "synthetic_guest_existing_issue" }] }
-    : { service_issues: [], user_guests: [] };
+  }) as unknown as typeof fetch;
   await new LegacyTargetAdapter().executeAction(
-    { name: "serviceIssue.create", parameters: { categoryId: 1, actor } }, config.baseUrl, before);
+    scenario.action!, config.baseUrl, before);
   console.log(JSON.stringify({ actor, diagnostic }));
 }
 globalThis.fetch = nativeFetch;

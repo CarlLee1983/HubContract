@@ -39,7 +39,7 @@ it("rejects a CSRF response before comparing an unchanged final state", async ()
     new Response("history", { status: 200, headers: { "Set-Cookie": "XSRF-TOKEN=csrf; Path=/" } }),
     new Response("expired session", { status: 419 }),
   ];
-  globalThis.fetch = (async () => replies.shift()!) as typeof fetch;
+  globalThis.fetch = (async () => replies.shift()!) as unknown as typeof fetch;
 
   await expect(new LegacyTargetAdapter().executeAction(scenarios[0].action!,
     `http://localhost:${config.legacyPort}`, { service_issues: [], user_guests: [] }))

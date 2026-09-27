@@ -13,6 +13,13 @@
     "service-issue",
     "internal"
   ],
+  "setup": {
+    "statements": [
+      { "name": "removeChatroomGuestIssue", "sql": "DELETE FROM service_issues WHERE id = ?", "params": [2] },
+      { "name": "bindExistingGuestIssue", "sql": "UPDATE service_issues SET issueable_type = ? WHERE id = ?", "params": ["App\\Models\\UserGuest", 1] },
+      { "name": "nameExistingGuest", "sql": "UPDATE user_guests SET account = ? WHERE id = ?", "params": ["synthetic_guest_existing_issue", 1] }
+    ]
+  },
   "dbProbe": {
     "queries": [
       {

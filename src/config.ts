@@ -9,7 +9,7 @@ export const config = {
   baseUrl: process.env.HUBCONTRACT_BASE_URL || "http://localhost:8080",
   legacyPort: Number(process.env.LEGACY_PORT || 8080),
   /** Max time (ms) resetEnvironment() waits for scripts/env-reset.sh before killing it and failing. */
-  resetTimeoutMs: Number(process.env.HUBCONTRACT_RESET_TIMEOUT_MS || 20000),
+  resetTimeoutMs: Number(process.env.HUBCONTRACT_RESET_TIMEOUT_MS || 30000),
   db: {
     host: process.env.DB_HOST || "127.0.0.1",
     port: Number(process.env.DB_PORT || 33066),

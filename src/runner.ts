@@ -32,8 +32,8 @@ export interface RunnerOptions {
   queueDrain?: QueueDrain;
   /**
    * Base URL of the provider stub's control API (Issue #8). Required, not
-   * optional — every scenario (not just ones with a `stub`) is checked for
-   * undefined outbound calls (code review Standards #1/#2 on PR #1), so the
+   * optional — every HTTP/schedule scenario (not just ones with a `stub`) is
+   * checked for undefined outbound calls (code review Standards #1/#2 on PR #1), so the
    * stub is a load-bearing dependency of the recording environment, not an
    * opt-in one.
    */
@@ -220,7 +220,7 @@ export class ContractRunner {
   constructor(options: RunnerOptions) {
     if (!options.stubUrl) {
       // Code review Standards #1/#2 on PR #1: the stub is a required
-      // dependency of every scenario now (undefined-outbound-call detection
+      // dependency of the runner now (undefined-outbound-call detection
       // isn't opt-in), so a missing stubUrl must fail the runner outright
       // instead of silently skipping that check.
       throw new Error(
@@ -387,6 +387,7 @@ export class ContractRunner {
     await this.stubClient.loadScript(scenario.stub?.script ?? { matchers: [] });
 
     // The trigger is target-neutral; the adapter owns the concrete dispatch.
+    const executionStartedAtMs = Date.now();
     let response: CapturedRun["response"];
     let stepResponses: CapturedRun["stepResponses"];
     let redisCheckpoints: CapturedRun["redisCheckpoints"];
@@ -453,7 +454,8 @@ export class ContractRunner {
       throw error;
     }
 
-    // Layer 3: read back what the target under test actually sent to the stub
+    // Internal action fixtures omit outbound calls, but every scenario still
+    // rejects calls the provider stub did not match.
     const { requests, unmatchedCount } = await this.stubClient.getRequests();
     const unmatchedOutboundCount = unmatchedCount;
     const allowlist = scenario.stub?.outboundHeaderAllowlist ?? DEFAULT_OUTBOUND_HEADER_ALLOWLIST;
@@ -466,7 +468,10 @@ export class ContractRunner {
     }));
 
     // Layer 2: DB Probe after
-    const dbAfter = await this.dbProbe.capture(scenario.dbProbe);
+    const dbAfterRaw = await this.dbProbe.capture(scenario.dbProbe);
+    const dbAfter = applyNormalizers({ db: { after: dbAfterRaw } }, scenario.normalizers, {
+      executionWindow: { startMs: executionStartedAtMs, endMs: Date.now() },
+    }).db.after as Record<string, unknown>;
     // Layer 4: Redis Probe after
     const redisAfterRaw = await this.redisProbe.capture(scenario.redisProbe);
     const redisAfter = this.normalizeRedisCapture(redisAfterRaw, scenario);
@@ -563,7 +568,7 @@ export class ContractRunner {
     }
 
     // Compare Layer 3: Outbound Calls
-    if (golden.layer3_outboundCalls) {
+    if (!scenario.action && golden.layer3_outboundCalls) {
       differences.push(...compareOutboundCalls(outboundCalls, golden.layer3_outboundCalls.calls));
     }
 

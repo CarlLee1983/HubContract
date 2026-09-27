@@ -44,6 +44,25 @@ function deleteDotPath(obj: any, path: string): void {
 
 export interface NormalizerOptions {
   fixedTimestamp?: number;
+  executionWindow?: { startMs: number; endMs: number };
+}
+
+// mysql2's dateStrings option returns DATETIME as a timezone-free SQL string.
+// Interpret that wall time using the scenario's declared offset, then reject
+// malformed or stale values instead of hiding them behind a stable token.
+function recentSqlDatetime(value: unknown, offsetMinutes: number, window: NonNullable<NormalizerOptions["executionWindow"]>, skewSeconds: number): boolean {
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const wallTimeMs = Date.UTC(year, month - 1, day, hour, minute, second);
+  const roundTrip = new Date(wallTimeMs);
+  if (roundTrip.getUTCFullYear() !== year || roundTrip.getUTCMonth() + 1 !== month ||
+      roundTrip.getUTCDate() !== day || roundTrip.getUTCHours() !== hour ||
+      roundTrip.getUTCMinutes() !== minute || roundTrip.getUTCSeconds() !== second) return false;
+  const actualMs = wallTimeMs - offsetMinutes * 60_000;
+  const toleranceMs = skewSeconds * 1000;
+  return actualMs >= window.startMs - toleranceMs && actualMs <= window.endMs + toleranceMs;
 }
 
 /**
@@ -81,6 +100,14 @@ export function applyNormalizers(
           const strVal = String(currentVal);
           const reg = new RegExp(pattern);
           setDotPath(result, target, strVal.replace(reg, replacement ?? ""));
+        }
+        break;
+      }
+      case "recent_sql_datetime": {
+        if (currentVal === undefined || currentVal === null) break;
+        if (!options.executionWindow) throw new Error(`Normalizer ${target} requires an execution window`);
+        if (recentSqlDatetime(currentVal, rule.timezoneOffsetMinutes!, options.executionWindow, rule.maxSkewSeconds!)) {
+          setDotPath(result, target, replacement ?? "<RECENT_SQL_DATETIME>");
         }
         break;
       }

@@ -1,6 +1,7 @@
 import path from "path";
 import { MariaDbProbe, type DbConfig, type DbProbe } from "../probe/dbProbe";
 import { LegacyActionAdapter, type LegacyAdminOptions } from "./legacyAction";
+import { getGatewayClientId, prepareServiceSession } from "./legacyChatroomRuntime";
 import type { ScenarioAction } from "../schema/scenario";
 
 export interface TargetAdapter {
@@ -16,7 +17,11 @@ export class LegacyTargetAdapter extends LegacyActionAdapter implements TargetAd
   private readonly run: (argv: string[]) => Promise<void>;
 
   constructor(runOrOptions: ((argv: string[]) => Promise<void>) | LegacyAdminOptions = runCommand) {
-    super(typeof runOrOptions === "function" ? {} : runOrOptions);
+    super({
+      getGatewayClientId,
+      prepareServiceSession,
+      ...(typeof runOrOptions === "function" ? {} : runOrOptions),
+    });
     this.run = typeof runOrOptions === "function" ? runOrOptions : runCommand;
   }
 

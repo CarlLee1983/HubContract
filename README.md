@@ -62,6 +62,12 @@ bun run verify scenarios/wallet/check-transaction-deposit-hit.json
 bun run verify scenarios/internal/platform-game-type-deactivate.json --adapter legacy
 bun run record scenarios/internal/platform-game-type-deactivate.json --adapter legacy
 
+# 客服聊天室：管理員加入／結案／訊息及 service 訪客訊息
+bun run verify scenarios/internal/chatroom-admin-join.json --adapter legacy
+bun run verify scenarios/internal/chatroom-admin-close.json --adapter legacy
+bun run verify scenarios/internal/chatroom-admin-message.json --adapter legacy
+bun run verify scenarios/internal/chatroom-service-message.json --adapter legacy
+
 # 入金後等待 wallet sync／HTTP logging，並比對新增的 httplog_deposit
 bun run verify scenarios/wallet/deposit-queued-sync.json
 
@@ -83,6 +89,8 @@ bun run verify --report-json report.json
 這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
+
+客服聊天室的四個內部動作情境只宣告 issue ID 與訊息內容，Legacy adapter 將其轉成後台或 `POST /service/chatroom/messages` 的呼叫。錄製環境啟動固定 Legacy 套件的 GatewayWorker，讓 join 和訊息送出能走完原路徑。依 [HubRefactoring#43](https://github.com/CarlLee1983/HubRefactoring/issues/43) 的決策，契約記錄 provider-neutral 的 bind／join／send 語意事件；事件只證明命令已發出，不代表 client 收到，也不比對 live Gateway client/group 狀態。Recorder 與這四個動作的事件 fixture 分別由 [HubRefactoring#47](https://github.com/CarlLee1983/HubRefactoring/issues/47) 和 [HubRefactoring#50](https://github.com/CarlLee1983/HubRefactoring/issues/50) 追蹤；本批情境先覆蓋 DB 與 ADR-0013 共享資源。固定 Legacy 的 service 建立 issue handler 缺少被呼叫的方法，且凍結的 `users` 表沒有登入密碼欄位，因此合成 seed 預先建立訪客 issue；錄製專用 helper 透過 Laravel session 設定 `user_guest`，動作仍由 Legacy HTTP handler 執行。四個情境皆宣告 `service_issues_administer_map`、`service_issues`、`chat_room_messages` 與 `activity_log` 的 DB probe，Redis probe 明列沒有相關 ADR-0013 key，Mongo probe 檢查 `httplog_*` 無新增文件。`activity_log` probe 排除 adapter 登入所產生的 `last_login` 紀錄，其餘紀錄仍會被比對；結案時間用情境宣告的時區與時間容許區間驗證。
 
 `scenarios/internal/service-issue-*.json` 使用中立動作 `serviceIssue.create`，以合成 category ID 1 分別走新訪客、已有 issue 的訪客。Legacy adapter 取得 web session 和 CSRF token；已有 issue 的情境由 adapter 將合成 guest 綁到該 session。情境探查 `service_issues`、`user_guests`、`activity_log`，以及 ADR-0013 的 Redis DB 1 key pattern、Mongo `httplog_*`。固定 Legacy 的 `IssueController::store()` 在任何 DB 寫入前呼叫不存在的 `UserService::whenVisitorCreateGuestOrReturnUser()`；adapter 送出 POST 後拒絕代表 CSRF 前置條件失敗的 419，再由 DB 與共享資源 probe 觀察最終狀態；fixture 不含 HTTP 回應。成功建立 issue 與既有 issue 的重導向路徑仍未在此固定版本得到證實，需另立基準後錄製。兩種 actor 的執行路徑證據、重現方式與 419 限制見 [本機證據](docs/service-issue-runtime-evidence.md)；輸入限制見 [HubRefactoring #25](https://github.com/CarlLee1983/HubRefactoring/blob/main/docs/contract/service-issue-runtime.md)。
 
@@ -128,6 +136,7 @@ bun run verify --report-json report.json
 | `redis` | `6379` | `63799` | Redis 7.2-alpine |
 | `mongo` | `27017` | `27018` | MongoDB 6.0 (`stationhub_recording`) |
 | `mock-provider` | `8081` | `18081` | 線路／SMS 供應商 stub（Issue #8），控制 API 見下方 |
+| `gateway-worker` | `6001` | `6001`（僅本機 loopback） | 客服聊天室動作的 Legacy GatewayWorker 錄製服務 |
 | `hub-wallet-sync-worker` | — | — | 消化 `HubWalletSync` queue |
 | `http-logging-worker` | — | — | 消化 `HttpLogging` queue，寫入 Mongo `httplog_*` |
 
