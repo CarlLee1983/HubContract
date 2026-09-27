@@ -59,7 +59,7 @@
     "body": {
       "station_code": "DEMO_STATION",
       "station_home_url": "https://synthetic.example.test",
-      "game_code": "MISSING_GAME",
+      "game_code": "PG_SYNTHETIC",
       "account": "synthetic_pg_user",
       "currency": "XYZ",
       "station_lang": "en_us",

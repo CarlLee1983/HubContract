@@ -36,11 +36,16 @@ With an isolated `.env` pointing `STATIONHUB_REPO` to a local checkout whose
 bun run record scenarios/game --tag v1-only --outDir /tmp/launch-record-a
 bun run record scenarios/game --tag v1-only --outDir /tmp/launch-record-b
 bun run verify scenarios/game --tag v1-only
+HUB_CONTRACT_INTEGRATION=1 bun test tests/game-scenarios.test.ts
 ```
 
 On 2026-09-27, two independent Legacy record passes each recorded six of six
-scenarios. All six normalized fixture JSON files compared equal across
-the two passes and matched the fixtures here. Legacy `verify` passed six of six.
+scenarios with the seeded `PG_SYNTHETIC` game code in all four rejection
+requests. All six normalized fixture JSON files compared equal across the two
+passes and matched the fixtures here, so no fixture changed. Legacy `verify`
+passed six of six. The focused integration command above passed 17/17 tests
+(the six v1-only scenarios plus existing PG scenarios). The full offline
+`bun test` run passed 185 tests, skipped 182, with zero failures.
 For a negative comparison check, a temporary copy of the invalid-signature
 fixture changed `layer1_inboundResponse.body.message`; `verify` exited 1 with
 `[inbound_response] body.message` and the changed expected value. The checked-in

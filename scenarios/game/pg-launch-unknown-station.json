@@ -69,7 +69,7 @@
     "body": {
       "station_code": "UNKNOWN_STATION",
       "station_home_url": "https://synthetic.example.test",
-      "game_code": "MISSING_GAME",
+      "game_code": "PG_SYNTHETIC",
       "account": "synthetic_pg_user",
       "currency": "PHP",
       "station_lang": "en_us",
