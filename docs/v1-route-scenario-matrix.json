@@ -1970,6 +1970,46 @@
           ]
         },
         {
+          "id": "pg-launch-invalid-currency",
+          "fixtureId": "pg-launch-invalid-currency",
+          "outcome": "PG launch rejects unsupported currency",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "pg-launch-invalid-signature",
+          "fixtureId": "pg-launch-invalid-signature",
+          "outcome": "PG launch rejects invalid signature",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
           "id": "pg-launch-maintenance",
           "fixtureId": "pg-launch-maintenance",
           "outcome": "PG launch during platform maintenance — The game platform is under maintenance, please try again later",
@@ -1987,6 +2027,26 @@
             "http",
             "db",
             "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "pg-launch-missing-currency",
+          "fixtureId": "pg-launch-missing-currency",
+          "outcome": "PG launch rejects missing currency",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
             "mongo"
           ]
         },
@@ -2032,6 +2092,34 @@
           ]
         },
         {
+          "id": "pg-launch-recall",
+          "fixtureId": "pg-launch-recall",
+          "outcome": "PG launch recalls and injects PHP funds",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80",
+            "BR-40",
+            "BR-41",
+            "BR-42",
+            "BR-44"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
           "id": "pg-launch-recall-failure",
           "fixtureId": "pg-launch-recall-failure",
           "outcome": "PG recall fails but injection continues",
@@ -2060,9 +2148,9 @@
           ]
         },
         {
-          "id": "pg-launch-recall",
-          "fixtureId": "pg-launch-recall",
-          "outcome": "PG launch recalls and injects PHP funds",
+          "id": "pg-launch-recall-v1",
+          "fixtureId": "pg-launch-recall-v1",
+          "outcome": "PG launch recalls and injects funds without callback",
           "cases": [
             "success",
             "business"
@@ -2086,23 +2174,52 @@
             "redis",
             "mongo"
           ]
-        }
-      ],
-      "coverageGaps": [
-        {
-          "case": "validation",
-          "issue": "CarlLee1983/HubRefactoring#51"
         },
         {
-          "case": "signature",
-          "issue": "CarlLee1983/HubRefactoring#51"
+          "id": "pg-launch-success-v1",
+          "fixtureId": "pg-launch-success-v1",
+          "outcome": "PG launch succeeds without callback",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
         },
         {
-          "case": "unknown-station",
-          "issue": "CarlLee1983/HubRefactoring#51"
+          "id": "pg-launch-unknown-station",
+          "fixtureId": "pg-launch-unknown-station",
+          "outcome": "PG launch rejects unknown Station",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
         }
       ],
-      "notes": "Validation, signature, and unknown-Station fixtures remain pending HubRefactoring#51."
+      "notes": "Six isolated v1 launch scenarios cover validation, signature, unknown-Station, success, and recall without PG callback."
     },
     {
       "method": "GET",

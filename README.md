@@ -90,7 +90,7 @@ bun run verify --report-json report.json
 
 Game 與 Player 情境另以精確集合名稱觀察 Legacy 的出站 HTTP log：PG 啟動會依流程寫入 `httplog_create_account`、`httplog_deposit`、`httplog_launch_game`；餘額回收可另寫入 `httplog_find_account`、`httplog_withdraw`。SBO Player 查詢與餘額同步寫入 `httplog_find_account`；沒有發出供應商請求的早期拒絕情境明列空集合。Runner 在 Mongo 探查前等待 `HubWalletSync` 和 `HttpLogging` queue 清空。Mongo fixture 的日期與敏感供應商密碼以欄位遮罩；PG trace、一次性令牌、轉帳參考號與客戶 IP 以每次執行首次出現的符號取代，同一原值在出站呼叫與 Mongo log 必須得到同一符號。轉帳參考號先驗證 `^RE[0-9]{18}$`，因此空值、格式錯誤、兩筆轉帳重複參考號或 log 與 request 不一致皆無法通過。固定合成 PG 憑證與請求方法、路徑、業務參數、供應商回應、錯誤分類仍參與逐欄位比對。
 
-這 39 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
+這 45 個情境的整合測試在每次重置後先 `record` 並比對 golden fixture，再重置並 `verify`；遊戲目錄與匯率列表另各做兩次重置錄製，檢查結果可重現。Redis gate 的 TTL 允許情境宣告的秒數誤差。新增或修改情境時仍需在本機 Legacy 環境重新錄製 fixture，並執行整合測試。
 
 內部動作 fixture 只記錄 DB 與共享資源，不記錄後台 HTTP 回應。此情境比對 `platforms`、`platform_game_type_map`、`activity_log` 及宣告的 Redis key；`platform_game_type_map` 的前置查詢必須列出該 Platform 的**全部**關聯，Legacy adapter 才能在 `sync` 時保留未切換的 Game Type。目前固定 Legacy schema 沒有 `games.platform_id`／`games.authorized`，因此不以切換 `platforms.active` 作為錄製動作。後台登入使用公開合成種子的 `super` 管理員；Legacy HTTP 埠只綁定本機 loopback。
 

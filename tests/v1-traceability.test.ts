@@ -140,11 +140,11 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("fixtureId must identify existing fixture");
   });
 
-  it("accepts an explicitly tracked missing case but rejects an untracked one", async () => {
+  it("rejects removal of a required launch signature case", async () => {
     const input = await checkedInInput();
     const launch = input.matrix.routes.find((route) => route.path === "/v1/games/launch")!;
     expect(validateV1Traceability(input)).toEqual([]);
-    launch.coverageGaps = launch.coverageGaps?.filter((gap) => gap.case !== "signature");
+    launch.scenarios = launch.scenarios.filter((entry) => entry.id !== "pg-launch-invalid-signature");
     expect(validateV1Traceability(input).join("\n")).toContain("missing required signature case");
   });
 });

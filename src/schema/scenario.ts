@@ -216,7 +216,7 @@ const ScenarioDefinitionBaseSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   route: HttpRouteSchema.optional(),
-  steps: z.array(HttpStepSchema).min(2).optional(),
+  steps: z.array(HttpStepSchema).min(1).optional(),
   trigger: z.object({ kind: z.literal("schedule"), name: z.string().min(1) }).optional(),
   action: ScenarioActionSchema.optional(),
   // Issue #12: free-form labels for --tag filtering (e.g. "wallet", "pilot",

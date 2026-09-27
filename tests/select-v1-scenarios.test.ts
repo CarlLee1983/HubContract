@@ -72,7 +72,7 @@ it("selects the checked-in matrix without modifying source scenarios", async () 
   expect(result.count).toBe(matrix.routes.flatMap((route: { scenarios: unknown[] }) => route.scenarios).length - result.excludedIds.length);
   expect(result.excludedIds).toEqual([
     "pg-callback-auth-rejected", "pg-callback-expired", "pg-callback-wrong-ops", "pg-launch-callback",
-    "pg-launch-recall-failure", "pg-launch-recall",
+    "pg-launch-recall", "pg-launch-recall-failure",
   ]);
   expect((await fs.readdir(output)).length).toBe(result.count);
 });
