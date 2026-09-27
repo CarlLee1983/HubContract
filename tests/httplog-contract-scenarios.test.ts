@@ -18,12 +18,13 @@ describe("v1 provider HTTP log contracts", () => {
     it(`${family} records exactly the selected collections and early rejection absences`, async () => {
       const filenames = (await fs.readdir(path.join(root, "scenarios", family)))
         .filter((filename) => family !== "sms" || /^(amount|send)-/.test(filename));
-      expect(filenames).toHaveLength({ game: 9, player: 20, sms: 17 }[family]);
+      expect(filenames).toHaveLength({ game: 9, player: 20, sms: 17 }[family]!);
       for (const filename of filenames) {
         const scenario = ScenarioDefinitionSchema.parse(JSON.parse(
           await fs.readFile(path.join(root, "scenarios", family, filename), "utf8")
         ));
         expect(scenario.mongoProbe).toBeDefined();
+        const mongoProbe = scenario.mongoProbe!;
 
         const outboundPaths = scenario.stub?.script.matchers.map((matcher) => matcher.path) ?? [];
         const expectedCollections = family === "game"
@@ -33,14 +34,14 @@ describe("v1 provider HTTP log contracts", () => {
           : family === "player"
             ? [filename.includes("create-") ? "httplog_create_account" : "httplog_find_account"]
             : [filename.startsWith("amount-") ? "httplog_sms_amount" : "httplog_sms_send"];
-        expect([...scenario.mongoProbe.collections!].sort()).toEqual(expectedCollections);
+        expect([...mongoProbe.collections!].sort()).toEqual(expectedCollections);
 
         const fixture = FixtureSchema.parse(JSON.parse(
           await fs.readFile(path.join(root, "fixtures", `${scenario.id}.fixture.json`), "utf8")
         ));
         const documents = fixture.layer4_sharedResources?.mongo?.newDocuments;
         expect(documents).toBeDefined();
-        expect(Object.keys(documents!).sort()).toEqual([...scenario.mongoProbe.collections!].sort());
+        expect(Object.keys(documents!).sort()).toEqual([...mongoProbe.collections!].sort());
 
         const expectedCounts = Object.fromEntries(expectedCollections.map((collection) => [collection, 0]));
         for (const outboundPath of outboundPaths) {

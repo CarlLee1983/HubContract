@@ -28,7 +28,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -47,7 +48,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -66,7 +68,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -82,7 +85,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -98,7 +103,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -114,7 +121,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         }
       ]
@@ -144,7 +153,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -162,7 +173,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -180,7 +192,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -198,7 +211,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -214,7 +228,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -230,7 +246,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -246,7 +264,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         }
       ]
@@ -277,7 +297,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -295,7 +317,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -313,7 +337,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -331,7 +357,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -347,7 +375,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -363,7 +393,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -379,7 +411,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         }
       ]
@@ -1860,7 +1894,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         },
         {
@@ -1883,7 +1918,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         },
         {
@@ -1906,7 +1942,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         },
         {
@@ -1928,7 +1965,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         },
         {
@@ -1948,7 +1986,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -1967,7 +2006,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -1987,7 +2027,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2014,7 +2055,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         },
         {
@@ -2041,7 +2083,8 @@
             "http",
             "db",
             "outbound",
-            "redis"
+            "redis",
+            "mongo"
           ]
         }
       ],
@@ -2573,7 +2616,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2590,7 +2634,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2607,7 +2653,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2624,7 +2672,9 @@
           "noNumberedRule": false,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2640,7 +2690,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2656,7 +2708,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2672,7 +2726,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2688,7 +2744,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         }
       ],
@@ -2720,7 +2778,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2737,7 +2796,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2754,7 +2814,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2771,7 +2832,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2788,7 +2850,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2804,7 +2867,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2821,7 +2886,8 @@
           "layers": [
             "http",
             "db",
-            "outbound"
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2837,7 +2903,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         },
         {
@@ -2853,7 +2921,9 @@
           "noNumberedRule": true,
           "layers": [
             "http",
-            "db"
+            "db",
+            "outbound",
+            "mongo"
           ]
         }
       ]
