@@ -140,5 +140,45 @@
         }
       }
     ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_sms_send": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-sms-send:synthetic-send-asmsc:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "GET",
+              "request": [],
+              "response": [
+                {
+                  "sender_id": "SYNTHETIC"
+                }
+              ],
+              "uri": "http://mock-provider:8081/api/GetSenderIDList?api_id=synthetic_api_id&api_password=<API_PASSWORD>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "Synthetic Send Asmsc",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
   }
 }

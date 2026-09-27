@@ -88,5 +88,48 @@
         }
       }
     ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_find_account": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-findAccount:sbo:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "116"
+                ],
+                "Content-Type": [
+                  "application/json"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "CompanyKey": "synthetic_company_key",
+                "ServerId": "synthetic-server-01",
+                "Username": "synthetic_user_01DEMO_STATIONp3"
+              },
+              "response": [],
+              "uri": "http://mock-provider:8081/web-root/restricted/player/get-player-balance.aspx"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "sbo",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
   }
 }

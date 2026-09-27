@@ -52,6 +52,7 @@
       }
     ]
   },
+  "mongoProbe": { "collections": ["httplog_create_account"] },
   "normalizers": [
     {
       "target": "request.body.timestamp",
@@ -66,6 +67,8 @@
       "target": "response.body.trace",
       "type": "mask",
       "replacement": "<MASKED_TRACE>"
-    }
+    },
+    {"target": "mongo.httplog_create_account.0.datetime", "type": "mask", "replacement": "<DATETIME>"},
+    {"target": "mongo.httplog_create_account.0.context.datetime", "type": "mask", "replacement": "<DATETIME>"}
   ]
 }

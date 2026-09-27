@@ -202,5 +202,184 @@
         }
       }
     ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_deposit": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-deposit:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "188"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "amount": "120.00",
+                "currency": "PHP",
+                "operator_token": "<OPERATOR_TOKEN>",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "<SECRET_KEY>",
+                "transfer_reference": "<TRANSFER_REFERENCE>"
+              },
+              "response": {
+                "data": {
+                  "balanceAmount": 120
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferIn?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_find_account": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-findAccount:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "121"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "operator_token": "<OPERATOR_TOKEN>",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "<SECRET_KEY>"
+              },
+              "response": {
+                "data": {
+                  "cashBalance": 20,
+                  "currencyCode": "PHP",
+                  "freeGameBalance": 0
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/GetPlayerWallet?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_launch_game": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-launchGame:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "182"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "client_ip": "<CLIENT_IP>",
+                "extra_args": "btt=1&ops=<PG_OPS>&l=en",
+                "operator_token": "<OPERATOR_TOKEN>",
+                "path": "/game/index.html",
+                "url_type": "game-entry"
+              },
+              "response": "<!doctype html><html><body>synthetic PG launcher</body></html>",
+              "uri": "http://mock-provider:8081/external-game-launcher/api/v1/GetLaunchURLHTML?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_withdraw": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-withdraw:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "187"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "amount": "20.00",
+                "currency": "PHP",
+                "operator_token": "<OPERATOR_TOKEN>",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "<SECRET_KEY>",
+                "transfer_reference": "<TRANSFER_REFERENCE>"
+              },
+              "response": {
+                "data": {
+                  "balanceAmount": 0
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferOut?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
   }
 }
