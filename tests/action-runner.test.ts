@@ -49,6 +49,7 @@ describe("internal action scenarios", () => {
       const fixture = await runner.record(actionScenario);
       expect(calls).toEqual(["platformGameType.setActive:7:http://target:other_recording"]);
       expect(fixture.layer1_inboundResponse).toBeUndefined();
+      expect(fixture.layer3_outboundCalls).toBeUndefined();
       expect(fixture.layer2_dbState).toEqual({
         before: { platform: [{ active: 0 }] },
         after: { platform: [{ active: 1 }] },

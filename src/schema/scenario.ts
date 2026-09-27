@@ -149,7 +149,7 @@ export type StubRequestRecord = z.infer<typeof StubRequestRecordSchema>;
 /**
  * Scenario definition schema (input for record & verify)
  */
-export const ScenarioActionSchema = z.object({
+const PlatformGameTypeActionSchema = z.object({
   name: z.literal("platformGameType.setActive"),
   parameters: z.object({
     platformId: z.number(),
@@ -158,6 +158,14 @@ export const ScenarioActionSchema = z.object({
     active: z.boolean(),
   }),
 });
+const ServiceIssueActionSchema = z.object({
+  name: z.literal("serviceIssue.create"),
+  parameters: z.object({
+    categoryId: z.number().int().positive(),
+    actor: z.enum(["newVisitor", "existingIssue"]),
+  }),
+});
+export const ScenarioActionSchema = z.discriminatedUnion("name", [PlatformGameTypeActionSchema, ServiceIssueActionSchema]);
 export type ScenarioAction = z.infer<typeof ScenarioActionSchema>;
 
 const HttpRouteSchema = z.object({ method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]), path: z.string().startsWith("/") });
