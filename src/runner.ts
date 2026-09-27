@@ -1,4 +1,4 @@
-import { assertFixtureMatchesScenario, type ScenarioDefinition, type ScenarioPreconditions, type Fixture } from "./schema/scenario";
+import { assertFixtureMatchesScenario, type ScenarioDefinition, type ScenarioPreconditions, type Fixture, type HttpStep } from "./schema/scenario";
 import { signRequest, normalizeRequestInputs, toPhpString } from "./signer/signature";
 import { applyNormalizers } from "./normalizer/normalizer";
 import { MariaDbProbe, type DbConfig } from "./probe/dbProbe";
@@ -15,6 +15,7 @@ import {
   compareOutboundCalls,
   compareRedisState,
   compareMongoDocuments,
+  compareDiff,
   type Difference,
 } from "./comparator/comparator";
 
@@ -61,6 +62,24 @@ export interface BuiltHttpRequest {
   headers: Record<string, string>;
   body?: string;
   requestData: unknown;
+}
+
+/** Build the request boundary for one HTTP step; scenario-wide rules still normalize captures. */
+export function httpStepScenario(scenario: ScenarioDefinition, step: HttpStep, pgOps?: string): ScenarioDefinition {
+  const request = step.pgOpsFromLaunch
+    ? { ...step.request, body: { ...step.request.body, operator_player_session: pgOps } }
+    : step.request;
+  return {
+    ...scenario,
+    route: step.route,
+    request,
+    steps: undefined,
+    // A request normalizer for launch must never create a field in callback.
+    normalizers: [
+      ...scenario.normalizers.filter((rule) => !rule.target.startsWith("request.")),
+      ...(step.normalizers ?? []),
+    ],
+  };
 }
 
 /**
@@ -158,6 +177,8 @@ interface CapturedRun {
     headers: Record<string, string>;
     body: unknown;
   };
+  stepResponses?: Array<{ id: string; statusCode: number; statusText: string; headers: Record<string, string>; body: unknown }>;
+  redisCheckpoints?: Record<string, RedisCapture>;
   dbAfter: Record<string, unknown>;
   redisAfter: RedisCapture;
   outboundCalls: StubRequestRecord[];
@@ -367,11 +388,48 @@ export class ContractRunner {
 
     // The trigger is target-neutral; the adapter owns the concrete dispatch.
     let response: CapturedRun["response"];
+    let stepResponses: CapturedRun["stepResponses"];
+    let redisCheckpoints: CapturedRun["redisCheckpoints"];
     try {
       if (scenario.action) {
         await this.targetAdapter!.executeAction!(scenario.action, this.baseUrl, dbBefore, this.dbConfig);
       } else if (scenario.trigger) {
         await this.targetAdapter!.triggerSchedule!(scenario.trigger.name);
+      } else if (scenario.steps) {
+        stepResponses = [];
+        redisCheckpoints = {};
+        let pgOps: string | undefined;
+        for (const step of scenario.steps) {
+          if (step.pgOpsFromLaunch && !pgOps) throw new Error(`Step ${step.id} requires a preceding PG launch ops`);
+          if (step.expirePgOpsBeforeRequest) {
+            if (!pgOps) throw new Error(`Step ${step.id} cannot expire PG ops before launch`);
+            await this.redisProbe.expirePgOps(pgOps);
+          }
+          const stepScenario = httpStepScenario(scenario, step, pgOps);
+          const result = (await this.executeRequest(stepScenario)).response;
+          stepResponses.push({ id: step.id, ...result, headers: { "content-type": result.headers["content-type"] || "application/json" } });
+          if (step.redisCheckpoint || scenario.steps.some((later) => later.pgOpsFromLaunch)) {
+            const calls = (await this.stubClient.getRequests()).requests;
+            const launch = calls.find((call) => call.path.endsWith("/GetLaunchURLHTML"));
+            if (launch && typeof launch.body === "object" && launch.body !== null) {
+              const extraArgs = (launch.body as Record<string, unknown>).extra_args;
+              if (typeof extraArgs === "string") pgOps = new URLSearchParams(extraArgs).get("ops") || undefined;
+            }
+          }
+          if (step.redisCheckpoint) {
+            if (!pgOps) throw new Error(`Step ${step.id} did not issue PG ops`);
+            const raw = await this.redisProbe.capture(step.redisCheckpoint);
+            const canonical: RedisCapture = {};
+            for (const [key, record] of Object.entries(raw)) {
+              const normalizedKey = key.replace(pgOps, "<PG_OPS>");
+              const value = record?.value && typeof record.value === "object"
+                ? { ...record.value, ops: record.value.ops === pgOps ? "<PG_OPS>" : record.value.ops }
+                : record?.value;
+              canonical[normalizedKey] = record ? { ...record, key: normalizedKey, value } : null;
+            }
+            redisCheckpoints[step.id] = canonical;
+          }
+        }
       } else {
         response = (await this.executeRequest(scenario)).response;
       }
@@ -417,14 +475,14 @@ export class ContractRunner {
       fixedTimestamp: this.fixedTimestamp,
     }).mongo as Record<string, Record<string, unknown>[]>;
 
-    return { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };
+    return { dbBefore, redisBefore, mongoNewDocuments, response, stepResponses, redisCheckpoints, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount };
   }
 
   /**
    * RECORD mode: Runs scenario against target, captures all layers, returns golden Fixture
    */
   async record(scenario: ScenarioDefinition): Promise<Fixture> {
-    const { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+    const { dbBefore, redisBefore, mongoNewDocuments, response, stepResponses, redisCheckpoints, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
       await this.captureRun(scenario);
 
     // Issue #8/Story 17: a golden fixture must never encode "Legacy hit an
@@ -450,6 +508,13 @@ export class ContractRunner {
         },
         body: response.body,
       } : undefined,
+      stepResponses,
+      redisCheckpoints: redisCheckpoints && scenario.steps
+        ? Object.fromEntries(scenario.steps.filter((step) => step.redisCheckpoint).map((step) => [
+            step.id,
+            this.canonicalizeRecordedRedisTtl(redisCheckpoints![step.id] ?? {}, { ...scenario, redisProbe: step.redisCheckpoint }),
+          ]))
+        : undefined,
       layer2_dbState: {
         before: dbBefore,
         after: dbAfter,
@@ -480,7 +545,7 @@ export class ContractRunner {
     assertFixtureMatchesScenario(scenario, golden);
     const differences: Difference[] = [];
 
-    const { dbBefore, redisBefore, mongoNewDocuments, response, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
+    const { dbBefore, redisBefore, mongoNewDocuments, response, stepResponses, redisCheckpoints, dbAfter, redisAfter, outboundCalls, unmatchedOutboundCount } =
       await this.captureRun(scenario);
 
     // Issue #8/Story 17: an outbound call the stub script doesn't define a
@@ -513,6 +578,17 @@ export class ContractRunner {
       ));
     } else if (Boolean(response) !== Boolean(golden.layer1_inboundResponse)) {
       differences.push({ layer: "inbound_response", path: "presence", expected: Boolean(golden.layer1_inboundResponse), actual: Boolean(response) });
+    }
+    if (scenario.steps) {
+      // Keep the same observable HTTP contract as single-request scenarios:
+      // status and body, not transport-specific status text or headers.
+      const responseContract = (items: typeof stepResponses) => items?.map(({ id, statusCode, body }) => ({ id, statusCode, body }));
+      differences.push(...compareDiff(responseContract(stepResponses), responseContract(golden.stepResponses), "steps", "inbound_response"));
+      for (const step of scenario.steps) {
+        if (step.redisCheckpoint) {
+          differences.push(...compareRedisState(redisCheckpoints?.[step.id] ?? {}, golden.redisCheckpoints?.[step.id] ?? {}, `checkpoint:${step.id}`));
+        }
+      }
     }
 
     // Compare Layer 2: DB State (before & after)

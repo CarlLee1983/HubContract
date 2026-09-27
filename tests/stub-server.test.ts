@@ -55,6 +55,21 @@ describe("Provider stub HTTP transport (Issue #8)", () => {
     ]);
   });
 
+  it("returns PG launcher HTML verbatim", async () => {
+    await fetch(`${baseUrl}/__stub/reset`, { method: "POST" });
+    await fetch(`${baseUrl}/__stub/script`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ matchers: [{
+        method: "POST", path: "/external-game-launcher/api/v1/GetLaunchURLHTML",
+        response: { rawBody: "<html>launcher</html>" },
+      }] }),
+    });
+    const res = await fetch(`${baseUrl}/external-game-launcher/api/v1/GetLaunchURLHTML`, { method: "POST" });
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(await res.text()).toBe("<html>launcher</html>");
+  });
+
   it("returns 400 with issues when the script fails schema validation", async () => {
     const res = await fetch(`${baseUrl}/__stub/script`, {
       method: "PUT",

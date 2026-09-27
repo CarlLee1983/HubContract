@@ -25,7 +25,9 @@ export function filterScenarios(
   const { routes, tags } = criteria;
 
   return scenarios.filter((scenario) => {
-    const matchesRoute = !routes || routes.length === 0 || (scenario.route ? routes.includes(scenario.route.path) : false);
+    const matchesRoute = !routes || routes.length === 0 ||
+      (scenario.route ? routes.includes(scenario.route.path) : false) ||
+      (scenario.steps?.some((step) => routes.includes(step.route.path)) ?? false);
     const matchesTag = !tags || tags.length === 0 || scenario.tags.some((tag) => tags.includes(tag));
     return matchesRoute && matchesTag;
   });
