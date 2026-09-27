@@ -10,10 +10,10 @@
     "catalog",
     "companies",
     "maintenance",
+    "redis",
     "CAP-09",
     "CAP-01",
-    "BR-01",
-    "redis"
+    "BR-01"
   ],
   "request": {
     "headers": {

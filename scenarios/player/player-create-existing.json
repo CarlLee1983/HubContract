@@ -11,10 +11,10 @@
     "create",
     "existing",
     "CAP-02",
-    "BR-02",
-    "BR-03",
     "CAP-01",
-    "BR-01"
+    "BR-01",
+    "BR-02",
+    "BR-03"
   ],
   "request": {
     "headers": {

@@ -7,8 +7,15 @@
     "launch",
     "pg",
     "callback",
-    "CAP-03",
-    "wrong-ops"
+    "wrong-ops",
+    "CAP-11",
+    "CAP-13",
+    "CAP-01",
+    "BR-01",
+    "BR-50",
+    "BR-57",
+    "BR-58",
+    "BR-80"
   ],
   "steps": [
     {
