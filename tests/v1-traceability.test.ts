@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import fs from "fs/promises";
-import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import { FixtureSchema, ScenarioDefinitionSchema } from "../src/schema/scenario";
 import { listJsonFilesRecursive } from "../src/report/loadScenarios";
@@ -8,20 +7,15 @@ import { canonicalV1Route, validateV1Traceability, type V1Matrix } from "../src/
 
 const root = path.join(__dirname, "..");
 
-function jsonFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const file = path.join(dir, entry.name);
-    return entry.isDirectory() ? jsonFiles(file) : entry.name.endsWith(".json") ? [file] : [];
-  });
-}
-
-function checkedInInput() {
-  const matrix = JSON.parse(readFileSync(path.join(root, "docs/v1-route-scenario-matrix.json"), "utf8")) as V1Matrix;
-  const scenarios = jsonFiles(path.join(root, "scenarios"))
-    .map((file) => ScenarioDefinitionSchema.parse(JSON.parse(readFileSync(file, "utf8"))));
-  const fixtures = jsonFiles(path.join(root, "fixtures"))
-    .filter((file) => file.endsWith(".fixture.json"))
-    .map((file) => FixtureSchema.parse(JSON.parse(readFileSync(file, "utf8"))));
+async function checkedInInput() {
+  const matrix = JSON.parse(await fs.readFile(path.join(root, "docs/v1-route-scenario-matrix.json"), "utf8")) as V1Matrix;
+  const scenarioFiles = await listJsonFilesRecursive(path.join(root, "scenarios"));
+  const fixtureFiles = (await listJsonFilesRecursive(path.join(root, "fixtures")))
+    .filter((file) => file.endsWith(".fixture.json"));
+  const scenarios = await Promise.all(scenarioFiles.map(async (file) =>
+    ScenarioDefinitionSchema.parse(JSON.parse(await fs.readFile(file, "utf8")))));
+  const fixtures = await Promise.all(fixtureFiles.map(async (file) =>
+    FixtureSchema.parse(JSON.parse(await fs.readFile(file, "utf8")))));
   return { matrix, scenarios, fixtures };
 }
 
@@ -32,25 +26,25 @@ describe("v1 traceability validator", () => {
       .toBe("GET /v1/currencies/exchange-rate/{currency}");
   });
 
-  it("accepts the checked-in matrix", () => {
-    expect(validateV1Traceability(checkedInInput())).toEqual([]);
+  it("accepts the checked-in matrix", async () => {
+    expect(validateV1Traceability(await checkedInInput())).toEqual([]);
   });
 
-  it("rejects valid but wrong capability tags on launch", () => {
-    const input = checkedInInput();
+  it("rejects valid but wrong capability tags on launch", async () => {
+    const input = await checkedInInput();
     const launch = input.scenarios.find((scenario) => scenario.id === "pg-launch-callback")!;
     launch.tags.push("CAP-03");
     expect(validateV1Traceability(input).join("\n")).toContain("wrong capability CAP-03");
   });
 
-  it("rejects missing route-specific BR without an explicit exception", () => {
-    const input = checkedInInput();
+  it("rejects missing route-specific BR without an explicit exception", async () => {
+    const input = await checkedInInput();
     input.matrix.routes[0]!.scenarios.find((entry) => entry.id === "player-query-signature-failed")!.noNumberedRule = false;
     expect(validateV1Traceability(input).join("\n")).toContain("missing route-specific BR");
   });
 
-  it("rejects an unmapped scenario and invalid BR", () => {
-    const input = checkedInInput();
+  it("rejects an unmapped scenario and invalid BR", async () => {
+    const input = await checkedInInput();
     input.matrix.routes[0]!.scenarios[0]!.businessRules = ["BR-99"];
     input.matrix.routes[1]!.scenarios = [];
     const errors = validateV1Traceability(input).join("\n");
@@ -58,8 +52,8 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("missing matrix mapping");
   });
 
-  it("rejects a valid BR from another route even when tag and matrix agree", () => {
-    const input = checkedInInput();
+  it("rejects a valid BR from another route even when tag and matrix agree", async () => {
+    const input = await checkedInInput();
     const deposit = input.matrix.routes.find((route) => route.path === "/v1/wallet/deposit")!;
     const scenario = input.scenarios.find((scenario) => scenario.route?.path === deposit.path)!;
     deposit.scenarios[0]!.businessRules = ["BR-70"];
@@ -69,8 +63,8 @@ describe("v1 traceability validator", () => {
       .toContain("business rule BR-70 does not apply to route");
   });
 
-  it("rejects an inapplicable BR added to both tag and matrix for a signature failure", () => {
-    const input = checkedInInput();
+  it("rejects an inapplicable BR added to both tag and matrix for a signature failure", async () => {
+    const input = await checkedInInput();
     const entry = input.matrix.routes.find((route) => route.path === "/v1/wallet/deposit")!
       .scenarios.find((scenario) => scenario.id === "deposit-signature-failed")!;
     const scenario = input.scenarios.find((scenario) => scenario.id === entry.id)!;
@@ -82,8 +76,8 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("unexpected matrix business rule BR-46");
   });
 
-  it("rejects a required BR removed from both tag and matrix for deposit success", () => {
-    const input = checkedInInput();
+  it("rejects a required BR removed from both tag and matrix for deposit success", async () => {
+    const input = await checkedInInput();
     const entry = input.matrix.routes.find((route) => route.path === "/v1/wallet/deposit")!
       .scenarios.find((scenario) => scenario.id === "deposit-success")!;
     const scenario = input.scenarios.find((scenario) => scenario.id === entry.id)!;
@@ -94,8 +88,8 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("missing expected matrix business rule BR-11");
   });
 
-  it("requires a reviewed BR set before adding a v1 scenario", () => {
-    const input = checkedInInput();
+  it("requires a reviewed BR set before adding a v1 scenario", async () => {
+    const input = await checkedInInput();
     const route = input.matrix.routes.find((route) => route.path === "/v1/wallet/deposit")!;
     const original = route.scenarios.find((scenario) => scenario.id === "deposit-signature-failed")!;
     const id = "deposit-new-signature-case";
@@ -108,8 +102,8 @@ describe("v1 traceability validator", () => {
       .toContain("missing reviewed scenario business rules");
   });
 
-  it("rejects fictional SMS success and status signature cases", () => {
-    const input = checkedInInput();
+  it("rejects fictional SMS success and status signature cases", async () => {
+    const input = await checkedInInput();
     const sms = input.matrix.routes.find((route) => route.path === "/v1/sms/send")!;
     sms.scenarios[0]!.cases.push("success");
     const status = input.matrix.routes.find((route) => route.path === "/v1/server/status")!;
@@ -119,8 +113,8 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("unsigned route cannot require signature");
   });
 
-  it("rejects success classification for the broken player balance route", () => {
-    const input = checkedInInput();
+  it("rejects success classification for the broken player balance route", async () => {
+    const input = await checkedInInput();
     const balance = input.matrix.routes.find((route) => route.path === "/v1/player/balance")!;
     balance.requiredCases[0] = "success";
     balance.scenarios[0]!.cases[0] = "success";
@@ -129,16 +123,16 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("broken balance response is not success");
   });
 
-  it("maps the v1 launch step without treating a callback step as another v1 route", () => {
-    const input = checkedInInput();
+  it("maps the v1 launch step without treating a callback step as another v1 route", async () => {
+    const input = await checkedInInput();
     const scenario = input.scenarios.find((scenario) => scenario.id === "pg-launch-callback")!;
     expect(validateV1Traceability(input)).toEqual([]);
     scenario.steps!.pop();
     expect(validateV1Traceability(input).join("\n")).toContain("wrong capability CAP-13");
   });
 
-  it("rejects layer and fixture linkage drift", () => {
-    const input = checkedInInput();
+  it("rejects layer and fixture linkage drift", async () => {
+    const input = await checkedInInput();
     input.matrix.routes[0]!.scenarios[0]!.layers = ["http", "db"];
     input.matrix.routes[0]!.scenarios[0]!.fixtureId = "other";
     const errors = validateV1Traceability(input).join("\n");
@@ -146,8 +140,8 @@ describe("v1 traceability validator", () => {
     expect(errors).toContain("fixtureId must identify existing fixture");
   });
 
-  it("accepts an explicitly tracked missing case but rejects an untracked one", () => {
-    const input = checkedInInput();
+  it("accepts an explicitly tracked missing case but rejects an untracked one", async () => {
+    const input = await checkedInInput();
     const launch = input.matrix.routes.find((route) => route.path === "/v1/games/launch")!;
     expect(validateV1Traceability(input)).toEqual([]);
     launch.coverageGaps = launch.coverageGaps?.filter((gap) => gap.case !== "signature");
