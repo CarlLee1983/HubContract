@@ -14,7 +14,8 @@
     "CAP-01",
     "BR-01",
     "BR-70",
-    "BR-71"
+    "BR-71",
+    "BR-53"
   ],
   "request": {
     "headers": {

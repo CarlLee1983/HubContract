@@ -10,7 +10,10 @@
     "sms",
     "amount",
     "abo-send",
-    "provider-failure"
+    "provider-failure",
+    "CAP-15",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

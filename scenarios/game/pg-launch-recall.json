@@ -7,8 +7,19 @@
     "launch",
     "pg",
     "callback",
-    "CAP-03",
-    "recall"
+    "recall",
+    "CAP-11",
+    "CAP-13",
+    "CAP-01",
+    "BR-01",
+    "BR-50",
+    "BR-57",
+    "BR-58",
+    "BR-80",
+    "BR-40",
+    "BR-41",
+    "BR-42",
+    "BR-44"
   ],
   "steps": [
     {

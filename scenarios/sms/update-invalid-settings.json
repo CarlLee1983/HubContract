@@ -10,7 +10,10 @@
     "sms",
     "update",
     "invalid",
-    "settings"
+    "settings",
+    "CAP-15",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

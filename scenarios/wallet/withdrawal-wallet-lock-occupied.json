@@ -10,7 +10,11 @@
     "wallet",
     "withdrawal",
     "funds-write",
-    "wallet-lock-occupied"
+    "wallet-lock-occupied",
+    "CAP-05",
+    "CAP-01",
+    "BR-01",
+    "BR-40"
   ],
   "request": {
     "headers": {

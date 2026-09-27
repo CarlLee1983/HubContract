@@ -10,7 +10,11 @@
     "wallet",
     "withdrawal",
     "funds-write",
-    "duplicate-trade-no"
+    "duplicate-trade-no",
+    "CAP-05",
+    "CAP-01",
+    "BR-01",
+    "BR-20"
   ],
   "request": {
     "headers": {

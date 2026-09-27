@@ -10,7 +10,14 @@
     "wallet",
     "withdrawal",
     "funds-write",
-    "provider-failure"
+    "provider-failure",
+    "CAP-05",
+    "CAP-01",
+    "BR-01",
+    "BR-11",
+    "BR-20",
+    "BR-22",
+    "BR-45"
   ],
   "request": {
     "headers": {

@@ -9,7 +9,10 @@
   "tags": [
     "sms",
     "send",
-    "signature-failed"
+    "signature-failed",
+    "CAP-15",
+    "CAP-01",
+    "BR-01"
   ],
   "request": {
     "headers": {

@@ -1,0 +1,2923 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/v1/player",
+      "capability": "CAP-03",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "player-query-outbound-error",
+          "fixtureId": "player-query-outbound-error",
+          "outcome": "Player Query: synchronous SBO lookup error",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-13",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-query-outbound-success",
+          "fixtureId": "player-query-outbound-success",
+          "outcome": "Player Query: synchronous SBO lookup success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-13",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-query-outbound-timeout",
+          "fixtureId": "player-query-outbound-timeout",
+          "outcome": "Player Query: synchronous SBO lookup timeout",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-13",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-query-signature-failed",
+          "fixtureId": "player-query-signature-failed",
+          "outcome": "Player Query: signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-query-unknown-station",
+          "fixtureId": "player-query-unknown-station",
+          "outcome": "Player Query: unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-query-validation-failed",
+          "fixtureId": "player-query-validation-failed",
+          "outcome": "Player Query: validation failed — 玩家帳號為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/player/balance",
+      "capability": "CAP-03",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "player-balance-no-play-log",
+          "fixtureId": "player-balance-no-play-log",
+          "outcome": "Player Balance: No Play Log — 尚無遊戲記錄",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-balance-outbound-error",
+          "fixtureId": "player-balance-outbound-error",
+          "outcome": "Player Balance: Outbound call returns a business error — Insufficient permission",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-balance-outbound-success",
+          "fixtureId": "player-balance-outbound-success",
+          "outcome": "Player Balance: Outbound call succeeds — Trying to access array offset on float",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-balance-outbound-timeout",
+          "fixtureId": "player-balance-outbound-timeout",
+          "outcome": "Player Balance: Outbound call times out — cURL error 28: Operation timed out after <MS> milliseconds with 0 bytes received (see https://curl.haxx.se/lib",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-42"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "player-balance-signature-failed",
+          "fixtureId": "player-balance-signature-failed",
+          "outcome": "Player Balance: Signature Validation Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-balance-unknown-station",
+          "fixtureId": "player-balance-unknown-station",
+          "outcome": "Player Balance: Unknown Station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-balance-validation-failed",
+          "fixtureId": "player-balance-validation-failed",
+          "outcome": "Player Balance: Validation Failed — 玩家帳號為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/player",
+      "capability": "CAP-02",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "player-create-account-suffix-error",
+          "fixtureId": "player-create-account-suffix-error",
+          "outcome": "Player Create: account already ends with station code — App\\Services\\PlayerService::firstOrCreate(): Argument #4 ($playerAccount) must be of type string, null given, ",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-03"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-duplicate-player",
+          "fixtureId": "player-create-duplicate-player",
+          "outcome": "Player Create: duplicate same-platform Players (D-40)",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-02",
+            "BR-03"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-existing",
+          "fixtureId": "player-create-existing",
+          "outcome": "Player Create: complete existing member",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-02",
+            "BR-03"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-fresh",
+          "fixtureId": "player-create-fresh",
+          "outcome": "Player Create: fresh member",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-02",
+            "BR-03"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-signature-failed",
+          "fixtureId": "player-create-signature-failed",
+          "outcome": "Player Create: invalid signature — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-unknown-station",
+          "fixtureId": "player-create-unknown-station",
+          "outcome": "Player Create: unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "player-create-validation-failed",
+          "fixtureId": "player-create-validation-failed",
+          "outcome": "Player Create: required account missing — 玩家帳號為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/wallet/deposit",
+      "capability": "CAP-04",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "deposit-duplicate-main-wallet",
+          "fixtureId": "deposit-duplicate-main-wallet",
+          "outcome": "Deposit: Duplicate Main Wallet",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-10",
+            "BR-11"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-duplicate-trade-no",
+          "fixtureId": "deposit-duplicate-trade-no",
+          "outcome": "Deposit: Duplicate Trade No — ORDER_ALREADY_EXISTS",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-20"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-provider-failure",
+          "fixtureId": "deposit-provider-failure",
+          "outcome": "Deposit: Provider Failure",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-12",
+            "BR-20",
+            "BR-22",
+            "BR-23",
+            "BR-46"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-provider-timeout",
+          "fixtureId": "deposit-provider-timeout",
+          "outcome": "Deposit: Provider Timeout",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-12",
+            "BR-20",
+            "BR-22",
+            "BR-23",
+            "BR-46"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-queued-sync",
+          "fixtureId": "deposit-queued-sync",
+          "outcome": "Wallet deposit drains sync and HTTP logging queues",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-12",
+            "BR-20",
+            "BR-22",
+            "BR-23",
+            "BR-46"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-signature-failed",
+          "fixtureId": "deposit-signature-failed",
+          "outcome": "Deposit: Signature Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-success",
+          "fixtureId": "deposit-success",
+          "outcome": "Deposit: Success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-12",
+            "BR-20",
+            "BR-22",
+            "BR-23",
+            "BR-46"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-unknown-station",
+          "fixtureId": "deposit-unknown-station",
+          "outcome": "Deposit: Unknown Station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "deposit-validation-failed",
+          "fixtureId": "deposit-validation-failed",
+          "outcome": "Deposit: Validation Failed — 金額不能小於 0.00000001",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/wallet/withdraw",
+      "capability": "CAP-05",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "withdrawal-duplicate-main-wallet",
+          "fixtureId": "withdrawal-duplicate-main-wallet",
+          "outcome": "Withdrawal: Duplicate Main Wallet",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-10",
+            "BR-11"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-duplicate-trade-no",
+          "fixtureId": "withdrawal-duplicate-trade-no",
+          "outcome": "Withdrawal: Duplicate Trade No — ORDER_ALREADY_EXISTS",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-20"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-provider-failure",
+          "fixtureId": "withdrawal-provider-failure",
+          "outcome": "Withdrawal: Provider Failure",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-20",
+            "BR-22",
+            "BR-45"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-provider-timeout",
+          "fixtureId": "withdrawal-provider-timeout",
+          "outcome": "Withdrawal: Provider Timeout",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-20",
+            "BR-22",
+            "BR-45"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-signature-failed",
+          "fixtureId": "withdrawal-signature-failed",
+          "outcome": "Withdrawal: Signature Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-success",
+          "fixtureId": "withdrawal-success",
+          "outcome": "Withdrawal: Success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-11",
+            "BR-20",
+            "BR-22",
+            "BR-45"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-unknown-station",
+          "fixtureId": "withdrawal-unknown-station",
+          "outcome": "Withdrawal: Unknown Station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-validation-failed",
+          "fixtureId": "withdrawal-validation-failed",
+          "outcome": "Withdrawal: Validation Failed — 提款金額不能小於 0.00000001",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "withdrawal-wallet-lock-occupied",
+          "fixtureId": "withdrawal-wallet-lock-occupied",
+          "outcome": "Withdrawal: Wallet Lock Occupied — Request has been submitted, please wait.",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-40"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/wallet/check-transaction",
+      "capability": "CAP-06",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "check-transaction-both-hit",
+          "fixtureId": "check-transaction-both-hit",
+          "outcome": "Check Transaction: Both Deposit and Withdrawal Hit",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-deposit-hit",
+          "fixtureId": "check-transaction-deposit-hit",
+          "outcome": "Check Transaction: Deposit Order Hit",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-duplicate-trade-no",
+          "fixtureId": "check-transaction-duplicate-trade-no",
+          "outcome": "Check Transaction: Duplicate trade_no in Same Table (D-43)",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-21",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-not-found",
+          "fixtureId": "check-transaction-not-found",
+          "outcome": "Check Transaction: Order Not Found — ORDER_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-signature-failed",
+          "fixtureId": "check-transaction-signature-failed",
+          "outcome": "Check Transaction: Signature Validation Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-soft-deleted",
+          "fixtureId": "check-transaction-soft-deleted",
+          "outcome": "Check Transaction: Soft Deleted Order — ORDER_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-21",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-unknown-station",
+          "fixtureId": "check-transaction-unknown-station",
+          "outcome": "Check Transaction: Unknown Station Code (D-03) — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-validation-failed",
+          "fixtureId": "check-transaction-validation-failed",
+          "outcome": "Check Transaction: Form Validation Failed (D-02) — 交易單號為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "check-transaction-withdrawal-hit",
+          "fixtureId": "check-transaction-withdrawal-hit",
+          "outcome": "Check Transaction: Withdrawal Order Hit",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-26"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/wallet/check-transaction-for-test",
+      "capability": "CAP-07",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "check-transaction-for-test-duplicate-trade-no",
+          "fixtureId": "check-transaction-for-test-duplicate-trade-no",
+          "outcome": "Check Transaction For Test Duplicate Trade No",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-21",
+            "BR-48"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-no-remittance",
+          "fixtureId": "check-transaction-for-test-no-remittance",
+          "outcome": "Check Transaction For Test No Remittance — ORDER_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-provider-failed",
+          "fixtureId": "check-transaction-for-test-provider-failed",
+          "outcome": "Check Transaction For Test Provider Failed — Check transaction failed",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-48"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-provider-timeout",
+          "fixtureId": "check-transaction-for-test-provider-timeout",
+          "outcome": "Check Transaction For Test Provider Timeout — cURL error 28: Operation timed out after <MS> milliseconds with 0 bytes received (see https://curl.haxx.se/lib",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-48"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-signature-failed",
+          "fixtureId": "check-transaction-for-test-signature-failed",
+          "outcome": "Check Transaction For Test Signature Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-success",
+          "fixtureId": "check-transaction-for-test-success",
+          "outcome": "Check Transaction For Test Success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-48"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-unknown-station",
+          "fixtureId": "check-transaction-for-test-unknown-station",
+          "outcome": "Check Transaction For Test Unknown Station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-validation-failed",
+          "fixtureId": "check-transaction-for-test-validation-failed",
+          "outcome": "Check Transaction For Test Validation Failed — 玩家帳號必填",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-withdrawal-success",
+          "fixtureId": "check-transaction-for-test-withdrawal-success",
+          "outcome": "Check Transaction For Test Withdrawal Success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-48"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "check-transaction-for-test-wrong-account",
+          "fixtureId": "check-transaction-for-test-wrong-account",
+          "outcome": "Check Transaction For Test Wrong Account — ORDER_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/wallet/balance-difference",
+      "capability": "CAP-08",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "balance-difference-consistent",
+          "fixtureId": "balance-difference-consistent",
+          "outcome": "Balance Difference Consistent",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-35"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-inconsistent",
+          "fixtureId": "balance-difference-inconsistent",
+          "outcome": "Balance Difference Inconsistent",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-35"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-no-game-wallet",
+          "fixtureId": "balance-difference-no-game-wallet",
+          "outcome": "Balance Difference No Game Wallet — ACTIVE_GAME_WALLET_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-no-play-log",
+          "fixtureId": "balance-difference-no-play-log",
+          "outcome": "Balance Difference No Play Log — GAME_PLAY_LOG_NOT_FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-pending-transfer",
+          "fixtureId": "balance-difference-pending-transfer",
+          "outcome": "Balance Difference Pending Transfer",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-35"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-provider-failed",
+          "fixtureId": "balance-difference-provider-failed",
+          "outcome": "Balance Difference Provider Failed — synthetic provider failure",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-35"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-provider-timeout",
+          "fixtureId": "balance-difference-provider-timeout",
+          "outcome": "Balance Difference Provider Timeout — cURL error 28: Operation timed out after <MS> milliseconds with 0 bytes received (see https://curl.haxx.se/lib",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-35"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-signature-failed",
+          "fixtureId": "balance-difference-signature-failed",
+          "outcome": "Balance Difference Signature Failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-unknown-station",
+          "fixtureId": "balance-difference-unknown-station",
+          "outcome": "Balance Difference Unknown Station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "balance-difference-validation-failed",
+          "fixtureId": "balance-difference-validation-failed",
+          "outcome": "Balance Difference Validation Failed — 幣別必填",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/games",
+      "capability": "CAP-09",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "catalog-games-maintenance",
+          "fixtureId": "catalog-games-maintenance",
+          "outcome": "Catalog games: maintenance",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-70",
+            "BR-71",
+            "BR-53"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-no-active-companies",
+          "fixtureId": "catalog-games-no-active-companies",
+          "outcome": "Catalog games: no active companies — No active game companies found for the station",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-70",
+            "BR-72"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-orphan-company",
+          "fixtureId": "catalog-games-orphan-company",
+          "outcome": "Catalog games: orphan company — Attempt to read property \"name\" on null",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-70"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-redis-maintenance",
+          "fixtureId": "catalog-games-redis-maintenance",
+          "outcome": "Catalog games: Redis maintenance",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-70",
+            "BR-71",
+            "BR-53"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-signature-failed",
+          "fixtureId": "catalog-games-signature-failed",
+          "outcome": "Catalog games: signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-success",
+          "fixtureId": "catalog-games-success",
+          "outcome": "Catalog games: success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-70"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-unknown-station",
+          "fixtureId": "catalog-games-unknown-station",
+          "outcome": "Catalog games: unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-games-validation",
+          "fixtureId": "catalog-games-validation",
+          "outcome": "Catalog games: validation — 站台代碼必填 (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/games/types",
+      "capability": "CAP-09",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "catalog-types-inactive",
+          "fixtureId": "catalog-types-inactive",
+          "outcome": "Catalog types: inactive",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-types-signature-failed",
+          "fixtureId": "catalog-types-signature-failed",
+          "outcome": "Catalog types: signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-types-success",
+          "fixtureId": "catalog-types-success",
+          "outcome": "Catalog types: success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-types-unknown-station",
+          "fixtureId": "catalog-types-unknown-station",
+          "outcome": "Catalog types: unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-types-validation",
+          "fixtureId": "catalog-types-validation",
+          "outcome": "Catalog types: validation — The station code field is required. (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/games/companies",
+      "capability": "CAP-09",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "catalog-companies-game-type-populated",
+          "fixtureId": "catalog-companies-game-type-populated",
+          "outcome": "Catalog companies: game type populated",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-maintenance",
+          "fixtureId": "catalog-companies-maintenance",
+          "outcome": "Catalog companies: maintenance",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-orphan-company",
+          "fixtureId": "catalog-companies-orphan-company",
+          "outcome": "Catalog companies: orphan company",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-redis-maintenance",
+          "fixtureId": "catalog-companies-redis-maintenance",
+          "outcome": "Catalog companies: Redis maintenance",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-signature-failed",
+          "fixtureId": "catalog-companies-signature-failed",
+          "outcome": "Catalog companies: signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-success",
+          "fixtureId": "catalog-companies-success",
+          "outcome": "Catalog companies: success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-unknown-station",
+          "fixtureId": "catalog-companies-unknown-station",
+          "outcome": "Catalog companies: unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        },
+        {
+          "id": "catalog-companies-validation",
+          "fixtureId": "catalog-companies-validation",
+          "outcome": "Catalog companies: validation — The station code field is required. (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/games/launch",
+      "capability": "CAP-11",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "pg-callback-auth-rejected",
+          "fixtureId": "pg-callback-auth-rejected",
+          "outcome": "PG callback rejects invalid credentials",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        },
+        {
+          "id": "pg-callback-expired",
+          "fixtureId": "pg-callback-expired",
+          "outcome": "PG callback rejects expired verifyData",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        },
+        {
+          "id": "pg-callback-wrong-ops",
+          "fixtureId": "pg-callback-wrong-ops",
+          "outcome": "PG callback rejects wrong ops",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        },
+        {
+          "id": "pg-launch-callback",
+          "fixtureId": "pg-launch-callback",
+          "outcome": "PG launch and VerifySession callback",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        },
+        {
+          "id": "pg-launch-maintenance",
+          "fixtureId": "pg-launch-maintenance",
+          "outcome": "PG launch during platform maintenance — The game platform is under maintenance, please try again later",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-53",
+            "BR-54"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "pg-launch-missing-game",
+          "fixtureId": "pg-launch-missing-game",
+          "outcome": "PG launch missing game — GAME NOT FOUND",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-56"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "pg-launch-provider-failure",
+          "fixtureId": "pg-launch-provider-failure",
+          "outcome": "PG launcher provider failure — Game launch failed, please try again later.",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-56",
+            "BR-57"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "pg-launch-recall-failure",
+          "fixtureId": "pg-launch-recall-failure",
+          "outcome": "PG recall fails but injection continues",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80",
+            "BR-40",
+            "BR-41",
+            "BR-42",
+            "BR-43"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        },
+        {
+          "id": "pg-launch-recall",
+          "fixtureId": "pg-launch-recall",
+          "outcome": "PG launch recalls and injects PHP funds",
+          "cases": [
+            "success",
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-50",
+            "BR-57",
+            "BR-58",
+            "BR-80",
+            "BR-40",
+            "BR-41",
+            "BR-42",
+            "BR-44"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "redis"
+          ]
+        }
+      ],
+      "coverageGaps": [
+        {
+          "case": "validation",
+          "issue": "CarlLee1983/HubRefactoring#51"
+        },
+        {
+          "case": "signature",
+          "issue": "CarlLee1983/HubRefactoring#51"
+        },
+        {
+          "case": "unknown-station",
+          "issue": "CarlLee1983/HubRefactoring#51"
+        }
+      ],
+      "notes": "Validation, signature, and unknown-Station fixtures remain pending HubRefactoring#51."
+    },
+    {
+      "method": "GET",
+      "path": "/v1/currencies",
+      "capability": "CAP-14",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "currency-index-inactive-station-currency",
+          "fixtureId": "currency-index-inactive-station-currency",
+          "outcome": "Currency index includes an inactive Station currency",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-index-signature-failed",
+          "fixtureId": "currency-index-signature-failed",
+          "outcome": "Currency index signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-index-unknown-station",
+          "fixtureId": "currency-index-unknown-station",
+          "outcome": "Currency index unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-index-validation",
+          "fixtureId": "currency-index-validation",
+          "outcome": "Currency index validation — 站點代碼為必填項 (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-index",
+          "fixtureId": "currency-index",
+          "outcome": "Currency index",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/currencies/exchange-rate",
+      "capability": "CAP-14",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station"
+      ],
+      "scenarios": [
+        {
+          "id": "currency-exchange-rate-list-signature-failed",
+          "fixtureId": "currency-exchange-rate-list-signature-failed",
+          "outcome": "Currency exchange rate list signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-list-unknown-station",
+          "fixtureId": "currency-exchange-rate-list-unknown-station",
+          "outcome": "Currency exchange rate list unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-list-validation",
+          "fixtureId": "currency-exchange-rate-list-validation",
+          "outcome": "Currency exchange rate list validation — 站點代碼為必填項 (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-list",
+          "fixtureId": "currency-exchange-rate-list",
+          "outcome": "Currency exchange rate list",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-92"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/currencies/exchange-rate/{currency}",
+      "capability": "CAP-14",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "currency-exchange-rate-show-inactive-currency",
+          "fixtureId": "currency-exchange-rate-show-inactive-currency",
+          "outcome": "Currency exchange rate show inactive currency",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-92"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-show-signature-failed",
+          "fixtureId": "currency-exchange-rate-show-signature-failed",
+          "outcome": "Currency exchange rate show signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-show-unknown-currency",
+          "fixtureId": "currency-exchange-rate-show-unknown-currency",
+          "outcome": "Currency exchange rate show unknown currency — Currency not found",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-92"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-show-unknown-station",
+          "fixtureId": "currency-exchange-rate-show-unknown-station",
+          "outcome": "Currency exchange rate show unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-show-validation",
+          "fixtureId": "currency-exchange-rate-show-validation",
+          "outcome": "Currency exchange rate show validation — 站點代碼為必填項 (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "currency-exchange-rate-show",
+          "fixtureId": "currency-exchange-rate-show",
+          "outcome": "Currency exchange rate show",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-92"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sms",
+      "capability": "CAP-15",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station"
+      ],
+      "scenarios": [
+        {
+          "id": "sms-index-signature-failed",
+          "fixtureId": "sms-index-signature-failed",
+          "outcome": "SMS index signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-index-unknown-station",
+          "fixtureId": "sms-index-unknown-station",
+          "outcome": "SMS index unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-index-validation",
+          "fixtureId": "sms-index-validation",
+          "outcome": "SMS list rejects missing station code — 站點代碼為必填項 (and 1 more error)",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-index",
+          "fixtureId": "sms-index",
+          "outcome": "SMS list includes inactive rows and synthetic supplier settings",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sms",
+      "capability": "CAP-15",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station"
+      ],
+      "scenarios": [
+        {
+          "id": "sms-update-invalid-settings",
+          "fixtureId": "sms-update-invalid-settings",
+          "outcome": "SMS update rejects non-JSON settings — 設定必須為 JSON 格式",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-update-mass-assignment",
+          "fixtureId": "sms-update-mass-assignment",
+          "outcome": "SMS update accepts extra fillable fields",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-update-signature-failed",
+          "fixtureId": "sms-update-signature-failed",
+          "outcome": "SMS update signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-update-unknown-station",
+          "fixtureId": "sms-update-unknown-station",
+          "outcome": "SMS update unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-update-validation",
+          "fixtureId": "sms-update-validation",
+          "outcome": "SMS update validation — 設定為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sms/send",
+      "capability": "CAP-15",
+      "requiredCases": [
+        "legacy-defect",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "sms-send-asmsc-sender-id",
+          "fixtureId": "sms-send-asmsc-sender-id",
+          "outcome": "SMS Asmsc send contacts provider before logger failure — Typed property App\\Support\\SMS\\SupplierAbstract::$smsLogsRepository must not be accessed before initialization",
+          "cases": [
+            "legacy-defect"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-90"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-send-empty-balance",
+          "fixtureId": "sms-send-empty-balance",
+          "outcome": "SMS send rejects zero local amount — SMS Balance IS NOT ENOUGH",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-90"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-inactive",
+          "fixtureId": "sms-send-inactive",
+          "outcome": "SMS send accepts inactive supplier then fails at log creation — Typed property App\\Support\\SMS\\SupplierAbstract::$smsLogsRepository must not be accessed before initialization",
+          "cases": [
+            "legacy-defect"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-90"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-locked",
+          "fixtureId": "sms-send-locked",
+          "outcome": "SMS resend lock blocks before provider call — Unable to resend SMS. If you don't receive the text message, please try again in five minutes.",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01",
+            "BR-90"
+          ],
+          "noNumberedRule": false,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-signature-failed",
+          "fixtureId": "sms-send-signature-failed",
+          "outcome": "SMS send signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-unknown-station",
+          "fixtureId": "sms-send-unknown-station",
+          "outcome": "SMS send unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-validation",
+          "fixtureId": "sms-send-validation",
+          "outcome": "SMS send validation — 簡訊內容為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-send-without-currency",
+          "fixtureId": "sms-send-without-currency",
+          "outcome": "SMS send without currency fails before supplier — Call to a member function countryRegion() on null",
+          "cases": [
+            "legacy-defect"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ],
+      "notes": "The recorded Legacy send path has no successful fixture; supplier initialization and missing-currency defects are observed."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sms/amount",
+      "capability": "CAP-15",
+      "requiredCases": [
+        "success",
+        "validation",
+        "signature",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "sms-amount-abo-send-provider-failure",
+          "fixtureId": "sms-amount-abo-send-provider-failure",
+          "outcome": "SMS amount abo-send provider-failure",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-abo-send-success",
+          "fixtureId": "sms-amount-abo-send-success",
+          "outcome": "SMS amount abo-send success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-asmsc-provider-failure",
+          "fixtureId": "sms-amount-asmsc-provider-failure",
+          "outcome": "SMS amount asmsc provider-failure",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-asmsc-success",
+          "fixtureId": "sms-amount-asmsc-success",
+          "outcome": "SMS amount asmsc success",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-provider-failure",
+          "fixtureId": "sms-amount-provider-failure",
+          "outcome": "SMS amount swallows supplier failure as zero",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-signature-failed",
+          "fixtureId": "sms-amount-signature-failed",
+          "outcome": "SMS amount signature failed — sign 驗證失敗",
+          "cases": [
+            "signature"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-amount-success",
+          "fixtureId": "sms-amount-success",
+          "outcome": "SMS amount reads live Chuanx supplier balance",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound"
+          ]
+        },
+        {
+          "id": "sms-amount-unknown-station",
+          "fixtureId": "sms-amount-unknown-station",
+          "outcome": "SMS amount unknown station — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        },
+        {
+          "id": "sms-amount-validation",
+          "fixtureId": "sms-amount-validation",
+          "outcome": "SMS amount validation — 簡訊 ID 為必填項",
+          "cases": [
+            "validation"
+          ],
+          "businessRules": [
+            "BR-01"
+          ],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/server/status",
+      "capability": "CAP-17",
+      "requiredCases": [
+        "success",
+        "unknown-station",
+        "business"
+      ],
+      "scenarios": [
+        {
+          "id": "server-status-unknown-station",
+          "fixtureId": "server-status-unknown-station",
+          "outcome": "Server status: supplied unknown Station fails during global initialization — Station not found",
+          "cases": [
+            "unknown-station"
+          ],
+          "businessRules": [],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "server-status-unvalidated-params",
+          "fixtureId": "server-status-unvalidated-params",
+          "outcome": "Server status: invalid signature and timestamp are ignored",
+          "cases": [
+            "business"
+          ],
+          "businessRules": [],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        },
+        {
+          "id": "server-status",
+          "fixtureId": "server-status",
+          "outcome": "Server status: unauthenticated liveness response",
+          "cases": [
+            "success"
+          ],
+          "businessRules": [],
+          "noNumberedRule": true,
+          "layers": [
+            "http",
+            "db",
+            "outbound",
+            "mongo"
+          ]
+        }
+      ],
+      "notes": "Unsigned and without request validation; unknown station_code still fails during global initialization."
+    }
+  ]
+}
