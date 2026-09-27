@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it } from "bun:test";
 import { ContractRunner } from "../src/runner";
 import { LegacyTargetAdapter } from "../src/target/legacyAdapter";
 import { ActionFixtureSchema, ScenarioDefinitionSchema } from "../src/schema/scenario";
@@ -9,6 +9,30 @@ import existingIssue from "../scenarios/internal/service-issue-existing-issue.js
 import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 
 const scenarios = [newVisitor, existingIssue].map((source) => ScenarioDefinitionSchema.parse(source));
+
+const originalFetch = globalThis.fetch;
+afterEach(() => { globalThis.fetch = originalFetch; });
+
+it("submits the service issue action without contracting its HTTP response", async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const replies = [
+    new Response("history", { status: 200, headers: {
+      "Set-Cookie": "XSRF-TOKEN=csrf%3D; Path=/",
+    } }),
+    new Response("CSRF response is not an action fixture", { status: 419 }),
+  ];
+  globalThis.fetch = (async (url: string | URL | Request, init: RequestInit = {}) => {
+    calls.push({ url: String(url), init });
+    return replies.shift()!;
+  }) as typeof fetch;
+
+  await new LegacyTargetAdapter().executeAction(scenarios[0].action!, `http://localhost:${config.legacyPort}`,
+    { service_issues: [], user_guests: [] });
+
+  expect(calls.map((call) => new URL(call.url).pathname)).toEqual(["/service/issue/history", "/service/issue/"]);
+  expect(new Headers(calls[1].init.headers).get("X-XSRF-TOKEN")).toBe("csrf=");
+  expect(calls[1].init.body).toBe("type=1");
+});
 
 describe.skipIf(!RUNS_AGAINST_RECORDING_ENV)("Legacy service issue action (#26)", () => {
   const runner = new ContractRunner({

@@ -67,26 +67,7 @@ export class LegacyActionAdapter {
       active: String(row.game_type_id === action.parameters.gameTypeId ? action.parameters.active : row.active === 1),
     }));
 
-    const cookies = new Map<string, string>();
-    const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
-      const headers = new Headers(init.headers);
-      headers.set("Host", this.host);
-      headers.set("Accept", "text/html,application/xhtml+xml");
-      if (cookies.size > 0) {
-        headers.set("Cookie", [...cookies].map(([key, value]) => `${key}=${value}`).join("; "));
-      }
-      const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), {
-        ...init,
-        headers,
-        redirect: "manual",
-      });
-      for (const header of response.headers.getSetCookie()) {
-        const pair = header.split(";", 1)[0];
-        const equals = pair.indexOf("=");
-        if (equals > 0) cookies.set(pair.slice(0, equals), pair.slice(equals + 1));
-      }
-      return response;
-    };
+    const { cookies, request } = legacySessionRequest(baseUrl, this.host, "text/html,application/xhtml+xml");
 
     const loginPage = await request("/login");
     if (loginPage.status !== 200) {
@@ -141,20 +122,7 @@ async function executeServiceIssue(
     throw new Error("Service issue action requires service_issues and user_guests before probes with the matching existing guest issue");
   }
 
-  const cookies = new Map<string, string>();
-  const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
-    const headers = new Headers(init.headers);
-    headers.set("Host", "cmghub.test");
-    headers.set("Accept", "application/json");
-    if (cookies.size) headers.set("Cookie", [...cookies].map(([name, value]) => `${name}=${value}`).join("; "));
-    const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), { ...init, headers, redirect: "manual" });
-    for (const header of response.headers.getSetCookie()) {
-      const pair = header.split(";", 1)[0];
-      const equal = pair.indexOf("=");
-      if (equal > 0) cookies.set(pair.slice(0, equal), pair.slice(equal + 1));
-    }
-    return response;
-  };
+  const { cookies, request } = legacySessionRequest(baseUrl, "cmghub.test", "application/json");
 
   const history = await request("/service/issue/history");
   if (history.status !== 200) throw new Error(`Legacy service issue session setup failed with HTTP ${history.status}`);
@@ -166,7 +134,7 @@ async function executeServiceIssue(
     await attachExistingGuest(sessionCookie[0], sessionCookie[1]);
   }
 
-  const response = await request("/service/issue/", {
+  await request("/service/issue/", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -174,13 +142,30 @@ async function executeServiceIssue(
     },
     body: new URLSearchParams({ type: String(parameters.categoryId) }).toString(),
   });
-  const body = await response.json().catch(() => null);
-  if (response.status === 500 && body?.exception === "Error" &&
-      body?.message === "Call to undefined method App\\Services\\UserService::whenVisitorCreateGuestOrReturnUser()" &&
-      body?.file === "/var/www/html/app/Http/Controllers/Service/IssueController.php" && body?.line === 55) {
-    return;
-  }
-  throw new Error(`Legacy service issue action reached an unexpected outcome (HTTP ${response.status})`);
+}
+
+function legacySessionRequest(baseUrl: string, host: string, accept: string) {
+  const cookies = new Map<string, string>();
+  const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
+    const headers = new Headers(init.headers);
+    headers.set("Host", host);
+    headers.set("Accept", accept);
+    if (cookies.size > 0) {
+      headers.set("Cookie", [...cookies].map(([name, value]) => `${name}=${value}`).join("; "));
+    }
+    const response = await fetch(new URL(path, `${baseUrl.replace(/\/$/, "")}/`), {
+      ...init,
+      headers,
+      redirect: "manual",
+    });
+    for (const header of response.headers.getSetCookie()) {
+      const pair = header.split(";", 1)[0];
+      const equal = pair.indexOf("=");
+      if (equal > 0) cookies.set(pair.slice(0, equal), pair.slice(equal + 1));
+    }
+    return response;
+  };
+  return { cookies, request };
 }
 
 async function attachExistingGuest(cookieName: string, cookieValue: string): Promise<void> {
