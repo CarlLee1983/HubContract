@@ -67,22 +67,26 @@ describe("v1 provider HTTP log contracts", () => {
     });
   }
 
-  it("retains distinct PG transfer identities and ties each Mongo log to its outbound call", async () => {
-    const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(
-      path.join(root, "fixtures/pg-launch-recall.fixture.json"), "utf8"
-    )));
-    const calls = fixture.layer3_outboundCalls!.calls;
-    const mongo = fixture.layer4_sharedResources!.mongo!.newDocuments;
-    expect(calls[1].body.transfer_reference).toBe("<TRANSFER_REFERENCE_1>");
-    expect(calls[2].body.transfer_reference).toBe("<TRANSFER_REFERENCE_2>");
-    expect(mongo.httplog_withdraw[0].context.request.transfer_reference).toBe(calls[1].body.transfer_reference);
-    expect(mongo.httplog_deposit[0].context.request.transfer_reference).toBe(calls[2].body.transfer_reference);
-    for (const call of calls) {
-      const collection = pgCollections[call.path];
-      const logged = mongo[collection][0].context;
-      expect(logged.uri).toEndWith(`trace_id=${call.query.trace_id}`);
-      for (const field of ["operator_token", "secret_key", "extra_args", "client_ip"]) {
-        if (call.body?.[field] !== undefined) expect(logged.request[field]).toBe(call.body[field]);
+  it("retains PG identities and ties each Mongo log to its outbound call", async () => {
+    for (const id of ["pg-launch-recall", "pg-launch-recall-v1", "pg-launch-success-v1"]) {
+      const fixture = FixtureSchema.parse(JSON.parse(await fs.readFile(
+        path.join(root, `fixtures/${id}.fixture.json`), "utf8"
+      )));
+      const calls = fixture.layer3_outboundCalls!.calls;
+      const mongo = fixture.layer4_sharedResources!.mongo!.newDocuments;
+      const references = calls.map((call) => call.body?.transfer_reference).filter(Boolean);
+      expect(references).toHaveLength(id === "pg-launch-success-v1" ? 1 : 2);
+      expect(new Set(references).size).toBe(references.length);
+      for (const reference of references) expect(reference).toMatch(/^<TRANSFER_REFERENCE_\d+>$/);
+      const traces = calls.map((call) => call.query.trace_id);
+      expect(new Set(traces).size).toBe(calls.length);
+      for (const call of calls) {
+        const collection = pgCollections[call.path];
+        const logged = mongo[collection][0].context;
+        expect(logged.uri).toEndWith(`trace_id=${call.query.trace_id}`);
+        for (const field of ["operator_token", "secret_key", "extra_args", "transfer_reference", "client_ip"]) {
+          if (call.body?.[field] !== undefined) expect(logged.request[field]).toBe(call.body[field]);
+        }
       }
     }
   });
