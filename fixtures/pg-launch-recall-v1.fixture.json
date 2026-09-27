@@ -1,0 +1,369 @@
+{
+  "scenarioId": "pg-launch-recall-v1",
+  "stepResponses": [
+    {
+      "id": "launch",
+      "statusCode": 200,
+      "statusText": "OK",
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "message": "OK",
+        "data": {
+          "launchType": "html",
+          "value": "<!doctype html><html><body>synthetic PG launcher</body></html>"
+        }
+      }
+    }
+  ],
+  "redisCheckpoints": {
+    "launch": {
+      "launchGame:verifyData:<PG_OPS>": {
+        "key": "launchGame:verifyData:<PG_OPS>",
+        "db": 1,
+        "type": "string",
+        "value": {
+          "platform_id": 5,
+          "player_name": "synthetic_pg_userDEMO_STATIONp5",
+          "currency": "PHP",
+          "ops": "<PG_OPS>"
+        },
+        "ttl": 60,
+        "ttlTolerance": 5
+      }
+    }
+  },
+  "layer2_dbState": {
+    "before": {
+      "hub_member": [
+        {
+          "account": "synthetic_pg_user"
+        }
+      ],
+      "pg_players": [
+        {
+          "platform_id": 5,
+          "user_id": 4,
+          "account": "synthetic_pg_userDEMO_STATIONp5"
+        }
+      ],
+      "php_wallets": [
+        {
+          "platform_id": 1,
+          "currency": "PHP",
+          "balance": "100.0000",
+          "in_use": 1
+        },
+        {
+          "platform_id": 5,
+          "currency": "PHP",
+          "balance": "20.0000",
+          "in_use": 1
+        }
+      ],
+      "pg_play_logs": [],
+      "pg_remittances": []
+    },
+    "after": {
+      "hub_member": [
+        {
+          "account": "synthetic_pg_user"
+        }
+      ],
+      "pg_players": [
+        {
+          "platform_id": 5,
+          "user_id": 4,
+          "account": "synthetic_pg_userDEMO_STATIONp5"
+        }
+      ],
+      "php_wallets": [
+        {
+          "platform_id": 1,
+          "currency": "PHP",
+          "balance": "0.0000",
+          "in_use": 1
+        },
+        {
+          "platform_id": 5,
+          "currency": "PHP",
+          "balance": "120.0000",
+          "in_use": 0
+        }
+      ],
+      "pg_play_logs": [
+        {
+          "platform_id": 5,
+          "user_id": 4,
+          "game_id": 4
+        }
+      ],
+      "pg_remittances": [
+        {
+          "type": "game2main",
+          "amount": "20.0000",
+          "status": "completed",
+          "stage": "finished"
+        },
+        {
+          "type": "main2game",
+          "amount": "120.0000",
+          "status": "completed",
+          "stage": "finished"
+        }
+      ]
+    }
+  },
+  "layer3_outboundCalls": {
+    "calls": [
+      {
+        "method": "POST",
+        "path": "/pg/Cash/v3/GetPlayerWallet",
+        "query": {
+          "trace_id": "<UUID>"
+        },
+        "headers": {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": {
+          "operator_token": "synthetic_pg_operator_token",
+          "secret_key": "synthetic_pg_secret_key",
+          "player_name": "synthetic_pg_userDEMO_STATIONp5"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/pg/Cash/v3/TransferOut",
+        "query": {
+          "trace_id": "<UUID>"
+        },
+        "headers": {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": {
+          "operator_token": "synthetic_pg_operator_token",
+          "secret_key": "synthetic_pg_secret_key",
+          "currency": "PHP",
+          "player_name": "synthetic_pg_userDEMO_STATIONp5",
+          "amount": "20.00",
+          "transfer_reference": "<MASKED>"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/pg/Cash/v3/TransferIn",
+        "query": {
+          "trace_id": "<UUID>"
+        },
+        "headers": {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": {
+          "operator_token": "synthetic_pg_operator_token",
+          "secret_key": "synthetic_pg_secret_key",
+          "currency": "PHP",
+          "player_name": "synthetic_pg_userDEMO_STATIONp5",
+          "amount": "120.00",
+          "transfer_reference": "<MASKED>"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/external-game-launcher/api/v1/GetLaunchURLHTML",
+        "query": {
+          "trace_id": "<UUID>"
+        },
+        "headers": {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": {
+          "operator_token": "synthetic_pg_operator_token",
+          "path": "/game/index.html",
+          "extra_args": "btt=1&ops=<PG_OPS>&l=en",
+          "url_type": "game-entry",
+          "client_ip": "<CLIENT_IP>"
+        }
+      }
+    ]
+  },
+  "layer4_sharedResources": {
+    "mongo": {
+      "newDocuments": {
+        "httplog_deposit": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-deposit:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "188"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "amount": "120.00",
+                "currency": "PHP",
+                "operator_token": "synthetic_pg_operator_token",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "synthetic_pg_secret_key",
+                "transfer_reference": "<MASKED>"
+              },
+              "response": {
+                "data": {
+                  "balanceAmount": 120
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferIn?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_find_account": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-findAccount:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "121"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "operator_token": "synthetic_pg_operator_token",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "synthetic_pg_secret_key"
+              },
+              "response": {
+                "data": {
+                  "cashBalance": 20,
+                  "currencyCode": "PHP",
+                  "freeGameBalance": 0
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/GetPlayerWallet?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_launch_game": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-launchGame:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "183"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "client_ip": "<CLIENT_IP>",
+                "extra_args": "btt=1&ops=<PG_OPS>&l=en",
+                "operator_token": "synthetic_pg_operator_token",
+                "path": "/game/index.html",
+                "url_type": "game-entry"
+              },
+              "response": "<!doctype html><html><body>synthetic PG launcher</body></html>",
+              "uri": "http://mock-provider:8081/external-game-launcher/api/v1/GetLaunchURLHTML?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ],
+        "httplog_withdraw": [
+          {
+            "context": {
+              "alert_category": "normal",
+              "alert_fingerprint": "third-party-http:httplog-withdraw:pg:http-200",
+              "alert_occurrences": 0,
+              "datetime": "<DATETIME>",
+              "header": {
+                "Content-Length": [
+                  "187"
+                ],
+                "Content-Type": [
+                  "application/x-www-form-urlencoded"
+                ],
+                "Host": [
+                  "mock-provider:8081"
+                ],
+                "User-Agent": [
+                  "GuzzleHttp/7"
+                ]
+              },
+              "method": "POST",
+              "request": {
+                "amount": "20.00",
+                "currency": "PHP",
+                "operator_token": "synthetic_pg_operator_token",
+                "player_name": "synthetic_pg_userDEMO_STATIONp5",
+                "secret_key": "synthetic_pg_secret_key",
+                "transfer_reference": "<MASKED>"
+              },
+              "response": {
+                "data": {
+                  "balanceAmount": 0
+                },
+                "error": null
+              },
+              "uri": "http://mock-provider:8081/pg/Cash/v3/TransferOut?trace_id=<UUID>"
+            },
+            "datetime": "<DATETIME>",
+            "level": 200,
+            "level_name": "INFO",
+            "message": "pg",
+            "timestamp": "<timestamp>"
+          }
+        ]
+      }
+    }
+  }
+}

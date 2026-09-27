@@ -9,6 +9,12 @@ import { RUNS_AGAINST_RECORDING_ENV } from "./helpers/integrationGate";
 import { expectRecordedFixture } from "./helpers/recordedFixture";
 
 const files = [
+  "pg-launch-missing-currency",
+  "pg-launch-invalid-currency",
+  "pg-launch-invalid-signature",
+  "pg-launch-unknown-station",
+  "pg-launch-success-v1",
+  "pg-launch-recall-v1",
   "pg-launch-callback",
   "pg-launch-recall",
   "pg-launch-recall-failure",
